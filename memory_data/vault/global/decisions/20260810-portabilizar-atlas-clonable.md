@@ -31,6 +31,11 @@ Se portabilizo el ecosistema Atlas para poder clonarlo y ejecutarlo en cualquier
 
 - setup.ps1 y check.ps1 probados en este PC: TODO OK.
 - pywebview instalado (para F2 chat flotante).
+- FIX MCP: setup.ps1 instalo mcp 2.0.0 (pip resolvio la mas nueva) que rompio
+  FastMCP (elimino mcp.server.fastmcp). Todos los MCP Python caian
+  ("Connection closed"). Se fijo mcp>=1.26.0,<2 en requirements.txt y se
+  anadieron las deps de mcp-windows-ai. Ahora opencode mcp list = 7/7 connected.
+  LECCION: nunca instalar mcp 2.x en este ecosistema.
 
 ## Pendiente
 
