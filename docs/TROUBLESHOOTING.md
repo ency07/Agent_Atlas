@@ -20,13 +20,26 @@
   (lo instala `setup.ps1`).
 - En opencode pide explícitamente: "usa la skill memory".
 
-### MCP memory falla al arrancar
+### MCP memory falla al arrancar ("Connection closed")
+- **Causa típica:** el venv tiene `mcp>=2.0.0`, que **eliminó** el módulo
+  `mcp.server.fastmcp` que usan todos los servers de Atlas. Verifica con:
+  `python -c "from mcp.server.fastmcp import FastMCP"`.
+- Fix: `python -m pip install "mcp>=1.26.0,<2"` (ver `requirements.txt`, el pin
+  `<2` es obligatorio).
 - El Python del venv debe tener `mcp` instalado:
   `python -m pip install -r requirements.txt`.
 - Comprueba el server standalone:
   `python .\mcp_memory_server.py --cli health` → debe dar `"status": "ok"`.
 - Revisa que `opencode.jsonc` no tenga placeholders `%%` sin reemplazar
   (regenera con `setup.ps1` o a mano — ver `docs/CONFIG_OPCODE.md`).
+- Diagnóstico del estado de todos los MCP: `opencode mcp list`.
+
+### MCP corel-draw / windows / playwright-visual fallan
+- Son del repo externo `mcp-windows-ai` y requieren sus deps (pyautogui,
+  pywin32, psutil, pyperclip, Pillow, requests) en el Python que los ejecuta.
+- Si no clonaste el repo, `setup.ps1` los deshabilita (correcto).
+- Si los clonaste pero fallan: `python -m pip install -r requirements.txt` en el
+  venv (ya las incluye).
 
 ### memory.db no existe / vacío
 - Es derivado: se regenera solo al arrancar el MCP. Si está corrupto, borra

@@ -76,10 +76,17 @@ foreach ($cand in @("E:\MCP\mcp-windows-ai", "D:\MCP\mcp-windows-ai", (Join-Path
 $template = Get-Content (Join-Path $ROOT "templates\opencode.jsonc.example") -Raw
 $template = $template.Replace("%%PYTHON_BIN%%", $pyEsc)
 $template = $template.Replace("%%PROJECT_ROOT%%", $rootEsc)
-if ($mcpWin) { $template = $template.Replace("%%MCP_WINDOWS_AI%%", $mcpWin.Replace("\", "\\")) }
+if ($mcpWin) {
+    $template = $template.Replace("%%MCP_WINDOWS_AI%%", $mcpWin.Replace("\", "\\"))
+    Write-Host "  MCP windows-ai -> $mcpWin"
+} else {
+    # Sin repo hermano: quitar los MCP corel-draw/windows/playwright-visual
+    # para que opencode no intente arrancarlos con rutas rotas.
+    $template = $template -replace '"(corel-draw|windows|playwright-visual)"\s*:\s*\{[^}]*\},\s*', ""
+    Write-Host "  MCP windows-ai: no detectado -> MCP corel/windows/playwright-visual DESHABILITADOS" -ForegroundColor DarkYellow
+}
 Set-Content -Path $cfgFile -Value $template -Encoding UTF8
 Write-Host "  generado: $cfgFile"
-if ($mcpWin) { Write-Host "  MCP windows-ai -> $mcpWin" } else { Write-Host "  MCP windows-ai: no detectado (se dejan placeholders, revisar docs/CONFIG_OPCODE.md)" -ForegroundColor DarkYellow }
 
 # ---------- 5. Skill memory ----------
 Write-Host "`n[5/6] Instalando skill memory..." -ForegroundColor Yellow

@@ -3,7 +3,10 @@
 # Requiere Python 3.11+
 
 # Servidor MCP de memoria (mcp_memory_server.py) — FastMCP
-mcp>=1.26.0
+# IMPORTANTE: NO usar mcp 2.x. El 2.0.0 elimino mcp.server.fastmcp y rompe
+# todos los servers Python de Atlas (memory, git, windows, corel, playwright-visual).
+# El pin <2 es obligatorio. mcp 1.29.0 probado OK.
+mcp>=1.26.0,<2
 
 # MCP de git (opencode.jsonc → "git" mcp)
 mcp-server-git>=2026.7.10
@@ -13,3 +16,15 @@ pywebview>=6.2.1
 
 # Navegación/automatización (MCP playwright, si se usa)
 playwright>=1.62.0
+
+# --- Dependencias del repo hermano mcp-windows-ai ---
+# (MCP windows / corel-draw / playwright-visual). El server de memoria NO las
+# necesita; son para automatizacion de Windows y diseno CorelDRAW.
+# Referencia: https://github.com/ency07/mcp-windows-ai
+pyautogui>=0.9.54
+pygetwindow>=0.0.9
+psutil>=5.9.8
+pyperclip>=1.8.2
+pywin32>=306
+Pillow>=10.0.0
+requests>=2.31.0

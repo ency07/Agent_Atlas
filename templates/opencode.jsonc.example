@@ -70,7 +70,9 @@
     "supabase": {
       "type": "remote",
       "url": "https://mcp.supabase.com/mcp?project_ref=TU_PROJECT_REF&features=docs%2Caccount%2Cdatabase%2Cdebugging%2Cdevelopment%2Cfunctions%2Cbranching",
-      "enabled": true
+      // Deshabilitado por defecto: requiere project_ref real de Supabase.
+      // Rellena el project_ref y pon "enabled": true si lo necesitas.
+      "enabled": false
     }
   }
 }

@@ -47,9 +47,8 @@ Lo que hace:
 5. Copia la skill `memory` a `%USERPROFILE%\.config\opencode\skills\memory\`.
 6. Corre `check.ps1`.
 
-> Si no detecta el repo `mcp-windows-ai`, deja placeholders en la config
-> (los MCP corel/windows/playwright-visual quedan deshabilitados). Para
-> habilitarlos ver [CONFIG_OPCODE.md](CONFIG_OPCODE.md).
+> Si no detecta el repo `mcp-windows-ai`, los MCP corel/windows/playwright-visual
+> quedan **deshabilitados** en la config (setup.ps1 los quita de la generada).
 
 ## 3. Proveedor de modelos
 
