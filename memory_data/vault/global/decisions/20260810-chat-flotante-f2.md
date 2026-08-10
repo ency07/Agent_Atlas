@@ -21,6 +21,11 @@ Se implemento el chat flotante de Atlas (F2 · Opcion A del roadmap).
   `Register-ScheduledTask` (schtasks escapaba mal las comillas y colgaba).
 - Anti-duplicados con mutex nombrado `Local\AtlasChatSingleInstance`
   (el socket lock con SO_REUSEADDR no funciona en Windows).
+- La ventana abre DIRECTO a una sesion nueva
+  (`/server/<b64>/session/<id>`): la raiz "/" del web UI v2 no muestra el
+  cuadro de prompt, solo la home con buscador de sesiones.
+- `atlas_chat.py` elige el binario opencode de MAYOR version
+  (`~/.opencode/bin` tenia 1.18.1 con web UI roto; npm global 1.18.16 ok).
 - `setup.ps1 -InstallF2` registra la tarea en PC nuevos.
 - roadmap.html: F2 marcado como Parcial (chat listo, falta daemon de captura).
 
@@ -32,6 +37,14 @@ Se implemento el chat flotante de Atlas (F2 · Opcion A del roadmap).
    `get_last_error()` capture ERROR_ALREADY_EXISTS.
 3. `opencode serve` + `OPENCODE_CONFIG_CONTENT={"model":...}` fija el modelo
    por defecto del chat web. cwd = Desktop -> memoria en modo global.
+4. La raiz del web UI de opencode v2 es SOLO la home (buscador de sesiones).
+   El cuadro de prompt solo aparece dentro de una sesion:
+   `/server/<base64 de la url>/session/<id>`. La sesion se crea con
+   `POST /session` (respuesta JSON con `id`).
+5. `POST /session/:id/message` con `{"parts":[{"type":"text","text":"..."}]}`
+   es el endpoint correcto del SDK (sin `parts` -> 400).
+6. Un `opencode serve` viejo (ej. 1.18.1) sirve un web UI desactualizado con
+   botones que no navegan. Actualizar el binario de `~/.opencode/bin`.
 
 ## Pendiente
 

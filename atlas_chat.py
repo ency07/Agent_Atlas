@@ -15,9 +15,12 @@ Uso:
 Requiere: pywebview (pip install pywebview), opencode CLI en PATH, WebView2.
 Se ejecuta normalmente con pythonw.exe (sin consola) via start_atlas_chat.vbs.
 """
+import base64
 import ctypes
+import http.client
 import json
 import os
+import re
 import shutil
 import socket
 import subprocess
@@ -45,19 +48,41 @@ def log(msg: str) -> None:
         pass
 
 
+def _bin_version(bin_path: str):
+    """Devuelve la version del binario opencode (o '' si no se puede)."""
+    try:
+        out = subprocess.run(
+            [bin_path, "--version"], capture_output=True, text=True, timeout=15
+        ).stdout.strip()
+        import re
+        m = re.search(r"\d+\.\d+\.\d+", out)
+        return m.group(0) if m else ""
+    except Exception:  # noqa: BLE001
+        return ""
+
+
 def find_opencode_bin():
-    """Localiza el binario de opencode (exe real o shim .cmd)."""
+    """Localiza el binario de opencode (exe real o shim .cmd).
+
+    Si hay varios, elige el de mayor version (evita usar binarios viejos
+    de ~/.opencode/bin que sirven un web UI desactualizado).
+    """
     cands = [
         Path.home() / ".opencode" / "bin" / "opencode.exe",
         Path.home() / "AppData" / "Roaming" / "npm" / "opencode.cmd",
+        Path.home() / "AppData" / "Roaming" / "npm" / "opencode.exe",
     ]
+    found = []
     for c in cands:
         if c.exists():
-            return str(c)
+            found.append((_bin_version(str(c)), str(c)))
     sh = shutil.which("opencode")
-    if sh:
-        return sh
-    return None
+    if sh and all(sh != f for _, f in found):
+        found.append((_bin_version(sh), sh))
+    if not found:
+        return None
+    found.sort(key=lambda t: tuple(int(p) for p in re.findall(r"\d+", t[0] or "0.0.0")), reverse=True)
+    return found[0][1]
 
 
 def server_up(port: int) -> bool:
@@ -179,6 +204,28 @@ OVERLAY_JS = """
 """
 
 
+def new_session_url(port: int):
+    """Crea una sesion via API y devuelve la URL directa a su chat.
+
+    El web UI de opencode v2 no muestra el cuadro de prompt en la raiz "/":
+    solo aparece al abrir /server/<b64>/session/<id>. Creamos la sesion con
+    POST /session y navegamos directo a esa ruta.
+    """
+    try:
+        b64 = base64.urlsafe_b64encode(f"http://{HOST}:{port}".encode()).decode().rstrip("=")
+        conn = http.client.HTTPConnection(HOST, port, timeout=15)
+        conn.request("POST", "/session", body=json.dumps({}), headers={"Content-Type": "application/json"})
+        resp = conn.getresponse()
+        data = json.loads(resp.read().decode("utf-8", errors="replace"))
+        conn.close()
+        sid = data.get("id")
+        if not sid:
+            return None
+        return f"http://{HOST}:{port}/server/{b64}/session/{sid}"
+    except Exception:  # noqa: BLE001
+        return None
+
+
 def main():
     server_only = "--server-only" in sys.argv
     port = PORT
@@ -224,11 +271,20 @@ def main():
         log("ya hay una ventana Atlas abierta; saliendo")
         raise SystemExit("Ya hay una ventana Atlas abierta.")
 
+    # 3) crear una sesion y apuntar la ventana directo a su chat
+    #    (la raiz "/" solo muestra la home sin cuadro de prompt).
+    chat_url = new_session_url(port)
+    if chat_url:
+        log(f"abriendo chat en {chat_url}")
+    else:
+        chat_url = url
+        log("aviso: no se pudo crear sesion; abriendo home")
+
     try:
         api = Api()
         win = webview.create_window(
             "Atlas",
-            url,
+            chat_url,
             width=420,
             height=640,
             min_size=(360, 480),
@@ -243,7 +299,7 @@ def main():
         webview.start()
     except Exception as exc:  # noqa: BLE001
         log(f"pywebview fallo ({exc}); abriendo en navegador")
-        webbrowser.open(url)
+        webbrowser.open(chat_url)
 
 
 if __name__ == "__main__":
