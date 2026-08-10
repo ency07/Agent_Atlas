@@ -32,3 +32,6 @@ Thumbs.db
 *.log
 tmp/
 .playwright-mcp/
+
+# --- Capturas / descargas sueltas ---
+*.png
