@@ -1,0 +1,15 @@
+﻿# Dependencias Python del venv para el ecosistema Atlas.
+# Instalar con: pip install -r requirements.txt
+# Requiere Python 3.11+
+
+# Servidor MCP de memoria (mcp_memory_server.py) — FastMCP
+mcp>=1.26.0
+
+# MCP de git (opencode.jsonc → "git" mcp)
+mcp-server-git>=2026.7.10
+
+# Chat flotante (F2) — ventana frameless siempre-al-frente
+pywebview>=6.2.1
+
+# Navegación/automatización (MCP playwright, si se usa)
+playwright>=1.62.0

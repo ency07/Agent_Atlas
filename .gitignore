@@ -1,0 +1,33 @@
+﻿# --- Estado derivado del servidor de memoria (NO versionar) ---
+memory_data/state/
+memory_data/inbox/
+
+# --- Python ---
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+*.egg-info/
+.pytest_cache/
+
+# --- Node ---
+node_modules/
+package-lock.json
+bun.lock
+
+# --- Secretos (nunca commitear) ---
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+
+# --- Editor / SO ---
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+
+# --- Salidas temporales / logs ---
+*.log
+tmp/
