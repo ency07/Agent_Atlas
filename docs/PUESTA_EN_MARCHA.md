@@ -104,12 +104,44 @@ python .\mcp_memory_server.py --cli health
 python .\mcp_memory_server.py --cli projects
 ```
 
-## 6. Siguiente: chat flotante (F2)
+## 6. Chat flotante (F2)
 
-El roadmap prevé un chat flotante al inicio de Windows (web → `opencode serve`
-con ventana frameless). La base ya está: `setup.ps1` instala `pywebview` y
-`opencode serve` funciona headless. Los pasos de implementación quedan en el
-roadmap (F2 · Opción A).
+El chat flotante es una ventana frameless siempre-al-frente que apunta al
+chat web de `opencode serve` (headless). La memoria de Atlas funciona ahí igual
+que en la terminal.
+
+### Arranque manual
+
+```powershell
+python .\atlas_chat.py                 # server + ventana flotante
+python .\atlas_chat.py --server-only   # solo el server (sin ventana)
+```
+
+- `pywebview` (WebView2) ya lo instala `setup.ps1`.
+- El modelo por defecto del chat es `omniroute/auto/best-chat` (cambiable con
+  `--model` o env `ATLAS_CHAT_MODEL`).
+- El server arranca en `127.0.0.1:4096`. Si ya corre, la ventana se reutiliza.
+- El log está en `atlas_chat.log` (junto al proyecto).
+
+### Autostart al iniciar Windows
+
+Registra la tarea `AtlasChat` (Task Scheduler, al iniciar sesión, oculta):
+
+```powershell
+powershell -ExecutionPolicy Bypass -File .\setup.ps1 -InstallF2
+```
+
+O manualmente (si prefieres no correr todo el setup):
+
+```powershell
+schtasks /Create /TN "AtlasChat" /TR "wscript.exe `"$PWD\start_atlas_chat.vbs`"" /SC ONLOGON /F
+```
+
+Para desinstalar el autostart:
+
+```powershell
+schtasks /Delete /TN "AtlasChat" /F
+```
 
 ## Checklist final
 

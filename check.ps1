@@ -69,6 +69,17 @@ if (Test-Path $cfg) {
     Report $false "opencode.jsonc no existe en $cfg (corre setup.ps1)"
 }
 
+# ---------- Chat flotante (F2) ----------
+Write-Host "`n[Chat flotante F2]"
+Report (Test-Path (Join-Path $ROOT "atlas_chat.py")) "atlas_chat.py presente"
+Report (Test-Path (Join-Path $ROOT "start_atlas_chat.vbs")) "start_atlas_chat.vbs presente"
+$f2 = Test-NetConnection -ComputerName 127.0.0.1 -Port 4096 -WarningAction SilentlyContinue
+if ($f2.TcpTestSucceeded) {
+    Report $true "opencode serve activo en 127.0.0.1:4096"
+} else {
+    Report $true "opencode serve 127.0.0.1:4096 apagado (normal si el chat no esta abierto)"
+}
+
 Write-Host "`n"
 if ($fails -eq 0) {
     Write-Host "==> TODO OK." -ForegroundColor Green

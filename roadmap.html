@@ -99,9 +99,11 @@
         <div class="pnum">F2 · ACTIVIDAD</div>
         <div class="ptitle">Activity Tracker + Atlas UI</div>
         <div class="pdesc">Daemon en background · captura ventana activa · chat flotante (Opción A) · dashboard · notificaciones</div>
-        <span class="status">🟡 Débil</span>
+        <span class="status">🟢 Parcial — chat flotante listo</span>
         <div class="expand">
           <b>UI:</b> Opción A = web → <code>opencode serve</code> (SDK 1.18.1 instalado). Migrable a B (nativa) / C (terminal) sin reescribir backend.<br>
+          <b>Hecho:</b> <code>atlas_chat.py</code> (pywebview frameless on-top → <code>127.0.0.1:4096</code>) + <code>start_atlas_chat.vbs</code> + autostart <code>AtlasChat</code> (Task Scheduler).<br>
+          <b>Pendiente:</b> daemon de captura de ventana activa → tabla <code>events</code> (F3 input).<br>
           <b>Traspasa a F3/F4/F5:</b> eventos continuos de actividad + tiempo por app.
         </div>
       </div>

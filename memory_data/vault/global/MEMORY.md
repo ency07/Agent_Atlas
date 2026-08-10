@@ -7,8 +7,10 @@
 
 ## Decisiones clave
 - [[20260810-portabilizar-atlas-clonable]]
+- [[20260810-chat-flotante-f2]]
 
 ## Notas recientes
+- [[20260810-chat-flotante-f2]] · 20260810-chat-flotante-f2
 - [[20260810-portabilizar-atlas-clonable]] · 20260810-portabilizar-atlas-clonable
 
 ## Sesiones recientes

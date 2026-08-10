@@ -31,3 +31,4 @@ Thumbs.db
 # --- Salidas temporales / logs ---
 *.log
 tmp/
+.playwright-mcp/

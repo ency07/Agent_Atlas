@@ -63,10 +63,21 @@
 
 ## Problemas de Windows
 
-### La ventana flotante (F2) no se ve / no es "siempre al frente"
+### El chat flotante (F2) no se ve / no es "siempre al frente"
 - Requiere WebView2 runtime (casi siempre presente en Win10/11).
 - `pywebview` usa el runtime de Edge. Si falla, reinstala WebView2 desde
   https://developer.microsoft.com/microsoft-edge/webview2/
+- Si `pywebview` crashea, `atlas_chat.py` abre el navegador por defecto
+  automáticamente. Revisa `atlas_chat.log` para el error real.
+
+### El chat flotante no arranca ("No se encontro opencode CLI")
+- `atlas_chat.py` busca `opencode` en `~\.opencode\bin\opencode.exe`, en el npm
+  global y en el PATH. Instala con `npm install -g opencode-ai`.
+
+### El chat flotante abre pero dice "ya hay una ventana Atlas abierta"
+- Es la protección anti-duplicados. Si de verdad no ves ninguna ventana, mata el
+  proceso pythonw y reintenta:
+  `Get-Process pythonw | Stop-Process -Force`
 
 ### `setup.ps1` bloqueado por ExecutionPolicy
 - Ejecuta: `powershell -ExecutionPolicy Bypass -File .\setup.ps1`

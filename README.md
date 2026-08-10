@@ -15,10 +15,12 @@ Componentes:
 | Archivo | Rol |
 |---|---|
 | `mcp_memory_server.py` | Servidor MCP de memoria (FastMCP). Núcleo. |
+| `atlas_chat.py` | **Chat flotante (F2)**: `opencode serve` + ventana frameless. |
+| `start_atlas_chat.vbs` | Autostart oculto del chat flotante (Task Scheduler). |
 | `memory_data/vault/` | Bóveda Obsidian — **la memoria viaja con el repo**. |
 | `memory_data/state/` | SQLite + índices derivados (NO se versiona). |
 | `roadmap.html` | Roadmap por fases (F1–F5) y trazabilidad. |
-| `setup.ps1` | Bootstrap en un PC nuevo (venv, deps, config). |
+| `setup.ps1` | Bootstrap en un PC nuevo (venv, deps, config, opc. F2). |
 | `check.ps1` | Diagnóstico del ecosistema. |
 | `templates/` | Plantillas de config + skill memory (portables). |
 | `docs/` | Guías: instalación, arquitectura, config, qué-no-hacer. |
@@ -65,6 +67,26 @@ Comandos útiles del server:
 python mcp_memory_server.py --cli health          # diagnóstico
 python mcp_memory_server.py --cli init <proyecto> # crear proyecto
 ```
+
+## Chat flotante (F2)
+
+Ventana frameless siempre-al-frente que usa el chat web de `opencode serve`
+con toda la memoria de Atlas:
+
+```powershell
+python atlas_chat.py                  # arrancar el chat flotante
+python atlas_chat.py --server-only    # solo server (sin ventana)
+```
+
+Autostart al iniciar Windows:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File setup.ps1 -InstallF2
+schtasks /Delete /TN "AtlasChat" /F   # desinstalar autostart
+```
+
+El server vive en `127.0.0.1:4096`; log en `atlas_chat.log`. Detalle en
+[`docs/PUESTA_EN_MARCHA.md`](docs/PUESTA_EN_MARCHA.md).
 
 ## Documentación
 

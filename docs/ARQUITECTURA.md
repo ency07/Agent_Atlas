@@ -101,8 +101,9 @@ En `opencode.jsonc` el server `memory` se declara como:
 Ver [roadmap.html](../roadmap.html). Resumen:
 
 - **F1 · Memory Core** — este repo (estable).
-- **F2 · Activity Tracker + Atlas UI** — chat flotante vía `opencode serve`
-  (web → API). Base instalada (`pywebview`, `serve` headless OK).
+- **F2 · Activity Tracker + Atlas UI** — chat flotante implementado:
+  `atlas_chat.py` (pywebview frameless on-top) + `opencode serve` headless en
+  `127.0.0.1:4096`. Autostart opcional vía tarea `AtlasChat` (Task Scheduler).
 - **F3 · Anti-distracción** — clasificación de apps.
 - **F4 · Money/Content Engines** — métricas $ (requiere alimentar datos).
 - **F5 · Trading Tutor** — análisis de trades (requiere export de TradingView).

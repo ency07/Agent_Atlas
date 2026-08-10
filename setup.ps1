@@ -1,10 +1,14 @@
 ﻿# ============================================================
 # setup.ps1 — Bootstrap de Atlas en un PC nuevo
 # Uso:  powershell -ExecutionPolicy Bypass -File setup.ps1
+#       powershell -ExecutionPolicy Bypass -File setup.ps1 -InstallF2
 # Pre-requisitos: Node.js >= 20, Python >= 3.11 en PATH.
 # No toca secretos. Genera %USERPROFILE%\.config\opencode\opencode.jsonc
 # a partir de templates/opencode.jsonc.example resolviendo rutas.
+# -InstallF2: ademas registra la tarea de Windows que abre el chat
+#   flotante (atlas_chat.py) al iniciar sesion.
 # ============================================================
+param([switch]$InstallF2)
 $ErrorActionPreference = "Stop"
 [Console]::OutputEncoding = [System.Text.Encoding]::UTF8
 
@@ -95,11 +99,29 @@ New-Item -ItemType Directory -Path $skillDir -Force | Out-Null
 Copy-Item (Join-Path $ROOT "templates\skills\memory\SKILL.md") (Join-Path $skillDir "SKILL.md") -Force
 Write-Host "  skill -> $skillDir\SKILL.md"
 
-# ---------- 6. Diagnostico ----------
-Write-Host "`n[6/6] Diagnostico..." -ForegroundColor Yellow
+# ---------- 6. Chat flotante (F2, opcional) ----------
+if ($InstallF2) {
+    Write-Host "`n[6/7] Registrando autostart del chat flotante (F2)..." -ForegroundColor Yellow
+    $vbs = Join-Path $ROOT "start_atlas_chat.vbs"
+    if (-not (Test-Path $vbs)) { Write-Host "  AVISO: no existe start_atlas_chat.vbs" -ForegroundColor DarkYellow }
+    $vbsSafe = $vbs.Replace("`"", "`"`"")
+    & schtasks /Create /TN "AtlasChat" /TR "wscript.exe `"$vbsSafe`"" /SC ONLOGON /F | Out-Null
+    if ($LASTEXITCODE -eq 0) {
+        Write-Host "  tarea AtlasChat registrada (autostart al iniciar sesion)"
+        Write-Host "  -> abre el chat flotante: $vbs"
+    } else {
+        Write-Host "  ERROR al registrar la tarea (schtasks exit=$LASTEXITCODE)" -ForegroundColor Red
+    }
+} else {
+    Write-Host "`n[6/7] Chat flotante F2: omitido (usa -InstallF2 para registrarlo en autostart)" -ForegroundColor DarkGray
+}
+
+# ---------- 7. Diagnostico ----------
+Write-Host "`n[7/7] Diagnostico..." -ForegroundColor Yellow
 & (Join-Path $ROOT "check.ps1")
 
 Write-Host "`n==> Listo. Proximos pasos:" -ForegroundColor Green
 Write-Host "  1. Ejecuta:  opencode   (en cualquier carpeta; la memoria carga sola)"
 Write-Host "  2. Verifica la memoria:  opencode run 'dime donde quedamos'"
-Write-Host "  3. Revisa docs/PUESTA_EN_MARCHA.md si algo falla."
+Write-Host "  3. Chat flotante:  python atlas_chat.py  (o .\start_atlas_chat.vbs)"
+Write-Host "  4. Revisa docs/PUESTA_EN_MARCHA.md si algo falla."
