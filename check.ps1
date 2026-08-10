@@ -29,8 +29,14 @@ Report ($omniroute.TcpTestSucceeded) "omniroute localhost:20128 (proveedor auto/
 # ---------- Entorno Python ----------
 Write-Host "`n[Entorno Python]"
 $pyBin = Join-Path $ROOT ".venv\Scripts\python.exe"
+if (-not (Test-Path $pyBin)) {
+    # fallback: python del PATH (util antes de correr setup.ps1)
+    $pyInPath = Get-Command python -ErrorAction SilentlyContinue
+    if ($pyInPath) { $pyBin = $pyInPath.Source }
+}
 if (Test-Path $pyBin) {
-    Report $true "venv presente: $pyBin"
+    $isVenv = $pyBin -like "*.venv*"
+    Report $true "$(if ($isVenv) {'venv presente'} else {'python del PATH (sin .venv, corre setup.ps1)'}): $pyBin"
     $mcp = & $pyBin -c "import mcp; print('ok')" 2>$null
     Report ($mcp -match "ok") "paquete 'mcp' instalado en el venv"
     $gitmcp = & $pyBin -m pip show mcp-server-git 2>$null
