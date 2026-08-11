@@ -58,6 +58,22 @@ if (Test-Path $serverPy) {
     Report $false "faltan archivos del proyecto"
 }
 
+# ---------- Git hook (F1) ----------
+Write-Host "`n[Git hook F1]"
+Push-Location $ROOT
+$hookPath = git config --get core.hooksPath 2>$null
+Pop-Location
+Report ($hookPath -eq "hooks") "core.hooksPath = $hookPath"
+Report (Test-Path (Join-Path $ROOT "hooks\post-commit")) "hooks/post-commit existe"
+
+# ---------- Backup (F1) ----------
+Write-Host "`n[Backup F1]"
+$taskBk = Get-ScheduledTask -TaskName "AtlasBackup" -ErrorAction SilentlyContinue
+Report ($null -ne $taskBk) "tarea AtlasBackup en Task Scheduler"
+Report (Test-Path (Join-Path $ROOT "start_atlas_backup.vbs")) "start_atlas_backup.vbs existe"
+$bkCount = (Get-ChildItem (Join-Path $ROOT "memory_data\backup\atlas_*.zip") -ErrorAction SilentlyContinue).Count
+Report ($bkCount -gt 0) "backups existentes: $bkCount"
+
 # ---------- Config opencode ----------
 Write-Host "`n[Config opencode]"
 $cfg = Join-Path $env:USERPROFILE ".config\opencode\opencode.jsonc"

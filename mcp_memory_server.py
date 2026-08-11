@@ -33,10 +33,12 @@ Convenciones:
 import json
 import os
 import re
+import shutil
 import sqlite3
 import sys
 import time
 import uuid
+import zipfile
 from datetime import datetime, timezone
 from pathlib import Path
 
@@ -677,6 +679,54 @@ def tool_projects(limit: int = 20):
     projects.sort(key=lambda p: p.get("last_session", ""), reverse=True)
     return json.dumps({"count": len(projects), "projects": projects[:limit]}, ensure_ascii=False, indent=2)
 
+def tool_backup(keep: int = 14):
+    """Crea un zip de vault+DB y deja solo los `keep` mas recientes."""
+    BACKUP_DIR = MEMORY_ROOT / "backup"
+    BACKUP_DIR.mkdir(parents=True, exist_ok=True)
+    # checkpoint WAL para que el zip contenga la DB coherente
+    if DB_PATH.exists():
+        try:
+            conn = db_connect()
+            conn.execute("PRAGMA wal_checkpoint(TRUNCATE)")
+            conn.close()
+        except Exception:
+            pass
+    ts = datetime.now(timezone.utc).strftime("%Y%m%d_%H%M%S")
+    zpath = BACKUP_DIR / f"atlas_{ts}.zip"
+    with zipfile.ZipFile(str(zpath), "w", zipfile.ZIP_DEFLATED) as zf:
+        # vault completo
+        for root, dirs, files in os.walk(str(VAULT_ROOT)):
+            for fn in files:
+                fp = Path(root) / fn
+                zf.write(str(fp), f"vault/{fp.relative_to(VAULT_ROOT)}")
+        # state/ (DB)
+        for fp in STATE_DIR.glob("memory.db*"):
+            zf.write(str(fp), f"state/{fp.name}")
+    backups = sorted(BACKUP_DIR.glob("atlas_*.zip"))
+    deleted = []
+    while len(backups) > keep:
+        old = backups.pop(0)
+        old.unlink()
+        deleted.append(old.name)
+    return json.dumps({"success": True, "backup": str(zpath), "kept": len(backups), "deleted": deleted,
+                       "size_bytes": zpath.stat().st_size}, ensure_ascii=False)
+
+def tool_restore(backup_file: str = ""):
+    """Si no se da ruta, lista backups. Si se da, restaura."""
+    BACKUP_DIR = MEMORY_ROOT / "backup"
+    if not backup_file:
+        backups = sorted(BACKUP_DIR.glob("atlas_*.zip"), reverse=True)
+        items = [{"name": b.name, "size_bytes": b.stat().st_size,
+                  "created": datetime.fromtimestamp(b.stat().st_mtime, tz=timezone.utc).isoformat()} for b in backups]
+        return json.dumps({"available": len(items), "backups": items}, ensure_ascii=False, indent=2)
+    src = Path(backup_file) if Path(backup_file).is_absolute() else BACKUP_DIR / backup_file
+    if not src.exists():
+        return json.dumps({"error": f"backup no encontrado: {src}"})
+    # restaurar
+    with zipfile.ZipFile(str(src), "r") as zf:
+        zf.extractall(str(MEMORY_ROOT))
+    return json.dumps({"success": True, "restored_from": str(src), "vault": str(VAULT_ROOT), "db": str(DB_PATH)})
+
 def cli_hook_event(payload_json: str):
     INBOX_DIR.mkdir(parents=True, exist_ok=True)
     try:
@@ -722,6 +772,8 @@ def cli_dispatch(cmd: str, args: dict):
     if cmd == "health": return tool_health()
     if cmd == "gc": return tool_gc(**args)
     if cmd == "projects": return tool_projects(**args)
+    if cmd == "backup": return tool_backup(**args)
+    if cmd == "restore": return tool_restore(**args)
     return json.dumps({"error": f"comando CLI desconocido: {cmd}"})
 
 def main():

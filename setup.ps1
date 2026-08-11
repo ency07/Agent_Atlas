@@ -16,7 +16,7 @@ $ROOT = $PSScriptRoot
 Write-Host "==> Atlas bootstrap en: $ROOT" -ForegroundColor Cyan
 
 # ---------- 1. Pre-requisitos ----------
-Write-Host "`n[1/6] Verificando pre-requisitos..." -ForegroundColor Yellow
+Write-Host "`n[1/8] Verificando pre-requisitos..." -ForegroundColor Yellow
 
 function Find-Command($name) {
     $c = Get-Command $name -ErrorAction SilentlyContinue
@@ -33,7 +33,7 @@ if (-not $python) { Write-Host "FALTA: Python. Instala 3.11+ desde https://pytho
 Write-Host "  python -> $python"
 
 # ---------- 2. opencode CLI ----------
-Write-Host "`n[2/6] opencode CLI..." -ForegroundColor Yellow
+Write-Host "`n[2/8] opencode CLI..." -ForegroundColor Yellow
 $oc = Find-Command "opencode"
 if (-not $oc) {
     Write-Host "  instalando opencode-ai (npm global)..."
@@ -45,7 +45,7 @@ if (-not $oc) {
 }
 
 # ---------- 3. venv + deps Python ----------
-Write-Host "`n[3/6] Entorno Python..." -ForegroundColor Yellow
+Write-Host "`n[3/8] Entorno Python..." -ForegroundColor Yellow
 $venv = Join-Path $ROOT ".venv"
 if (-not (Test-Path (Join-Path $venv "Scripts\python.exe"))) {
     Write-Host "  creando venv en $venv"
@@ -61,7 +61,7 @@ if (Test-Path (Join-Path $ROOT "requirements.txt")) {
 }
 
 # ---------- 4. Config opencode ----------
-Write-Host "`n[4/6] Generando opencode.jsonc..." -ForegroundColor Yellow
+Write-Host "`n[4/8] Generando opencode.jsonc..." -ForegroundColor Yellow
 $cfgDir = Join-Path $env:USERPROFILE ".config\opencode"
 $cfgFile = Join-Path $cfgDir "opencode.jsonc"
 New-Item -ItemType Directory -Path $cfgDir -Force | Out-Null
@@ -93,35 +93,46 @@ Set-Content -Path $cfgFile -Value $template -Encoding UTF8
 Write-Host "  generado: $cfgFile"
 
 # ---------- 5. Skill memory ----------
-Write-Host "`n[5/6] Instalando skill memory..." -ForegroundColor Yellow
+Write-Host "`n[5/8] Instalando skill memory..." -ForegroundColor Yellow
 $skillDir = Join-Path $cfgDir "skills\memory"
 New-Item -ItemType Directory -Path $skillDir -Force | Out-Null
 Copy-Item (Join-Path $ROOT "templates\skills\memory\SKILL.md") (Join-Path $skillDir "SKILL.md") -Force
 Write-Host "  skill -> $skillDir\SKILL.md"
 
-# ---------- 6. Chat flotante (F2, opcional) ----------
-if ($InstallF2) {
-    Write-Host "`n[6/7] Registrando autostart del chat flotante (F2)..." -ForegroundColor Yellow
-    $vbs = Join-Path $ROOT "start_atlas_chat.vbs"
-    if (-not (Test-Path $vbs)) { Write-Host "  AVISO: no existe start_atlas_chat.vbs" -ForegroundColor DarkYellow }
-    $vbsSafe = $vbs.Replace("`"", "`"`"")
-    & schtasks /Create /TN "AtlasChat" /TR "wscript.exe `"$vbsSafe`"" /SC ONLOGON /F | Out-Null
-    if ($LASTEXITCODE -eq 0) {
-        Write-Host "  tarea AtlasChat registrada (autostart al iniciar sesion)"
-        Write-Host "  -> abre el chat flotante: $vbs"
-    } else {
-        Write-Host "  ERROR al registrar la tarea (schtasks exit=$LASTEXITCODE)" -ForegroundColor Red
-    }
+# ---------- 6. Git hook (F1) ----------
+Write-Host "`n[6/8] Git hook (core.hooksPath)..." -ForegroundColor Yellow
+Push-Location $ROOT
+git config core.hooksPath hooks
+$hookOk = git config --get core.hooksPath
+Pop-Location
+if ($hookOk -eq "hooks") {
+    Write-Host "  core.hooksPath -> hooks (post-commit activo)"
 } else {
-    Write-Host "`n[6/7] Chat flotante F2: omitido (usa -InstallF2 para registrarlo en autostart)" -ForegroundColor DarkGray
+    Write-Host "  AVISO: no se pudo configurar core.hooksPath" -ForegroundColor DarkYellow
 }
 
-# ---------- 7. Diagnostico ----------
-Write-Host "`n[7/7] Diagnostico..." -ForegroundColor Yellow
+# ---------- 7. Backup diario (F1) ----------
+Write-Host "`n[7/8] Backup diario (Task Scheduler)..." -ForegroundColor Yellow
+$vbsBk = Join-Path $ROOT "start_atlas_backup.vbs"
+if (Test-Path $vbsBk) {
+    $vbsBkSafe = $vbsBk.Replace("`"", "`"`"")
+    & schtasks /Create /TN "AtlasBackup" /TR "wscript.exe `"$vbsBkSafe`"" /SC DAILY /ST 03:00 /F | Out-Null
+    if ($LASTEXITCODE -eq 0) {
+        Write-Host "  tarea AtlasBackup registrada (diario 03:00)"
+    } else {
+        Write-Host "  AVISO: no se pudo registrar tarea de backup (schtasks exit=$LASTEXITCODE)" -ForegroundColor DarkYellow
+    }
+} else {
+    Write-Host "  AVISO: start_atlas_backup.vbs no encontrado" -ForegroundColor DarkYellow
+}
+
+# ---------- 8. Diagnostico ----------
+Write-Host "`n[8/8] Diagnostico..." -ForegroundColor Yellow
 & (Join-Path $ROOT "check.ps1")
 
 Write-Host "`n==> Listo. Proximos pasos:" -ForegroundColor Green
 Write-Host "  1. Ejecuta:  opencode   (en cualquier carpeta; la memoria carga sola)"
 Write-Host "  2. Verifica la memoria:  opencode run 'dime donde quedamos'"
 Write-Host "  3. Chat flotante:  python atlas_chat.py  (o .\start_atlas_chat.vbs)"
-Write-Host "  4. Revisa docs/PUESTA_EN_MARCHA.md si algo falla."
+Write-Host "  4. Backup manual:  python mcp_memory_server.py --cli backup"
+Write-Host "  5. Revisa docs/PUESTA_EN_MARCHA.md si algo falla."
