@@ -70,9 +70,24 @@ Report (Test-Path (Join-Path $ROOT "hooks\post-commit")) "hooks/post-commit exis
 Write-Host "`n[Backup F1]"
 $taskBk = Get-ScheduledTask -TaskName "AtlasBackup" -ErrorAction SilentlyContinue
 Report ($null -ne $taskBk) "tarea AtlasBackup en Task Scheduler"
+$argsBk = if ($taskBk) { $taskBk.Actions[0].Arguments } else { "" }
+Report (-not [string]::IsNullOrWhiteSpace($argsBk)) "tarea AtlasBackup con script apuntado (Args no vacio)"
 Report (Test-Path (Join-Path $ROOT "start_atlas_backup.vbs")) "start_atlas_backup.vbs existe"
 $bkCount = (Get-ChildItem (Join-Path $ROOT "memory_data\backup\atlas_*.zip") -ErrorAction SilentlyContinue).Count
 Report ($bkCount -gt 0) "backups existentes: $bkCount"
+
+# ---------- Validacion global: ninguna tarea Atlas con Args vacio ----------
+Write-Host "`n[Validacion tareas Atlas (anti-args-vacio)]"
+$allAtlas = @("AtlasChat","AtlasActivity","AtlasBackup","AtlasSecretReminder")
+$broken = 0
+foreach ($tn in $allAtlas) {
+    $tt = Get-ScheduledTask -TaskName $tn -ErrorAction SilentlyContinue
+    if (-not $tt) { Report $false "tarea $tn no registrada"; $broken++ ; continue }
+    $aa = $tt.Actions[0].Arguments
+    if ([string]::IsNullOrWhiteSpace($aa)) { Report $false "tarea $tn con Args VACIOS (wscript sin script)"; $broken++ }
+    else { Report $true "tarea $tn con script correcto" }
+}
+if ($broken -eq 0) { Report $true "ninguna tarea Atlas con Args vacio" }
 
 # ---------- Daemon actividad (F2) ----------
 Write-Host "`n[Daemon actividad F2]"

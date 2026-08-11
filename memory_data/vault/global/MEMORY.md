@@ -9,12 +9,14 @@
 - [[20260810-213157-f1-y-f2-completadas-atlas-al-100-en-core]]
 - [[20260810-chat-flotante-f2]]
 - [[20260810-portabilizar-atlas-clonable]]
+- [[20260811-100414-20260811-endurecimiento-produccion-6-pun]]
 
 ## Notas recientes
 - [[20260810-atlas-escucha-y-actua]] · 20260810-atlas-escucha-y-actua
 - [[20260810-213157-f1-y-f2-completadas-atlas-al-100-en-core]] · 20260810-213157-f1-y-f2-completadas-atlas-al-100-en-core
 - [[20260810-chat-flotante-f2]] · 20260810-chat-flotante-f2
 - [[20260810-portabilizar-atlas-clonable]] · 20260810-portabilizar-atlas-clonable
+- [[20260811-100414-20260811-endurecimiento-produccion-6-pun]] · 20260811-100414-20260811-endurecimiento-produccion-6-pun
 
 ## Sesiones recientes
 - (sin sesiones aun)
