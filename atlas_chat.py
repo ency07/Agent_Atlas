@@ -161,6 +161,7 @@ class Api:
 
 OVERLAY_JS = """
 (function () {
+  // --- Drag bar ---
   var bar = document.createElement('div');
   bar.id = 'atlas-drag-bar';
   bar.innerHTML =
@@ -200,6 +201,38 @@ OVERLAY_JS = """
     if (window.pywebview && pywebview.api) pywebview.api.close();
   };
   document.body.appendChild(bar);
+
+  // --- Buscar input y hacer foco ---
+  var attempts = 0;
+  var maxAttempts = 30; // 30 * 500ms = 15s
+  var timer = setInterval(function () {
+    attempts++;
+    // Buscar textarea o input de texto (varios selectores por si cambia el UI)
+    var ta = document.querySelector('textarea[placeholder*="Pregunta"]') ||
+             document.querySelector('textarea[placeholder*="pregunta"]') ||
+             document.querySelector('textarea') ||
+             document.querySelector('input[type="text"][placeholder*="Pregunta"]') ||
+             document.querySelector('[contenteditable="true"]');
+    if (ta) {
+      clearInterval(timer);
+      ta.scrollIntoView({behavior: 'smooth', block: 'center'});
+      setTimeout(function () { ta.focus(); }, 300);
+    } else if (attempts >= maxAttempts) {
+      clearInterval(timer);
+      // no hay input: crear sesion nueva via API y navegar (evita home sin prompt)
+      try {
+        fetch('/session', {method:'POST', headers:{'Content-Type':'application/json'}, body:'{}'})
+          .then(function(r){return r.json();})
+          .then(function(d){
+            if (d && d.id) {
+              var b64 = btoa(location.origin).replace(/=/g,'');
+              location.href = location.origin + '/server/' + b64 + '/session/' + d.id;
+            } else { location.reload(); }
+          })
+          .catch(function(){ location.reload(); });
+      } catch (e) { location.reload(); }
+    }
+  }, 500);
 })();
 """
 
@@ -286,8 +319,8 @@ def main():
             "Atlas",
             chat_url,
             width=420,
-            height=640,
-            min_size=(360, 480),
+            height=720,
+            min_size=(360, 560),
             frameless=True,
             on_top=True,
             resizable=True,
@@ -295,7 +328,8 @@ def main():
             js_api=api,
         )
         api.set_window(win)
-        win.events.loaded += lambda: win.evaluate_js(OVERLAY_JS)
+        # delay 2s para que React/Next.js monte el DOM antes de inyectar overlay+input-focus
+        win.events.loaded += lambda: (time.sleep(2), win.evaluate_js(OVERLAY_JS))
         webview.start()
     except Exception as exc:  # noqa: BLE001
         log(f"pywebview fallo ({exc}); abriendo en navegador")
