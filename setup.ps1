@@ -128,22 +128,20 @@ if (Test-Path $vbsBk) {
 
 # ---------- 8. Daemon actividad (F2) ----------
 Write-Host "`n[8/9] Daemon actividad (F2)..." -ForegroundColor Yellow
-$actPy = Join-Path $ROOT "atlas_activity.py"
-if (Test-Path $actPy) {
-    $pyAct = Join-Path $ROOT ".venv\Scripts\python.exe"
-    $actArgs = "`"$pyAct`" `"$actPy`""
-    $action = New-ScheduledTaskAction -Execute 'python.exe' -Argument "`"$actPy`""
+$actVbs = Join-Path $ROOT "start_atlas_activity.vbs"
+if (Test-Path $actVbs) {
+    $action = New-ScheduledTaskAction -Execute 'wscript.exe' -Argument "`"$actVbs`""
     $trigger = New-ScheduledTaskTrigger -AtLogOn
     $settings = New-ScheduledTaskSettingsSet -AllowStartIfOnBatteries -DontStopIfGoingOnBatteries -ExecutionTimeLimit (New-TimeSpan -Hours 0) -RestartCount 3 -RestartInterval (New-TimeSpan -Minutes 1)
     Register-ScheduledTask -TaskName 'AtlasActivity' -Action $action -Trigger $trigger -Settings $settings -Force | Out-Null
     $task = Get-ScheduledTask -TaskName 'AtlasActivity' -ErrorAction SilentlyContinue
     if ($task) {
-        Write-Host "  tarea AtlasActivity registrada (autostart al iniciar sesion, restart on failure)"
+        Write-Host "  tarea AtlasActivity registrada via wscript (autostart al iniciar sesion, restart on failure)"
     } else {
         Write-Host "  AVISO: no se pudo registrar tarea AtlasActivity" -ForegroundColor DarkYellow
     }
 } else {
-    Write-Host "  AVISO: atlas_activity.py no encontrado" -ForegroundColor DarkYellow
+    Write-Host "  AVISO: start_atlas_activity.vbs no encontrado" -ForegroundColor DarkYellow
 }
 
 # ---------- 9. Diagnostico ----------

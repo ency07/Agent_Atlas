@@ -93,6 +93,32 @@ def server_up(port: int) -> bool:
         return False
 
 
+def get_server_model(port: int):
+    """Devuelve el modelo activo del server (o '' si no responde)."""
+    try:
+        with urllib.request.urlopen(f"http://{HOST}:{port}/config", timeout=3) as r:
+            return json.loads(r.read()).get("model", "")
+    except Exception:
+        return ""
+
+
+def stop_server(port: int):
+    """Mata los procesos `opencode serve` que escuchan en el puerto dado."""
+    try:
+        for p in subprocess.check_output(
+            ["powershell", "-NoProfile", "-Command",
+             f"Get-CimInstance Win32_Process | Where-Object {{ $_.CommandLine -match 'serve --port={port}' }} | ForEach-Object {{ $_.ProcessId }}"],
+            timeout=10, text=True,
+        ).split():
+            pid = int(p.strip())
+            if pid > 0:
+                os.kill(pid, 9)
+                log(f"server anterior ({pid}) detenido para aplicar modelo")
+        time.sleep(2)
+    except Exception:
+        pass
+
+
 def start_server(opencode_bin: str, port: int, model: str):
     """Lanza opencode serve oculto con el modelo por defecto elegido."""
     log(f"iniciando opencode serve en {HOST}:{port} (modelo={model})")
@@ -277,7 +303,25 @@ def main():
 
     # 1) server ya corriendo?
     if server_up(port):
-        log(f"server ya activo en {HOST}:{port}; reutilizando")
+        cur = get_server_model(port)
+        if cur and cur != model:
+            log(f"server con modelo '{cur}' != '{model}'; reiniciando con modelo correcto")
+            stop_server(port)
+            start_server(opencode_bin, port, model)
+            log("esperando a que el nuevo server responda...")
+            deadline = time.time() + 40
+            ok = False
+            while time.time() < deadline:
+                if server_up(port):
+                    ok = True
+                    break
+                time.sleep(1)
+            if not ok:
+                log(f"ERROR: el server no respondio tras reinicio")
+                raise SystemExit("opencode serve no arranco a tiempo tras reinicio (ver atlas_chat.log)")
+            log("server reiniciado con modelo correcto")
+        else:
+            log(f"server ya activo en {HOST}:{port}; modelo={cur}; reutilizando")
     else:
         start_server(opencode_bin, port, model)
         log("esperando a que el server responda...")
