@@ -16,11 +16,18 @@ Componentes:
 |---|---|
 | `mcp_memory_server.py` | Servidor MCP de memoria (FastMCP). Núcleo. |
 | `atlas_chat.py` | **Chat flotante (F2)**: `opencode serve` + ventana frameless. |
+| `atlas_activity.py` | **Daemon de actividad (F2)**: captura ventana activa + bandeja. |
+| `atlas_web/api.js` | Wrapper fino UI↔opencode serve. |
+| `atlas_web/dashboard.html` | Dashboard base de actividad. |
 | `start_atlas_chat.vbs` | Autostart oculto del chat flotante (Task Scheduler). |
+| `start_atlas_backup.vbs` | Backup diario oculto via Task Scheduler. |
+| `hooks/post-commit` | Git hook portable → inbox/. |
 | `memory_data/vault/` | Bóveda Obsidian — **la memoria viaja con el repo**. |
-| `memory_data/state/` | SQLite + índices derivados (NO se versiona). |
-| `roadmap.html` | Roadmap por fases (F1–F5) y trazabilidad. |
-| `setup.ps1` | Bootstrap en un PC nuevo (venv, deps, config, opc. F2). |
+| `memory_data/state/` | SQLite + heartbeat + flags (NO se versiona). |
+| `memory_data/backup/` | Backups zip (gitignored, retención 14 copias). |
+| `HANDOFF.md` | Documento de estado del proyecto (léelo primero). |
+| `roadmap.html` | Roadmap por fases (F1–F6) y trazabilidad. |
+| `setup.ps1` | Bootstrap en un PC nuevo (venv, deps, config, hook, backup, daemon). |
 | `check.ps1` | Diagnóstico del ecosistema. |
 | `templates/` | Plantillas de config + skill memory (portables). |
 | `docs/` | Guías: instalación, arquitectura, config, qué-no-hacer. |

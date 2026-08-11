@@ -24,31 +24,32 @@ ul{margin:6px 0 6px 18px}
 
 <h2>01 · Diagrama de fases</h2>
 
-<div class="card g"><b>F1 · CORE — Memory Core</b><span class="chip cg">🟢 Estable</span>
+<div class="card g"><b>F1 · CORE — Memory Core</b><span class="chip cg">🟢 COMPLETADA 100%</span>
 <ul>
-<li><b>Entregables:</b> <code>mcp_memory_server.py</code> · <code>state/memory.db</code> · <code>vault/</code> (global + proyectos) · skill memory · git hook → <code>inbox/</code> · <code>opencode.jsonc</code> · <code>identity.md</code> (Atlas) · <b>[v1.1]</b> backup diario + script de restore</li>
-<li><b>[v1.1] Gates de salida:</b> 10 tools OK · escritura concurrente sin corrupción · <code>memory_session_recover</code> OK · restore de backup OK · el server solo escribe dentro de <code>vault/</code> · secretos redactados</li>
+<li><b>Entregables:</b> <code>mcp_memory_server.py</code> · <code>state/memory.db</code> · <code>vault/</code> (global + proyectos) · skill memory · git hook → <code>inbox/</code> · <code>opencode.jsonc</code> · <code>identity.md</code> (Atlas) · backup diario + restore</li>
+<li><b>Gates de salida:</b> 15 tools OK · escritura concurrente sin corrupción · <code>memory_session_recover</code> OK · restore de backup OK · el server solo escribe dentro de <code>vault/</code> · secretos redactados · git hook portable → <code>hooks/post-commit</code> (core.hooksPath)</li>
 <li><b>Traspasa a F2:</b> tabla <code>events</code> (app, window_title, category, monetizable, duration_seconds, project) sin migraciones · skill listo para cualquier UI</li>
 </ul></div>
 
-<div class="card y"><b>F2 · ACTIVIDAD — Activity Tracker + Atlas UI</b><span class="chip cy">🟡 Débil</span>
+<div class="card g"><b>F2 · ACTIVIDAD — Activity Tracker + Atlas UI</b><span class="chip cg">🟢 COMPLETADA 100%</span>
 <ul>
-<li><b>Entregables:</b> daemon background · captura ventana activa ~10s · chat flotante (Opción A: web → <code>opencode serve</code> SDK 1.18.1) · dashboard base · notificaciones · <b>[v1.1]</b> bandeja con estado 🟢/🟡/🔴 + pausa · <b>[v1.1]</b> wrapper fino <code>api.js</code> entre UI y <code>opencode serve</code></li>
-<li><b>[v1.1] Gates de salida:</b> captura sin ralentizar · pausa detiene captura &lt;1s · daemon sobrevive reboot (Task Scheduler + watchdog) · heartbeat visible en <code>memory_health</code> · retención: crudos 90 días, agregados para siempre</li>
-<li><b>Traspasa a F3/F4/F5:</b> eventos continuos + tiempo por app. Migrable a B (nativa Win+Alt+M) / C (terminal) sin reescribir backend: solo cambia el contenedor de <code>api.js</code>.</li>
+<li><b>Entregables:</b> daemon background (<code>atlas_activity.py</code>) · captura ventana activa ~10s · chat flotante con input · dashboard base · <code>api.js</code> wrapper · bandeja con estado 🟢/🟡/🔴 + pausa</li>
+<li><b>Gates de salida:</b> captura sin ralentizar · pausa detiene captura &lt;1s · daemon sobrevive reboot (Task Scheduler + restart on failure) · heartbeat visible en <code>memory_health</code> · retención: crudos 90 días via <code>memory_gc</code></li>
+<li><b>Traspasa a F3/F4/F5:</b> eventos continuos + tiempo por app. Migrable a B (nativa) / C (terminal) sin reescribir backend: solo cambia el contenedor de <code>api.js</code>.</li>
 </ul></div>
 
-<div class="card y"><b>F3 · FOCO — Anti-distracción</b><span class="chip cy">🟡 Débil</span>
+<div class="card y"><b>F3 · FOCO — Anti-distracción</b><span class="chip cy">⚪ No iniciada</span>
 <ul>
 <li><b>Entregables:</b> clasificación monetizable/distracción · avisos · modos de disciplina · reglas en <code>activity_rules.json</code> editable</li>
 <li><b>[v1.1] Gates de salida:</b> umbrales ajustables sin tocar código · <b>presupuesto de avisos ≤3/día</b> configurable · override manual siempre disponible</li>
 <li><b>Traspasa a F4:</b> métrica "tiempo productivo vs fugado"</li>
 </ul></div>
 
-<div class="card r"><b>F4 · DINERO — Money + Content Engines</b><span class="chip cr">🔴 Riesgoso</span>
+<div class="card r"><b>F4 · DINERO — Money + Content Engines</b><span class="chip cr">⚪ No iniciada</span>
 <ul>
 <li><b>Entregables:</b> radar de oportunidades · métricas $ · motor de contenido · dashboard financiero · adaptador CSV (banco/Stripe) + entrada manual rápida</li>
-<li><b>[v1.1] Gates de salida:</b> métricas coinciden con eventos crudos · import CSV funciona · <b>toda oportunidad pasa validación humana antes de ejecutar</b> · solo APIs oficiales donde existan</li>
+<li><b>Gates de salida:</b> métricas coinciden con eventos crudos · import CSV funciona · <b>toda oportunidad pasa validación humana antes de ejecutar</b> · solo APIs oficiales donde existan</li>
+<li><b>[v1.1] Cimiento:</b> <code>E:\PROYECTOS\mission_control</code> (Django 6, finanzas, 46 tests, Cloudflare Tunnel) ya tiene dashboard financiero completo. Cuando arranque F4, conectar Atlas a Mission Control en vez de reconstruir.</li>
 </ul></div>
 
 <div class="card r"><b>F5 · TUTOR — Trading Tutor (demo)</b><span class="chip cr">🔴 Riesgoso</span>
@@ -97,6 +98,6 @@ ul{margin:6px 0 6px 18px}
 <li><b>[v1.1]</b> F6 solo existe si F4/F5 demuestran procesos repetibles.</li>
 </ul>
 
-<p class="sub">Atlas · Roadmap v1.1 · E:\Agente_IA\roadmap.html · <b>Aprobado para ejecutar F1</b></p>
+<p class="sub">Atlas · Roadmap v1.1 · E:\Agente_IA\roadmap.html · <b>F1 y F2 completadas. Próximo: F3 (Anti-distracción) o F4 (Dinero)</b></p>
 </body>
 </html>
