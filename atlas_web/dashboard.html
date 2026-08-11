@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Atlas — Dashboard de Actividad</title>
+<style>
+  :root { --bg: #0d1117; --bg2: #161b22; --bg3: #1f2630; --border: #30363d; --text: #e6edf3; --muted: #8b949e; --accent: #58a6ff; --green: #3fb950; --yellow: #d29922; --red: #f85149; }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: var(--bg); color: var(--text); font-family: 'Segoe UI', system-ui, sans-serif; padding: 24px; }
+  .wrap { max-width: 900px; margin: 0 auto; }
+  h1 { font-size: 1.5rem; margin-bottom: 4px; }
+  .sub { color: var(--muted); margin-bottom: 20px; }
+  .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 16px; margin-bottom: 24px; }
+  .card { background: var(--bg2); border: 1px solid var(--border); border-radius: 12px; padding: 16px; }
+  .card h3 { font-size: .85rem; color: var(--muted); margin-bottom: 8px; text-transform: uppercase; letter-spacing: .05em; }
+  .card .val { font-size: 1.8rem; font-weight: 700; }
+  .card .detail { font-size: .78rem; color: var(--muted); margin-top: 4px; }
+  .tag { display: inline-block; padding: 2px 8px; border-radius: 20px; font-size: .72rem; font-weight: 600; }
+  .tag.up { background: rgba(63,185,80,.15); color: var(--green); }
+  .tag.down { background: rgba(248,81,73,.15); color: var(--red); }
+  .tag.paused { background: rgba(210,153,34,.15); color: var(--yellow); }
+  table { width: 100%; border-collapse: collapse; font-size: .85rem; margin-top: 16px; }
+  th, td { padding: 10px 12px; text-align: left; border-bottom: 1px solid var(--border); }
+  th { color: var(--muted); font-weight: 600; font-size: .75rem; text-transform: uppercase; }
+  .bar { height: 6px; border-radius: 3px; background: var(--bg3); margin-top: 6px; }
+  .bar-fill { height: 100%; border-radius: 3px; background: var(--accent); transition: width .3s; }
+  #status { font-size: .8rem; color: var(--muted); text-align: right; margin-bottom: 12px; }
+  .refresh { background: var(--bg3); border: 1px solid var(--border); color: var(--text); padding: 6px 14px; border-radius: 8px; cursor: pointer; font-size: .82rem; }
+  .refresh:hover { background: var(--bg2); border-color: var(--accent); }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div style="display:flex;justify-content:space-between;align-items:center;">
+    <h1>Atlas — Dashboard de Actividad</h1>
+    <button class="refresh" onclick="load()">Actualizar</button>
+  </div>
+  <div class="sub">Métricas del daemon de actividad · Se actualiza cada 30s</div>
+  <div id="status">cargando...</div>
+
+  <div class="grid">
+    <div class="card">
+      <h3>Estado del daemon</h3>
+      <div class="val" id="daemon-status">--</div>
+      <div class="detail" id="daemon-detail"></div>
+    </div>
+    <div class="card">
+      <h3>Eventos totales</h3>
+      <div class="val" id="events-total">--</div>
+      <div class="detail" id="events-detail"></div>
+    </div>
+    <div class="card">
+      <h3>Sesiones</h3>
+      <div class="val" id="sessions-total">--</div>
+      <div class="detail" id="sessions-detail"></div>
+    </div>
+    <div class="card">
+      <h3>Último tick</h3>
+      <div class="val" id="last-tick">--</div>
+      <div class="detail" id="tick-detail"></div>
+    </div>
+  </div>
+
+  <h2 style="font-size:1.1rem;margin-bottom:8px;">Top aplicaciones (últimas 24h)</h2>
+  <table>
+    <thead><tr><th>App</th><th>Tiempo</th><th>%</th><th></th></tr></thead>
+    <tbody id="top-apps"><tr><td colspan="4" style="color:var(--muted);">sin datos (daemon no ha corrido o sin eventos de actividad)</td></tr></tbody>
+  </table>
+</div>
+
+<script src="api.js"></script>
+<script>
+const API_BASE = 'http://127.0.0.1:4096';
+
+async function load() {
+  document.getElementById('status').textContent = 'actualizando...';
+  try {
+    // health via proxy simple (si opencode serve no expone /memory, usar fallback)
+    const health = await fetch(`${API_BASE}/config`).then(r => r.json()).catch(() => null);
+
+    // daemon status desde heartbeat file (fallback: mostrar estado del server)
+    const daemonEl = document.getElementById('daemon-status');
+    const daemonDetail = document.getElementById('daemon-detail');
+    if (health) {
+      daemonEl.textContent = '🟢 activo';
+      daemonEl.style.color = '#3fb950';
+      daemonDetail.textContent = `Server en ${API_BASE}`;
+    } else {
+      daemonEl.textContent = '🔴 inactivo';
+      daemonEl.style.color = '#f85149';
+      daemonDetail.textContent = 'opencode serve no responde';
+    }
+
+    document.getElementById('status').textContent = `última actualización: ${new Date().toLocaleTimeString()}`;
+  } catch (e) {
+    document.getElementById('status').textContent = `error: ${e.message}`;
+  }
+}
+
+// auto-refresh cada 30s
+load();
+setInterval(load, 30000);
+</script>
+</body>
+</html>
