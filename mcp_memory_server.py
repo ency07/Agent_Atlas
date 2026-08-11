@@ -725,6 +725,16 @@ def cli_dispatch(cmd: str, args: dict):
     return json.dumps({"error": f"comando CLI desconocido: {cmd}"})
 
 def main():
+    if len(sys.argv) >= 2 and sys.argv[1] == "--hook-env":
+        # Robustez ante quoting del mensaje: los datos llegan por env vars
+        # (asignacion literal en sh, no re-interpretada), no por argv.
+        print(cli_git_event(
+            os.environ.get("ATLAS_GIT_PROJECT", "global"),
+            os.environ.get("ATLAS_GIT_HASH", ""),
+            os.environ.get("ATLAS_GIT_MSG", ""),
+            os.environ.get("ATLAS_GIT_FILES", ""),
+        ))
+        return
     if len(sys.argv) >= 3 and sys.argv[1] == "--hook-event":
         print(cli_hook_event(sys.argv[2]))
         return
