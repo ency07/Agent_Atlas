@@ -74,6 +74,19 @@ Report (Test-Path (Join-Path $ROOT "start_atlas_backup.vbs")) "start_atlas_backu
 $bkCount = (Get-ChildItem (Join-Path $ROOT "memory_data\backup\atlas_*.zip") -ErrorAction SilentlyContinue).Count
 Report ($bkCount -gt 0) "backups existentes: $bkCount"
 
+# ---------- Daemon actividad (F2) ----------
+Write-Host "`n[Daemon actividad F2]"
+$taskAct = Get-ScheduledTask -TaskName "AtlasActivity" -ErrorAction SilentlyContinue
+Report ($null -ne $taskAct) "tarea AtlasActivity en Task Scheduler"
+Report (Test-Path (Join-Path $ROOT "atlas_activity.py")) "atlas_activity.py presente"
+$hb = Join-Path $ROOT "memory_data\state\daemon.heartbeat"
+if (Test-Path $hb) {
+    $hbAge = (Get-Date) - (Get-Item $hb).LastWriteTime
+    Report ($hbAge.TotalSeconds -lt 120) "heartbeat daemon fresco ($([int]$hbAge.TotalSeconds)s atras)"
+} else {
+    Report $false "sin heartbeat (daemon no ha corrido)"
+}
+
 # ---------- Config opencode ----------
 Write-Host "`n[Config opencode]"
 $cfg = Join-Path $env:USERPROFILE ".config\opencode\opencode.jsonc"

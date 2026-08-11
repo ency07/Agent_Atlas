@@ -112,7 +112,7 @@ if ($hookOk -eq "hooks") {
 }
 
 # ---------- 7. Backup diario (F1) ----------
-Write-Host "`n[7/8] Backup diario (Task Scheduler)..." -ForegroundColor Yellow
+Write-Host "`n[7/9] Backup diario (Task Scheduler)..." -ForegroundColor Yellow
 $vbsBk = Join-Path $ROOT "start_atlas_backup.vbs"
 if (Test-Path $vbsBk) {
     $vbsBkSafe = $vbsBk.Replace("`"", "`"`"")
@@ -126,8 +126,28 @@ if (Test-Path $vbsBk) {
     Write-Host "  AVISO: start_atlas_backup.vbs no encontrado" -ForegroundColor DarkYellow
 }
 
-# ---------- 8. Diagnostico ----------
-Write-Host "`n[8/8] Diagnostico..." -ForegroundColor Yellow
+# ---------- 8. Daemon actividad (F2) ----------
+Write-Host "`n[8/9] Daemon actividad (F2)..." -ForegroundColor Yellow
+$actPy = Join-Path $ROOT "atlas_activity.py"
+if (Test-Path $actPy) {
+    $pyAct = Join-Path $ROOT ".venv\Scripts\python.exe"
+    $actArgs = "`"$pyAct`" `"$actPy`""
+    $action = New-ScheduledTaskAction -Execute 'python.exe' -Argument "`"$actPy`""
+    $trigger = New-ScheduledTaskTrigger -AtLogOn
+    $settings = New-ScheduledTaskSettingsSet -AllowStartIfOnBatteries -DontStopIfGoingOnBatteries -ExecutionTimeLimit (New-TimeSpan -Hours 0) -RestartCount 3 -RestartInterval (New-TimeSpan -Minutes 1)
+    Register-ScheduledTask -TaskName 'AtlasActivity' -Action $action -Trigger $trigger -Settings $settings -Force | Out-Null
+    $task = Get-ScheduledTask -TaskName 'AtlasActivity' -ErrorAction SilentlyContinue
+    if ($task) {
+        Write-Host "  tarea AtlasActivity registrada (autostart al iniciar sesion, restart on failure)"
+    } else {
+        Write-Host "  AVISO: no se pudo registrar tarea AtlasActivity" -ForegroundColor DarkYellow
+    }
+} else {
+    Write-Host "  AVISO: atlas_activity.py no encontrado" -ForegroundColor DarkYellow
+}
+
+# ---------- 9. Diagnostico ----------
+Write-Host "`n[9/9] Diagnostico..." -ForegroundColor Yellow
 & (Join-Path $ROOT "check.ps1")
 
 Write-Host "`n==> Listo. Proximos pasos:" -ForegroundColor Green

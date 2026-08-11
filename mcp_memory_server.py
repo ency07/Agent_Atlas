@@ -603,6 +603,27 @@ def tool_summary(project: str = "", budget: int = 2500):
         text = text[:budget] + "\n...[resumen truncado por presupuesto de tokens]"
     return json.dumps({"project": proj, "tokens_approx": len(text) // 4, "context": text}, ensure_ascii=False, indent=2)
 
+def read_daemon_heartbeat() -> dict:
+    """Lee state/daemon.heartbeat (F2) y devuelve estado del daemon de actividad."""
+    hb_file = STATE_DIR / "daemon.heartbeat"
+    if not hb_file.exists():
+        return {"daemon": "down", "reason": "sin heartbeat (atlas_activity.py no corre)"}
+    try:
+        hb = json.loads(hb_file.read_text(encoding="utf-8"))
+        last = datetime.fromisoformat(hb.get("last_tick", "2000-01-01T00:00:00+00:00"))
+        age = (datetime.now(timezone.utc) - last).total_seconds()
+        status = hb.get("status", "unknown")
+        if status == "stopped":
+            return {"daemon": "stopped", "last_tick": hb.get("last_tick"), "age_seconds": int(age)}
+        if age > 120:
+            return {"daemon": "down", "last_tick": hb.get("last_tick"), "age_seconds": int(age),
+                    "pid": hb.get("pid")}
+        return {"daemon": "up", "status": status, "paused": bool(hb.get("paused")),
+                "last_tick": hb.get("last_tick"), "age_seconds": int(age),
+                "pid": hb.get("pid"), "ticks": hb.get("ticks", 0)}
+    except Exception as e:
+        return {"daemon": "error", "reason": str(e)}
+
 def tool_health():
     INBOX_DIR.mkdir(parents=True, exist_ok=True)
     backlog = len(list(INBOX_DIR.glob("*.jsonl")))
@@ -615,16 +636,19 @@ def tool_health():
         graphs = sorted(VAULT_ROOT.glob("*/graph.json"))
     finally:
         conn.close()
+    daemon = read_daemon_heartbeat()
     issues = []
     if backlog > 0: issues.append(f"inbox pendiente de procesar: {backlog}")
     if orphan > 0: issues.append(f"sesiones huerfanas activas: {orphan} (correr memory_session_recover)")
     if integrity != "ok": issues.append(f"integridad DB: {integrity}")
+    if daemon.get("daemon") == "down":
+        issues.append(f"daemon de actividad abajo ({daemon.get('reason', 'sin heartbeat')})")
     status = "ok" if not issues else "attention"
     return json.dumps({
         "status": status, "db_integrity": integrity,
         "notes": n_notes, "events": n_events, "orphan_sessions": orphan,
         "inbox_backlog": backlog, "graphs": [str(g) for g in graphs],
-        "issues": issues, "vault": str(VAULT_ROOT)}, ensure_ascii=False, indent=2)
+        "daemon": daemon, "issues": issues, "vault": str(VAULT_ROOT)}, ensure_ascii=False, indent=2)
 
 def tool_gc(keep_days: int = 90):
     cutoff = (datetime.now(timezone.utc).timestamp() - keep_days * 86400)
