@@ -144,8 +144,26 @@ if (Test-Path $actVbs) {
     Write-Host "  AVISO: start_atlas_activity.vbs no encontrado" -ForegroundColor DarkYellow
 }
 
-# ---------- 9. Diagnostico ----------
-Write-Host "`n[9/9] Diagnostico..." -ForegroundColor Yellow
+# ---------- 9. Recordatorio rotacion de secretos (produccion) ----------
+Write-Host "`n[9/10] Recordatorio rotacion secretos (semanal)..." -ForegroundColor Yellow
+$remVbs = Join-Path $ROOT "start_secret_reminder.vbs"
+if (Test-Path $remVbs) {
+    $actionRem = New-ScheduledTaskAction -Execute 'wscript.exe' -Argument "`"$remVbs`""
+    $triggerRem = New-ScheduledTaskTrigger -Weekly -DaysOfWeek Sunday -At '09:00'
+    $settingsRem = New-ScheduledTaskSettingsSet -ExecutionTimeLimit (New-TimeSpan -Minutes 5)
+    Register-ScheduledTask -TaskName 'AtlasSecretReminder' -Action $actionRem -Trigger $triggerRem -Settings $settingsRem -Force | Out-Null
+    $taskRem = Get-ScheduledTask -TaskName 'AtlasSecretReminder' -ErrorAction SilentlyContinue
+    if ($taskRem) {
+        Write-Host "  tarea AtlasSecretReminder registrada (domingo 09:00)"
+    } else {
+        Write-Host "  AVISO: no se pudo registrar AtlasSecretReminder" -ForegroundColor DarkYellow
+    }
+} else {
+    Write-Host "  AVISO: start_secret_reminder.vbs no encontrado" -ForegroundColor DarkYellow
+}
+
+# ---------- 10. Diagnostico ----------
+Write-Host "`n[10/10] Diagnostico..." -ForegroundColor Yellow
 & (Join-Path $ROOT "check.ps1")
 
 Write-Host "`n==> Listo. Proximos pasos:" -ForegroundColor Green

@@ -105,12 +105,13 @@ def now_iso() -> str:
 
 
 
-def log(msg: str) -> None:
-    try:
-        with open(PROJECT_ROOT / "atlas_activity.log", "a", encoding="utf-8") as f:
-            f.write(f"[{time.strftime('%H:%M:%S')}] {msg}\n")
-    except OSError:
-        pass
+from atlas_log import get_logger
+from atlas_monitor import track_error, RateLimiter
+
+log = get_logger("atlas_activity")
+
+# rate limit: max 6 eventos de actividad por minuto (protege inbox de inundacion)
+event_rl = RateLimiter(rate=6, per=60.0)
 
 
 
@@ -143,18 +144,23 @@ def get_foreground_info() -> tuple:
         finally:
             CloseHandle(hproc)
         return (app, title)
-    except Exception:
+    except Exception as exc:
+        track_error("atlas_activity", "get_foreground_info", exc=exc)
         return ("(error)", "")
 
 
 
 def flush_event(app: str, title: str, start: float, end: float) -> None:
-    """Escribe un evento de actividad a inbox/."""
+    """Escribe un evento de actividad a inbox/ (rate-limited)."""
     if app in ("(none)", "(unknown)", "(error)") or not app:
         return
     dur = int(end - start)
     if dur < 2:
         return  # eventos < 2s no interesan
+    # rate limiting: evita inundar el inbox si el sistema se vuelve inestable
+    if not event_rl.allow("activity"):
+        log.warning("rate limit alcanzado; descartando evento", app=app, duration=dur)
+        return
     INBOX_DIR.mkdir(parents=True, exist_ok=True)
     ts = datetime.fromtimestamp(start, tz=timezone.utc).isoformat(timespec="seconds")
     ev = {
@@ -201,8 +207,8 @@ def do_ingest() -> None:
         srv = str(PROJECT_ROOT / "mcp_memory_server.py")
         subprocess.run([py, srv, "--cli", "event_ingest"],
                        timeout=30, capture_output=True)
-    except Exception:
-        pass
+    except Exception as exc:
+        track_error("atlas_activity", "event_ingest", exc=exc)
 
 
 
@@ -218,7 +224,7 @@ def daemon_loop(interval: int) -> None:
             if not _paused:
                 _paused = True
                 _status_text = "pausado"
-                log("daemon pausado (flag detectado)")
+                log.info("daemon pausado (flag detectado)")
                 if _current_app:
                     flush_event(_current_app, _current_title, _current_start, time.time())
                     _current_app = None
@@ -228,7 +234,7 @@ def daemon_loop(interval: int) -> None:
         if _paused:
             _paused = False
             _status_text = "activo"
-            log("daemon reanudado")
+            log.info("daemon reanudado")
 
         now = time.time()
         app, title = get_foreground_info()
@@ -301,11 +307,11 @@ def on_pause(icon, item):
     if _paused:
         PAUSE_FLAG.unlink(missing_ok=True)
         _paused = False
-        log("reanudado desde bandeja")
+        log.info("reanudado desde bandeja")
     else:
         STATE_DIR.mkdir(parents=True, exist_ok=True)
         PAUSE_FLAG.touch()
-        log("pausado desde bandeja")
+        log.info("pausado desde bandeja")
 
 
 
@@ -376,7 +382,7 @@ if __name__ == "__main__":
             except ValueError:
                 pass
 
-    log(f"arrancando daemon (interval={interval}s, tray={'si' if not no_tray and HAS_TRAY else 'no'})")
+    log.info(f"arrancando daemon", interval=interval, tray=not no_tray and HAS_TRAY)
 
     # graceful shutdown
     def _sig(s, f):

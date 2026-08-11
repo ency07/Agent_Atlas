@@ -39,7 +39,7 @@ import sys
 import time
 import uuid
 import zipfile
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
 try:
@@ -624,6 +624,52 @@ def read_daemon_heartbeat() -> dict:
     except Exception as e:
         return {"daemon": "error", "reason": str(e)}
 
+SECRET_ROTATION_FILE = STATE_DIR / "secret_rotation.json"
+SECRET_ROTATION_DAYS = 90
+
+def read_secret_rotation() -> dict:
+    """Estado de rotacion de secretos: ultima rotacion + proxima fecha."""
+    if not SECRET_ROTATION_FILE.exists():
+        return {
+            "last_rotated": None,
+            "next_due": None,
+            "due": True,
+            "days_remaining": 0,
+            "note": "nunca rotado: registrar la primera rotacion",
+        }
+    try:
+        data = json.loads(SECRET_ROTATION_FILE.read_text(encoding="utf-8"))
+        last = datetime.fromisoformat(data.get("last_rotated", "2000-01-01T00:00:00+00:00"))
+        next_due = data.get("next_due")
+        if next_due:
+            next_dt = datetime.fromisoformat(next_due)
+        else:
+            next_dt = last + timedelta(days=SECRET_ROTATION_DAYS)
+        days_remaining = int((next_dt - datetime.now(timezone.utc)).total_seconds() / 86400)
+        return {
+            "last_rotated": data.get("last_rotated"),
+            "next_due": next_dt.isoformat(timespec="seconds"),
+            "due": days_remaining <= 0,
+            "days_remaining": days_remaining,
+            "note": data.get("note", ""),
+        }
+    except Exception:
+        return {"last_rotated": None, "next_due": None, "due": True,
+                "days_remaining": 0, "note": "archivo de rotacion corrupto"}
+
+def mark_secret_rotation(note: str = "") -> dict:
+    """Registra una rotacion de secretos (para el calendario de 90 dias)."""
+    STATE_DIR.mkdir(parents=True, exist_ok=True)
+    last = datetime.now(timezone.utc).isoformat(timespec="seconds")
+    next_due = (datetime.now(timezone.utc) + timedelta(days=SECRET_ROTATION_DAYS)).isoformat(timespec="seconds")
+    data = {
+        "last_rotated": last,
+        "next_due": next_due,
+        "note": note or "rotacion de secretos registrada",
+    }
+    SECRET_ROTATION_FILE.write_text(json.dumps(data, ensure_ascii=False), encoding="utf-8")
+    return read_secret_rotation()
+
 def tool_health():
     INBOX_DIR.mkdir(parents=True, exist_ok=True)
     backlog = len(list(INBOX_DIR.glob("*.jsonl")))
@@ -637,18 +683,31 @@ def tool_health():
     finally:
         conn.close()
     daemon = read_daemon_heartbeat()
+    # monitoreo de errores (atlas_monitor)
+    try:
+        from atlas_monitor import recent_errors
+        errs = recent_errors()
+    except Exception:
+        errs = []
+    # calendario de rotacion de secretos (90 dias)
+    rotation = read_secret_rotation()
     issues = []
     if backlog > 0: issues.append(f"inbox pendiente de procesar: {backlog}")
     if orphan > 0: issues.append(f"sesiones huerfanas activas: {orphan} (correr memory_session_recover)")
     if integrity != "ok": issues.append(f"integridad DB: {integrity}")
     if daemon.get("daemon") == "down":
         issues.append(f"daemon de actividad abajo ({daemon.get('reason', 'sin heartbeat')})")
+    err_total = sum(e["count"] for e in errs)
+    if err_total > 0: issues.append(f"{err_total} error(es) en las ultimas 24h (ver logs/errors.jsonl)")
+    if rotation.get("due"):
+        issues.append("secretos pendientes de rotacion (calendario 90 dias)")
     status = "ok" if not issues else "attention"
     return json.dumps({
         "status": status, "db_integrity": integrity,
         "notes": n_notes, "events": n_events, "orphan_sessions": orphan,
         "inbox_backlog": backlog, "graphs": [str(g) for g in graphs],
-        "daemon": daemon, "issues": issues, "vault": str(VAULT_ROOT)}, ensure_ascii=False, indent=2)
+        "daemon": daemon, "errors_24h": errs, "error_total_24h": err_total,
+        "secret_rotation": rotation, "issues": issues, "vault": str(VAULT_ROOT)}, ensure_ascii=False, indent=2)
 
 def tool_gc(keep_days: int = 90):
     cutoff = (datetime.now(timezone.utc).timestamp() - keep_days * 86400)
@@ -798,6 +857,8 @@ def cli_dispatch(cmd: str, args: dict):
     if cmd == "projects": return tool_projects(**args)
     if cmd == "backup": return tool_backup(**args)
     if cmd == "restore": return tool_restore(**args)
+    if cmd == "secret_rotation": return json.dumps(mark_secret_rotation(note=args.get("note", "")))
+    if cmd == "rotate_secrets": return json.dumps(mark_secret_rotation(note=args.get("note", "")))
     return json.dumps({"error": f"comando CLI desconocido: {cmd}"})
 
 def main():

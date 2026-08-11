@@ -87,6 +87,32 @@ if (Test-Path $hb) {
     Report $false "sin heartbeat (daemon no ha corrido)"
 }
 
+# ---------- Produccion: logs, errores, rotacion, rollback ----------
+Write-Host "`n[Produccion (logs/errores/rotacion/rollback)]"
+Report (Test-Path (Join-Path $ROOT "atlas_log.py")) "atlas_log.py (logs estructurados JSON)"
+Report (Test-Path (Join-Path $ROOT "atlas_monitor.py")) "atlas_monitor.py (errores + rate limit)"
+$errFile = Join-Path $ROOT "logs\errors.jsonl"
+if (Test-Path $errFile) {
+    $errCount = (Get-Content $errFile -ErrorAction SilentlyContinue | Measure-Object).Count
+    Report ($errCount -le 50) "errores registrados ultimas 24h: $errCount (log JSON)"
+} else {
+    Report $true "sin errores registrados (logs/errors.jsonl)"
+}
+$rotFile = Join-Path $ROOT "memory_data\state\secret_rotation.json"
+if (Test-Path $rotFile) {
+    $rot = Get-Content $rotFile -Raw | ConvertFrom-Json
+    $next = [datetime]$rot.next_due
+    $remaining = [int]($next - (Get-Date)).TotalDays
+    Report ($remaining -gt 0) "rotacion de secretos: faltan $remaining dias (next: $($next.ToString('yyyy-MM-dd')))"
+} else {
+    Report $false "sin calendario de rotacion de secretos (corre --cli secret_rotation)"
+}
+$tags = git tag 2>$null
+Report ($tags -match "stable-f1f2") "git tag de rollback 'stable-f1f2' presente"
+Report (Test-Path (Join-Path $ROOT "HANDOFF.md")) "HANDOFF.md con plan de rollback"
+$taskRem = Get-ScheduledTask -TaskName "AtlasSecretReminder" -ErrorAction SilentlyContinue
+Report ($null -ne $taskRem) "recordatorio semanal de rotacion de secretos registrado"
+
 # ---------- Config opencode ----------
 Write-Host "`n[Config opencode]"
 $cfg = Join-Path $env:USERPROFILE ".config\opencode\opencode.jsonc"

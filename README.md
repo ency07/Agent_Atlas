@@ -17,6 +17,9 @@ Componentes:
 | `mcp_memory_server.py` | Servidor MCP de memoria (FastMCP). Núcleo. |
 | `atlas_chat.py` | **Chat flotante (F2)**: `opencode serve` + ventana frameless. |
 | `atlas_activity.py` | **Daemon de actividad (F2)**: captura ventana activa + bandeja. |
+| `atlas_log.py` | Logs estructurados JSON (producción #1). |
+| `atlas_monitor.py` | Monitoreo de errores + rate limiting (producción #2/#3). |
+| `atlas_secret_reminder.py` | Recordatorio semanal de rotación de secretos (producción #6). |
 | `atlas_web/api.js` | Wrapper fino UI↔opencode serve. |
 | `atlas_web/dashboard.html` | Dashboard base de actividad. |
 | `start_atlas_chat.vbs` | Autostart oculto del chat flotante (Task Scheduler). |

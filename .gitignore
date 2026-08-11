@@ -36,3 +36,6 @@ tmp/
 
 # --- Capturas / descargas sueltas ---
 *.png
+
+# logs estructurados (no versionar)
+logs/

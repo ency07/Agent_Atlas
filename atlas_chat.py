@@ -1,6 +1,6 @@
-#!/usr/bin/env python3
+﻿#!/usr/bin/env python3
 """
-Atlas Chat Flotante (F2 · Opcion A del roadmap).
+Atlas Chat Flotante (F2 Â· Opcion A del roadmap).
 
 Arranca `opencode serve` (headless, en el puerto 4096) si no esta corriendo,
 espera a que responda, y abre una ventana pywebview (WebView2) frameless y
@@ -35,17 +35,12 @@ import webview
 HOST = "127.0.0.1"
 PORT = int(os.environ.get("ATLAS_CHAT_PORT", "4096"))
 MODEL = os.environ.get("ATLAS_CHAT_MODEL", "omniroute/auto/best-chat")
-LOG_FILE = Path(__file__).resolve().parent / "atlas_chat.log"
-
 MUTEX_NAME = "Local\\AtlasChatSingleInstance"
 
+from atlas_log import get_logger
+from atlas_monitor import track_error
 
-def log(msg: str) -> None:
-    try:
-        with open(LOG_FILE, "a", encoding="utf-8") as f:
-            f.write(f"[{time.strftime('%H:%M:%S')}] {msg}\n")
-    except OSError:
-        pass
+log = get_logger("atlas_chat")
 
 
 def _bin_version(bin_path: str):
@@ -113,7 +108,7 @@ def stop_server(port: int):
             pid = int(p.strip())
             if pid > 0:
                 os.kill(pid, 9)
-                log(f"server anterior ({pid}) detenido para aplicar modelo")
+                log.info(f"server anterior ({pid}) detenido para aplicar modelo")
         time.sleep(2)
     except Exception:
         pass
@@ -121,7 +116,7 @@ def stop_server(port: int):
 
 def start_server(opencode_bin: str, port: int, model: str):
     """Lanza opencode serve oculto con el modelo por defecto elegido."""
-    log(f"iniciando opencode serve en {HOST}:{port} (modelo={model})")
+    log.info(f"iniciando opencode serve en {HOST}:{port}", port=port, model=model)
     env = dict(os.environ)
     env["OPENCODE_CONFIG_CONTENT"] = json.dumps({"model": model})
     # cwd = escritorio del usuario -> la memoria de Atlas cae en modo global
@@ -298,17 +293,17 @@ def main():
 
     opencode_bin = find_opencode_bin()
     if not opencode_bin:
-        log("ERROR: no se encontro opencode CLI (npm install -g opencode-ai)")
+        log.error("no se encontro opencode CLI (npm install -g opencode-ai)")
         raise SystemExit("No se encontro opencode CLI. Ejecuta: npm install -g opencode-ai")
 
     # 1) server ya corriendo?
     if server_up(port):
         cur = get_server_model(port)
         if cur and cur != model:
-            log(f"server con modelo '{cur}' != '{model}'; reiniciando con modelo correcto")
+            log.warning(f"server con modelo '{cur}' != '{model}'; reiniciando con modelo correcto", cur=cur, model=model)
             stop_server(port)
             start_server(opencode_bin, port, model)
-            log("esperando a que el nuevo server responda...")
+            log.info("esperando a que el nuevo server responda...")
             deadline = time.time() + 40
             ok = False
             while time.time() < deadline:
@@ -317,14 +312,14 @@ def main():
                     break
                 time.sleep(1)
             if not ok:
-                log(f"ERROR: el server no respondio tras reinicio")
+                log.error(f"ERROR: el server no respondio tras reinicio")
                 raise SystemExit("opencode serve no arranco a tiempo tras reinicio (ver atlas_chat.log)")
-            log("server reiniciado con modelo correcto")
+            log.info("server reiniciado con modelo correcto")
         else:
-            log(f"server ya activo en {HOST}:{port}; modelo={cur}; reutilizando")
+            log.info(f"server ya activo en {HOST}:{port}; reutilizando", model=cur)
     else:
         start_server(opencode_bin, port, model)
-        log("esperando a que el server responda...")
+        log.info("esperando a que el server responda...")
         deadline = time.time() + 40
         ok = False
         while time.time() < deadline:
@@ -333,9 +328,9 @@ def main():
                 break
             time.sleep(1)
         if not ok:
-            log(f"ERROR: el server no respondio en {HOST}:{port}")
+            log.error(f"ERROR: el server no respondio en {HOST}:{port}")
             raise SystemExit("opencode serve no arranco a tiempo (ver atlas_chat.log)")
-        log("server listo")
+        log.info("server listo")
 
     url = f"http://{HOST}:{port}/"
     if server_only:
@@ -345,17 +340,17 @@ def main():
     # 2) instancia unica de la ventana
     lock = acquire_single_instance()
     if lock is None:
-        log("ya hay una ventana Atlas abierta; saliendo")
+        log.info("ya hay una ventana Atlas abierta; saliendo")
         raise SystemExit("Ya hay una ventana Atlas abierta.")
 
     # 3) crear una sesion y apuntar la ventana directo a su chat
     #    (la raiz "/" solo muestra la home sin cuadro de prompt).
     chat_url = new_session_url(port)
     if chat_url:
-        log(f"abriendo chat en {chat_url}")
+        log.info(f"abriendo chat en {chat_url}", url=chat_url)
     else:
         chat_url = url
-        log("aviso: no se pudo crear sesion; abriendo home")
+        log.warning("aviso: no se pudo crear sesion; abriendo home")
 
     try:
         api = Api()
@@ -376,7 +371,8 @@ def main():
         win.events.loaded += lambda: (time.sleep(2), win.evaluate_js(OVERLAY_JS))
         webview.start()
     except Exception as exc:  # noqa: BLE001
-        log(f"pywebview fallo ({exc}); abriendo en navegador")
+        track_error("atlas_chat", "webview_start", exc=exc)
+        log.error(f"pywebview fallo ({exc}); abriendo en navegador", error=str(exc))
         webbrowser.open(chat_url)
 
 

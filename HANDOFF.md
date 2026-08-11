@@ -98,6 +98,7 @@ Solo entra si F4/F5 producen procesos repetibles.
 | `python mcp_memory_server.py --cli restore` | Listar backups disponibles |
 | `python mcp_memory_server.py --cli restore --backup-file <zip>` | Restaurar desde backup |
 | `python mcp_memory_server.py --cli gc` | Limpiar eventos >90 días |
+| `python mcp_memory_server.py --cli secret_rotation --note "..."` | Registrar rotación de secretos (calendario 90 días) |
 | `python atlas_chat.py` | Abrir chat flotante (F2) |
 | `python atlas_activity.py` | Daemon + bandeja (F2) |
 | `python atlas_activity.py --no-tray` | Daemon sin bandeja (servidor) |
@@ -135,6 +136,31 @@ Solo entra si F4/F5 producen procesos repetibles.
 - [ ] Dashboard: conectar `dashboard.html` a datos reales de events (hoy es mock).
 - [ ] Daemon: agregar clasificación automática de apps (categoría) → input de F3.
 - [ ] Notificaciones: avisos del sistema (precursor de F3).
+
+---
+
+## Endurecimiento de producción (6 puntos)
+
+| # | Mejora | Implementación | Estado |
+|---|---|---|---|
+| 1 | Logs estructurados | `atlas_log.py` (JSON: ts/level/source/request_id/error). `atlas_chat.py` y `atlas_activity.py` loguean JSON en `logs/` | 🟢 |
+| 2 | Monitoreo de errores | `atlas_monitor.py` → `logs/errors.jsonl` + `state/errors.db` con frecuencia; visible en `memory_health` (`errors_24h`) | 🟢 |
+| 3 | Rate limiting | `RateLimiter` en `atlas_monitor.py`; daemon limita a 6 eventos/min para no inundar inbox | 🟢 |
+| 4 | Health check | `memory_health` verifica DB, daemon, inbox, errores y rotación de secretos | 🟢 |
+| 5 | Plan de rollback | Git tag `stable-f1f2` (punto estable) + backups diarios + restore (`--cli restore`). Ver abajo | 🟢 |
+| 6 | Rotación de secretos | Calendario 90 días en `state/secret_rotation.json`; visible en `memory_health`; registrar con `--cli secret_rotation --note "..."` | 🟢 |
+
+**Plan de rollback (< 5 min):**
+1. `git stash` (o commit del trabajo en curso) para limpiar el working tree.
+2. `git checkout stable-f1f2` — vuelve al punto estable F1+F2.
+3. Si además los datos están corruptos: `python mcp_memory_server.py --cli restore --backup-file memory_data\backup\atlas_*.zip`.
+4. `python mcp_memory_server.py --cli health` — verificar que todo esté OK.
+5. Bonus (futuro): feature flags vía `memory_pref_set` para desactivar componentes sin deploy.
+
+**Rotación de secretos:**
+- Los secretos de Atlas viven FUERA del repo: `~/.omniroute/.env`, `opencode.jsonc` local, etc.
+- `memory_health` avisa cuando `days_remaining <= 0`.
+- Registrar cada rotación: `python mcp_memory_server.py --cli secret_rotation --note "rotada API key X"`.
 
 ---
 
