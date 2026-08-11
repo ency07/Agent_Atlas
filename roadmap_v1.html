@@ -1,0 +1,219 @@
+﻿<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Atlas — Roadmap por Fases · Trazabilidad y Riesgos</title>
+<style>
+  :root{
+    --bg:#0d1117; --bg2:#161b22; --bg3:#1f2630; --border:#30363d;
+    --text:#e6edf3; --muted:#8b949e; --accent:#58a6ff;
+    --green:#3fb950; --yellow:#d29922; --red:#f85149;
+    --green-bg:rgba(63,185,80,.12); --yellow-bg:rgba(210,153,34,.12); --red-bg:rgba(248,81,73,.12);
+  }
+  *{box-sizing:border-box; margin:0; padding:0}
+  body{background:var(--bg); color:var(--text); font-family:Segoe UI, system-ui, -apple-system, sans-serif; line-height:1.55; padding:24px}
+  .wrap{max-width:1200px; margin:0 auto}
+  h1{font-size:1.7rem; display:flex; align-items:center; gap:10px; margin-bottom:4px}
+  h1 .dot{width:14px;height:14px;border-radius:50%;background:linear-gradient(135deg,#58a6ff,#3fb950)}
+  .sub{color:var(--muted); margin-bottom:20px; font-size:.95rem}
+  .legend{display:flex; gap:16px; flex-wrap:wrap; margin-bottom:24px; padding:12px 16px; background:var(--bg2); border:1px solid var(--border); border-radius:10px; font-size:.85rem}
+  .lg{display:flex; align-items:center; gap:6px}
+  .pill{display:inline-block; width:12px; height:12px; border-radius:50%}
+  .pill.g{background:var(--green)} .pill.y{background:var(--yellow)} .pill.r{background:var(--red)}
+  section{background:var(--bg2); border:1px solid var(--border); border-radius:12px; padding:20px; margin-bottom:24px}
+  h2{font-size:1.15rem; margin-bottom:16px; display:flex; align-items:center; gap:8px}
+  h2 .num{background:var(--bg3); border:1px solid var(--border); border-radius:6px; padding:2px 8px; font-size:.85rem; color:var(--accent)}
+  .flow{display:flex; align-items:stretch; gap:8px; flex-wrap:wrap; margin-bottom:10px}
+  .phase{flex:1 1 180px; min-width:170px; background:var(--bg3); border:1px solid var(--border); border-radius:10px; padding:14px; cursor:pointer; position:relative; transition:transform .15s, border-color .15s}
+  .phase:hover{transform:translateY(-3px)}
+  .phase .pnum{font-size:.8rem; font-weight:700; letter-spacing:.08em; margin-bottom:6px}
+  .phase .ptitle{font-size:1.02rem; font-weight:600; margin-bottom:6px}
+  .phase .pdesc{font-size:.78rem; color:var(--muted); margin-bottom:8px}
+  .phase .status{font-size:.72rem; font-weight:600; padding:3px 8px; border-radius:20px; display:inline-block}
+  .phase.stable .pnum{color:var(--green)} .phase.stable .status{background:var(--green-bg); color:var(--green)}
+  .phase.weak .pnum{color:var(--yellow)} .phase.weak .status{background:var(--yellow-bg); color:var(--yellow)}
+  .phase.risk .pnum{color:var(--red)} .phase.risk .status{background:var(--red-bg); color:var(--red)}
+  .phase .expand{display:none; margin-top:10px; border-top:1px dashed var(--border); padding-top:10px; font-size:.78rem; color:var(--muted)}
+  .phase.open .expand{display:block}
+  .phase .expand b{color:var(--text)}
+  .arrow{flex:0 0 26px; align-self:center; text-align:center; color:var(--accent); font-size:1.3rem; user-select:none}
+  .arrow div{font-size:.6rem; color:var(--muted); line-height:1.1}
+  table{width:100%; border-collapse:collapse; font-size:.85rem}
+  th,td{padding:10px 12px; text-align:left; border-bottom:1px solid var(--border); vertical-align:top}
+  th{color:var(--muted); font-weight:600; font-size:.75rem; text-transform:uppercase; letter-spacing:.05em}
+  tr:hover td{background:var(--bg3)}
+  .tag{font-weight:600; padding:2px 8px; border-radius:20px; font-size:.72rem; white-space:nowrap}
+  .tag.ok{background:var(--green-bg); color:var(--green)}
+  .tag.warn{background:var(--yellow-bg); color:var(--yellow)}
+  .tag.bad{background:var(--red-bg); color:var(--red)}
+  .wp{border:1px solid var(--border); border-radius:8px; margin-bottom:8px; overflow:hidden}
+  .wp .head{display:flex; align-items:center; gap:10px; padding:12px 14px; cursor:pointer; background:var(--bg3)}
+  .wp .head:hover{background:#232c38}
+  .wp .sev{width:10px;height:10px;border-radius:50%; flex:0 0 10px}
+  .wp.high .sev{background:var(--red)} .wp.med .sev{background:var(--yellow)} .wp.low .sev{background:var(--green)}
+  .wp .t{flex:1; font-size:.88rem}
+  .wp .p{font-size:.72rem; color:var(--muted); background:var(--bg2); border:1px solid var(--border); padding:2px 8px; border-radius:20px}
+  .wp .mit{display:none; padding:12px 14px; font-size:.83rem; color:var(--muted); background:var(--bg2); border-top:1px solid var(--border)}
+  .wp.open .mit{display:block}
+  .wp .mit b{color:var(--green)}
+  ul.rules{margin-left:18px; font-size:.88rem}
+  ul.rules li{margin-bottom:8px}
+  code{background:var(--bg3); border:1px solid var(--border); padding:1px 6px; border-radius:4px; font-size:.82em}
+  .foot{color:var(--muted); font-size:.78rem; text-align:center; margin-top:8px}
+  .decision{background:var(--bg3); border:1px solid var(--border); border-left:4px solid var(--accent); border-radius:8px; padding:12px 16px; font-size:.85rem; margin-top:14px}
+  .decision b{color:var(--accent)}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1><span class="dot"></span> Atlas — Roadmap por Fases</h1>
+  <div class="sub">Sistema de memoria total + coprocesador monetario · Trazabilidad entre fases · Puntos donde puede romperse</div>
+
+  <div class="legend">
+    <span class="lg"><span class="pill g"></span> Estable / lista para traspasar</span>
+    <span class="lg"><span class="pill y"></span> Débil / depende de algo externo</span>
+    <span class="lg"><span class="pill r"></span> Riesgoso / adaptador externo frágil</span>
+    <span class="lg" style="margin-left:auto">Haz clic en cada fase o punto débil para expandir</span>
+  </div>
+
+  <section>
+    <h2><span class="num">01</span> Diagrama de fases</h2>
+
+    <div class="flow">
+      <div class="phase stable" onclick="toggle(this)">
+        <div class="pnum">F1 · CORE</div>
+        <div class="ptitle">Memory Core</div>
+        <div class="pdesc">MCP memory server · SQLite · bóveda Obsidian · skill · permisos · identidad</div>
+        <span class="status">🟢 Estable</span>
+        <div class="expand">
+          <b>Entregables:</b> mcp_memory_server.py · state/memory.db · vault/ (global + proyectos) · skill memory · git hook → inbox · opencode.jsonc · identity.md (Atlas)<br>
+          <b>Raíz única:</b> todo en <code>E:\Agente_IA\</code> · proyecto auto-detectado por cwd · fuera de proyecto → <code>global</code> + <code>memory_projects</code><br>
+          <b>Traspasa a F2:</b> tabla <code>events</code> (app, duration_seconds, monetizable) sin migraciones · skill listo para cualquier UI
+        </div>
+      </div>
+
+      <div class="arrow">►<div>F1→F2</div></div>
+
+      <div class="phase weak" onclick="toggle(this)">
+        <div class="pnum">F2 · ACTIVIDAD</div>
+        <div class="ptitle">Activity Tracker + Atlas UI</div>
+        <div class="pdesc">Daemon en background · captura ventana activa · chat flotante (Opción A) · dashboard · notificaciones</div>
+        <span class="status">🟢 Parcial — chat flotante listo</span>
+        <div class="expand">
+          <b>UI:</b> Opción A = web → <code>opencode serve</code> (SDK 1.18.1 instalado). Migrable a B (nativa) / C (terminal) sin reescribir backend.<br>
+          <b>Hecho:</b> <code>atlas_chat.py</code> (pywebview frameless on-top → <code>127.0.0.1:4096</code>) + <code>start_atlas_chat.vbs</code> + autostart <code>AtlasChat</code> (Task Scheduler).<br>
+          <b>Pendiente:</b> daemon de captura de ventana activa → tabla <code>events</code> (F3 input).<br>
+          <b>Traspasa a F3/F4/F5:</b> eventos continuos de actividad + tiempo por app.
+        </div>
+      </div>
+
+      <div class="arrow">►<div>F2→F3</div></div>
+
+      <div class="phase weak" onclick="toggle(this)">
+        <div class="pnum">F3 · FOCO</div>
+        <div class="ptitle">Anti-distracción</div>
+        <div class="pdesc">Clasifica apps (monetizable / distracción) · avisos · modos de disciplina</div>
+        <span class="status">🟡 Débil</span>
+        <div class="expand">
+          <b>Depende de:</b> categorización de apps = heurísticas en <code>activity_rules.json</code> editable (riesgo de falsos positivos).<br>
+          <b>Traspasa a F4:</b> métrica de "tiempo productivo vs fugado".
+        </div>
+      </div>
+
+      <div class="arrow">►<div>F3→F4</div></div>
+
+      <div class="phase risk" onclick="toggle(this)">
+        <div class="pnum">F4 · DINERO</div>
+        <div class="ptitle">Money + Content Engines</div>
+        <div class="pdesc">Radar de oportunidades · métricas $ · motor de contenido · dashboard financiero</div>
+        <span class="status">🔴 Riesgoso</span>
+        <div class="expand">
+          <b>Riesgo:</b> los datos de ingresos dependen de que tú los alimentes (banco/Stripe/manual).<br>
+          <b>Adaptador:</b> import CSV + entrada manual; el agente lo pide proactivamente.
+        </div>
+      </div>
+
+      <div class="arrow">►<div>F2→F5</div></div>
+
+      <div class="phase risk" onclick="toggle(this)">
+        <div class="pnum">F5 · TUTOR</div>
+        <div class="ptitle">Trading Tutor (demo)</div>
+        <div class="pdesc">Tu idea: analiza tus entradas/salidas en TradingView demo, explica estrategias como tutor</div>
+        <span class="status">🔴 Riesgoso</span>
+        <div class="expand">
+          <b>Requiere:</b> captura de actividad (F2) + export de trades de TradingView.<br>
+          <b>Adaptador externo:</b> import CSV → normalizado. Nunca scraping frágil como núcleo.
+        </div>
+      </div>
+    </div>
+
+    <div class="decision"><b>Decisión de UI:</b> F2 arranca con <b>Opción A</b> (web → opencode serve), diseñada para migrar a <b>B</b> (ventana nativa Win+Alt+M) o <b>C</b> (terminal) sin reescribir la capa de lógica — mismo backend, cambia solo el contenedor.</div>
+  </section>
+
+  <section>
+    <h2><span class="num">02</span> Trazabilidad entre fases</h2>
+    <table>
+      <tr><th>De → A</th><th>Qué traspasa</th><th>Qué necesita la fase destino</th><th>Estado</th></tr>
+      <tr><td><b>F1 → F2</b></td><td>Tabla <code>events</code> con app, window_title, category, monetizable, duration_seconds, project</td><td>El daemon solo inserta filas — cero migración</td><td><span class="tag ok">🟢 listo</span></td></tr>
+      <tr><td><b>F1 → F2</b></td><td>MCP memory + skill + bóveda</td><td>La UI habla con <code>opencode serve</code>, que ya carga skill + MCP</td><td><span class="tag ok">🟢 listo</span></td></tr>
+      <tr><td><b>F2 → F3</b></td><td>Eventos continuos (ventana activa cada ~10s)</td><td>Reglas de categorización de apps</td><td><span class="tag warn">🟡 débil</span></td></tr>
+      <tr><td><b>F2 → F4</b></td><td>Métricas de tiempo + dashboard base</td><td><b>Ingreso de ingresos</b> (banco/Stripe/manual)</td><td><span class="tag warn">🟡 débil</span></td></tr>
+      <tr><td><b>F2 → F5</b></td><td>Captura de ventana/sesión + sesiones</td><td>Export de trades de TradingView (CSV)</td><td><span class="tag bad">🔴 riesgoso</span></td></tr>
+      <tr><td><b>F3 → F4</b></td><td>Detección de fuga de tiempo</td><td>Sin F3, F4 no sabe qué fue productivo</td><td><span class="tag ok">🟢 lineal</span></td></tr>
+      <tr><td><b>F1 → todos</b></td><td>Identidad Atlas, redacción de secretos, permisos</td><td>Nada — es transversal</td><td><span class="tag ok">🟢 listo</span></td></tr>
+    </table>
+  </section>
+
+  <section>
+    <h2><span class="num">03</span> Puntos donde puede romperse</h2>
+    <p class="sub" style="margin-bottom:14px">Haz clic en cada punto para ver la mitigación.</p>
+
+    <div class="wp high" onclick="toggle(this)">
+      <div class="head"><span class="sev"></span><span class="t">Integración TradingView (export de trades por demo varía; scraping se rompe)</span><span class="p">F5</span></div>
+      <div class="mit"><b>Mitigación:</b> adaptador externo de import CSV → normalizado. Nunca scraping frágil como núcleo.</div>
+    </div>
+    <div class="wp high" onclick="toggle(this)">
+      <div class="head"><span class="sev"></span><span class="t">Datos de ingresos dependen de que tú los alimentes</span><span class="p">F4</span></div>
+      <div class="mit"><b>Mitigación:</b> import CSV (banco/Stripe) + entrada manual rápida; el agente lo solicita proactivamente.</div>
+    </div>
+    <div class="wp med" onclick="toggle(this)">
+      <div class="head"><span class="sev"></span><span class="t">Clasificar app como distracción con heurísticas → falsos positivos</span><span class="p">F3</span></div>
+      <div class="mit"><b>Mitigación:</b> umbrales ajustables + reglas en <code>activity_rules.json</code> editable, no en código.</div>
+    </div>
+    <div class="wp med" onclick="toggle(this)">
+      <div class="head"><span class="sev"></span><span class="t">Post-commit hook falla silencioso (PATH / venv / timeout)</span><span class="p">F1</span></div>
+      <div class="mit"><b>Mitigación:</b> el hook solo escribe en <code>inbox/</code>; <code>memory_event_ingest</code> drena a SQLite; <code>memory_health</code> detecta backlog no procesado.</div>
+    </div>
+    <div class="wp med" onclick="toggle(this)">
+      <div class="head"><span class="sev"></span><span class="t">Sesiones huérfanas si se cierra la terminal sin /guardar</span><span class="p">F1</span></div>
+      <div class="mit"><b>Mitigación:</b> <code>memory_session_recover</code> al iniciar detecta sesiones abiertas y las marca como incompletas.</div>
+    </div>
+    <div class="wp low" onclick="toggle(this)">
+      <div class="head"><span class="sev"></span><span class="t">A→B/C: la UI A se acopla al navegador</span><span class="p">F2</span></div>
+      <div class="mit"><b>Mitigación:</b> la UI A es HTML/JS puro sobre API <code>opencode serve</code>; B/C solo cambian el contenedor.</div>
+    </div>
+    <div class="wp low" onclick="toggle(this)">
+      <div class="head"><span class="sev"></span><span class="t">Bóveda crece sin control → contexto saturado</span><span class="p">F1</span></div>
+      <div class="mit"><b>Mitigación:</b> MEMORY.md = índice · <code>memory_gc</code> · summary con presupuesto de tokens.</div>
+    </div>
+  </section>
+
+  <section>
+    <h2><span class="num">04</span> Reglas del roadmap (anti-ruptura)</h2>
+    <ul class="rules">
+      <li><b>F1 nunca se replantea al llegar a F5</b> — schema events, bóveda, permisos e identidad nacen "finales".</li>
+      <li><b>Cada integración externa</b> (TradingView, banco, web) = adaptador reemplazable, nunca lógica en el núcleo.</li>
+      <li><b>Graphify siempre opcional</b> — el sistema funciona sin él.</li>
+      <li><b>Lo que no está en la bóveda no existe</b> — toda decisión que Atlas recuerde pasa por Obsidian.</li>
+    </ul>
+  </section>
+
+  <div class="foot">Atlas · Roadmap v1 · E:\Agente_IA\roadmap.html · Abierto para revisión antes de implementar F1</div>
+</div>
+
+<script>
+  function toggle(el){ el.classList.toggle('open'); }
+</script>
+</body>
+</html>

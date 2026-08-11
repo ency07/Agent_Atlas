@@ -1,6 +1,7 @@
 ﻿# --- Estado derivado del servidor de memoria (NO versionar) ---
 memory_data/state/
 memory_data/inbox/
+memory_data/backup/
 
 # --- Python ---
 __pycache__/
