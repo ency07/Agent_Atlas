@@ -368,12 +368,49 @@ def main():
         )
         api.set_window(win)
         # delay 2s para que React/Next.js monte el DOM antes de inyectar overlay+input-focus
-        win.events.loaded += lambda: (time.sleep(2), win.evaluate_js(OVERLAY_JS))
+        win.events.loaded += lambda: _on_loaded(win)
         webview.start()
     except Exception as exc:  # noqa: BLE001
         track_error("atlas_chat", "webview_start", exc=exc)
         log.error(f"pywebview fallo ({exc}); abriendo en navegador", error=str(exc))
         webbrowser.open(chat_url)
+
+
+ICON_PATH = Path(__file__).resolve().parent / "artificialintelligence.ico"
+
+
+def set_window_icon(win, ico_path: str) -> None:
+    """Pone el .ico como icono de la ventana (titulo + taskbar)."""
+    # via .NET (pythonnet, ya cargado por pywebview): mas limpio
+    try:
+        import clr
+        from System.Drawing import Icon
+        win.native.Icon = Icon(str(ico_path))
+        return
+    except Exception:
+        pass
+    # fallback ctypes (Win32)
+    try:
+        import ctypes
+        user32 = ctypes.windll.user32
+        hwnd = int(win.native.Handle.ToInt64())
+        IMAGE_ICON, LR_LOADFROMFILE, LR_DEFAULTSIZE = 1, 0x10, 0x40
+        hicon = user32.LoadImageW(
+            None, str(ico_path), IMAGE_ICON, 0, 0,
+            LR_LOADFROMFILE | LR_DEFAULTSIZE,
+        )
+        if hicon:
+            user32.SendMessageW(hwnd, 0x0080, 1, hicon)  # WM_SETICON ICON_BIG
+            user32.SendMessageW(hwnd, 0x0080, 0, hicon)  # WM_SETICON ICON_SMALL
+    except Exception as exc:
+        log.warning("no se pudo aplicar icono a la ventana", error=str(exc))
+
+
+def _on_loaded(win) -> None:
+    """Tras el load: aplica icono y espera 2s para que React monte el DOM."""
+    set_window_icon(win, ICON_PATH)
+    time.sleep(2)
+    win.evaluate_js(OVERLAY_JS)
 
 
 if __name__ == "__main__":
