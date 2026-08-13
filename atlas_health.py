@@ -44,6 +44,25 @@ def _port_open(port: int, timeout: float = 1.0) -> bool:
         return False
 
 
+def _provider_real_ok(name: str) -> bool:
+    """Verificacion REAL del provider: puerto abierto Y API responde
+    (evita falsos positivos: ej. ollama con instalador pero sin servicio HTTP)."""
+    import urllib.request
+    url = {"omniroute": "http://localhost:20128/v1/models",
+           "9router": "http://localhost:4000/v1/models",
+           "ollama": "http://localhost:11434/api/tags"}.get(name)
+    if not url:
+        return _port_open(20128) or _port_open(11434)
+    if not _port_open(int(url.split(":")[2].split("/")[0])):
+        return False
+    try:
+        with urllib.request.urlopen(url, timeout=4) as r:
+            r.read()
+            return True
+    except Exception:
+        return False
+
+
 def _check_component(name: str, ok: bool, detail: str = "", critical: bool = True):
     return {"name": name, "ok": ok, "detail": detail, "critical": critical}
 
@@ -68,12 +87,12 @@ def health_report() -> dict:
     checks.append(_check_component("daemon_activity", daemon["ok"], daemon["detail"]))
 
     # providers de modelos
-    omniroute = _port_open(20128)
+    omniroute = _provider_real_ok("omniroute")
     checks.append(_check_component("omniroute", omniroute,
-                                   "localhost:20128" if omniroute else "no responde"))
-    ollama = _port_open(11434)
+                                   "localhost:20128 (API ok)" if omniroute else "no responde (API)"))
+    ollama = _provider_real_ok("ollama")
     checks.append(_check_component("ollama", ollama,
-                                   "localhost:11434" if ollama else "no responde",
+                                   "localhost:11434 (API ok)" if ollama else "no responde (API)",
                                    critical=False))
     if not omniroute and not ollama:
         checks.append(_check_component("modelos", False, "ningun provider de modelos activo"))

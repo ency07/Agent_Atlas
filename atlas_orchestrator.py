@@ -140,15 +140,55 @@ def _port_open(port: int, timeout: float = 0.6) -> bool:
         return False
 
 
+def _api_get(url: str, timeout: float = 4.0):
+    """GET JSON con urllib. None si falla (sin excepciones)."""
+    import urllib.request
+    try:
+        with urllib.request.urlopen(url, timeout=timeout) as r:
+            return json.loads(r.read().decode("utf-8"))
+    except Exception:
+        return None
+
+
+_installed_cache: dict = {}  # provider -> (timestamp, models|None)
+_CACHE_TTL = 15.0
+
+
+def _provider_installed_models(name: str) -> list | None:
+    """Consulta la API REAL del provider y devuelve los modelos instalados.
+    None = no se pudo verificar (no confiar en el port check solo).
+    Con caché de 15s para no golpear la API en cada analyze()."""
+    now = time.time()
+    if name in _installed_cache and now - _installed_cache[name][0] < _CACHE_TTL:
+        return _installed_cache[name][1]
+    result = None
+    if name == "ollama":
+        data = _api_get("http://localhost:11434/api/tags")
+        if data and "models" in data:
+            result = [m.get("name", "") for m in data["models"]]
+    elif name in ("omniroute", "9router"):
+        data = _api_get(PROVIDERS[name]["api"] + "/models")
+        if data and "data" in data:
+            result = [m.get("id", "") for m in data["data"]]
+    _installed_cache[name] = (now, result)
+    return result
+
+
 def active_providers() -> dict:
-    """Devuelve {provider: {port, alive, in_cooldown, cooldown_left}} solo con deteccion real."""
+    """Proveedores con deteccion REAL: puerto abierto Y API responde.
+    Puro (no escribe log): el circuit breaker lo gestionan register_error/success."""
     result = {}
     for name, cfg in PROVIDERS.items():
         alive = _port_open(cfg["port"])
+        models = None
+        if alive:
+            models = _provider_installed_models(name)
+            alive = models is not None  # puerto abierto pero API sin responder = NO usable
         cooled = _in_cooldown(name)
         result[name] = {
             "alive": alive,
-            "in_cooldown": cooled and alive,  # vivo pero penalizado por fallos
+            "installed_models": models if alive else [],
+            "in_cooldown": cooled and alive,
             "cooldown_left_s": _cooldown_left(name) if cooled else 0,
             "port": cfg["port"],
             "api": cfg["api"],
@@ -165,16 +205,43 @@ def load_capabilities() -> dict:
     return {}
 
 
+def _infer_capability(model_id: str, cap: dict | None) -> dict:
+    """Capacidades para un modelo. Usa el mapa si existe; si no, infiere
+    heuristica desde el nombre (vision en el id -> vision, pro -> mejor,
+    etc). Nunca asume que un modelo desconocido tiene vision."""
+    name = model_id.lower()
+    if cap:
+        return cap
+    return {
+        "vision": bool(re.search(r"vision|multimodal|gemma3|llava|qwen.*vl", name)),
+        "coding": 0.75 if re.search(r"coding|code|deepseek|qwen", name) else 0.5,
+        "reasoning": 0.7 if re.search(r"reason|deepseek|think|o1|o3", name) else 0.5,
+        "research": 0.5,
+        "speed": 0.8 if re.search(r"fast|cheap|mini|tiny", name) else 0.5,
+        "context_ok": True,
+        "ideal_para": [],
+        "_inferred": True,
+    }
+
+
 def active_models() -> dict:
-    """Modelos REALMENTE usables: su provider esta vivo y fuera de cooldown."""
+    """Modelos REALMENTE usables: su provider responde SU API y el modelo
+    esta en la lista instalada del provider. Sin falsos positivos."""
     caps = load_capabilities().get("models", {})
     provs = active_providers()
     out = {}
-    for model_id, cap in caps.items():
-        provider = model_id.split("/")[0]
-        pstate = provs.get(provider, {})
-        if pstate.get("alive") and not pstate.get("in_cooldown"):
-            out[model_id] = cap
+    for provider, state in provs.items():
+        if not state.get("alive") or state.get("in_cooldown"):
+            continue
+        for installed in state.get("installed_models", []):
+            # modelo instalado (ej 'phi4-mini' o 'auto/best-coding')
+            key = f"{provider}/{installed}"
+            cap = caps.get(key)
+            if cap is None:
+                # sin :tag y el mapa tiene la variante con tag
+                base = installed.split(":")[0]
+                cap = caps.get(f"{provider}/{base}")
+            out[key] = _infer_capability(key, cap)
     return out
 
 
@@ -213,27 +280,35 @@ def classify_task(task: str) -> dict:
 
 
 def best_model_for(required_cap: str | None, model_pool: dict | None = None) -> dict | None:
-    """Elige el mejor modelo del pool activo para la capacidad requerida."""
+    """Elige el mejor modelo del pool activo para la capacidad requerida.
+    Los modelos CURADOS (mapa de capacidades) siempre ganan sobre inferidos."""
     if model_pool is None:
         model_pool = active_models()
     if not model_pool:
         return None
+
+    def rank(kv):
+        mid, cap = kv
+        curated = not cap.get("_inferred", False)
+        score = cap.get(required_cap, 0) if required_cap else (cap.get("coding", 0) + cap.get("reasoning", 0)) / 2
+        return (curated, score)
+
     if required_cap is None:
-        # default: mejor general = max promedio de coding+reasoning
-        scored = sorted(model_pool.items(),
-                        key=lambda kv: (kv[1].get("coding", 0) + kv[1].get("reasoning", 0)) / 2,
-                        reverse=True)
+        scored = sorted(model_pool.items(), key=rank, reverse=True)
         mid, cap = scored[0]
         return {"model": mid, "reason": "mejor general entre activos", "capability": cap}
+
     if required_cap == "vision":
-        for mid, cap in model_pool.items():
-            if cap.get("vision"):
-                return {"model": mid, "reason": "unico modelo con vision activo", "capability": cap}
-        return None  # ninguno activo con vision
-    # capacidad numerica (coding/reasoning/research/speed): max score
-    scored = sorted(model_pool.items(), key=lambda kv: kv[1].get(required_cap, 0), reverse=True)
+        vision_pool = {m: c for m, c in model_pool.items() if c.get("vision")}
+        if not vision_pool:
+            return None  # ninguno activo con vision
+        scored = sorted(vision_pool.items(), key=rank, reverse=True)
+        mid, cap = scored[0]
+        return {"model": mid, "reason": "mejor vision entre activos", "capability": cap}
+
+    scored = sorted(model_pool.items(), key=rank, reverse=True)
     mid, cap = scored[0]
-    return {"model": mid, "reason": f"max {required_cap} entre activos", "capability": cap}
+    return {"model": mid, "reason": f"max {required_cap} entre activos (curado preferido)", "capability": cap}
 
 
 def analyze(task: str) -> dict:
