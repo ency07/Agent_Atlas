@@ -164,6 +164,7 @@ Solo entra si F4/F5 producen procesos repetibles.
 ### Pendientes
 
 - [ ] Deshabilitar MCP `playwright`/`ollama` en opencode.jsonc si ensucian el chat (playwright-visual cubre el navegador).
+- [x] ~~Dashboard: conectar `dashboard.html` a datos reales~~ → HECHO: `atlas_web_server.py:4100` sirve dashboard + /api reales (events, top-apps, foco, health, orchestrator, modelo). Autostart vía tarea `AtlasWeb`.
 
 ---
 
@@ -183,7 +184,7 @@ Solo entra si F4/F5 producen procesos repetibles.
 | `python atlas_activity.py --interval 5` | Capturar cada 5s |
 | `python atlas_search.py` | Servidor MCP de búsqueda (si no se lanza via opencode) |
 | `python atlas_guardian.py` | Servidor MCP del guardián |
-| `python atlas_foco.py --http 4101` | HTTP server de foco para dashboard (GET /daily) |
+| `python atlas_web_server.py --port 4100` | Dashboard real: sirve dashboard.html + /api/* (overview, top-apps, foco, health, orchestrator, modelo). Autostart: tarea AtlasWeb |
 | `python atlas_health.py --http 4102` | HTTP server de salud/semáforo (GET /health) |
 | `python atlas_health.py --cli` | Chequeo completo del sistema (green/yellow/red) |
 | `python atlas_foco.py --cli daily` | Resumen de foco del día |

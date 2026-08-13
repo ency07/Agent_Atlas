@@ -110,9 +110,7 @@
 
 <script src="api.js"></script>
 <script>
-const API_BASE = 'http://127.0.0.1:4096';
-const FOCO_API = 'http://127.0.0.1:4101';
-const HEALTH_API = 'http://127.0.0.1:4102';
+const API_BASE = 'http://127.0.0.1:4100';
 
 const STATUS_COLORS = { green: '#3fb950', yellow: '#d29922', red: '#f85149' };
 const STATUS_LABEL = { green: '🟢 TODO OK', yellow: '🟡 ALERTAS', red: '🔴 FALLOS' };
@@ -121,10 +119,11 @@ async function loadHealth() {
   const el = document.getElementById('health-status');
   const checksEl = document.getElementById('health-checks');
   try {
-    const r = await fetch(`${HEALTH_API}/health`).then(r => r.json());
+    const r = await fetch(`${API_BASE}/api/health`).then(r => r.json());
     el.textContent = STATUS_LABEL[r.status] || r.status;
     el.style.color = STATUS_COLORS[r.status] || '#e6edf3';
-    document.getElementById('health-detail').textContent = `último chequeo: ${(r.timestamp || '').slice(11, 19)} · ${r.checks.length} componentes`;
+    const ts = (r.timestamp || r.checks_timestamp || '');
+    document.getElementById('health-detail').textContent = `último chequeo: ${ts.slice(11, 19) || 'ahora'} · ${r.checks.length} componentes`;
     const fails = r.checks.filter(c => !c.ok);
     checksEl.innerHTML = r.checks.map(c => {
       const icon = c.ok ? '🟢' : (c.critical ? '🔴' : '🟡');
@@ -133,14 +132,14 @@ async function loadHealth() {
   } catch (e) {
     el.textContent = '🔴 HEALTH SIN SERVER';
     el.style.color = STATUS_COLORS.red;
-    checksEl.textContent = `atlas_health no responde (inicia: python atlas_health.py --http 4102) — ${e.message}`;
+    checksEl.textContent = `atlas_web_server no responde (inicia: python atlas_web_server.py --port 4100) — ${e.message}`;
   }
 }
 
 async function loadModelo() {
   const el = document.getElementById('modelo-info');
   try {
-    const r = await fetch(`${API_BASE}/config`).then(r => r.json()).catch(() => null);
+    const r = await fetch(`${API_BASE}/api/modelo`).then(r => r.json());
     const model = (r && r.model) || 'auto/best-coding';
     const visionOK = !model.includes('phi4') && !model.includes('mistral') && !model.includes('gemma3:1b') && !model.includes('llama3.2');
     el.innerHTML = `<div style="margin-bottom:6px;"><b>Modelo activo:</b> ${model}</div>`;
@@ -155,7 +154,7 @@ async function loadFoco() {
   const pctEl = document.getElementById('foco-pct');
   const modeEl = document.getElementById('foco-mode');
   try {
-    const r = await fetch(`${FOCO_API}/daily`).then(r => r.json());
+    const r = await fetch(`${API_BASE}/api/foco`).then(r => r.json());
     const pct = r.focus_pct ?? 0;
     pctEl.textContent = `${pct}%`;
     pctEl.style.color = pct >= 60 ? '#3fb950' : (pct >= 40 ? '#d29922' : '#f85149');
@@ -175,41 +174,82 @@ async function loadFoco() {
     }
   } catch (e) {
     pctEl.textContent = '--';
-    document.getElementById('foco-detail').textContent = `foco server no responde (inicia: python atlas_foco.py --http)`;
+    document.getElementById('foco-detail').textContent = `foco no disponible (atlas_web_server)`;
+  }
+}
+
+async function loadTopApps() {
+  const tbody = document.getElementById('top-apps');
+  try {
+    const r = await fetch(`${API_BASE}/api/top-apps`).then(r => r.json());
+    const apps = r.apps || [];
+    if (!apps.length) {
+      tbody.innerHTML = '<tr><td colspan="4" style="color:var(--muted);">sin eventos de actividad en las últimas 24h</td></tr>';
+      return;
+    }
+    const max = Math.max(...apps.map(a => a.total_seconds), 1);
+    const fmt = s => {
+      const m = Math.round(s / 60);
+      return m >= 60 ? `${Math.floor(m / 60)}h ${m % 60}m` : `${m} min`;
+    };
+    tbody.innerHTML = apps.map(a => {
+      const w = Math.max(2, Math.round((a.total_seconds / max) * 100));
+      return `<tr>
+        <td>${a.app}</td>
+        <td>${fmt(a.total_seconds)} <span style="color:var(--muted);font-size:.75rem;">(${a.events} eventos)</span></td>
+        <td style="width:180px;"><div class="bar"><div class="bar-fill" style="width:${w}%"></div></div></td>
+        <td style="font-size:.75rem;color:var(--muted);">${w}%</td>
+      </tr>`;
+    }).join('');
+  } catch (e) {
+    tbody.innerHTML = `<tr><td colspan="4" style="color:var(--muted);">error: ${e.message}</td></tr>`;
   }
 }
 
 async function load() {
   document.getElementById('status').textContent = 'actualizando...';
   try {
-    // health via proxy simple (si opencode serve no expone /memory, usar fallback)
-    const health = await fetch(`${API_BASE}/config`).then(r => r.json()).catch(() => null);
+    const r = await fetch(`${API_BASE}/api/overview`).then(r => r.json());
 
-    // daemon status desde heartbeat file (fallback: mostrar estado del server)
     const daemonEl = document.getElementById('daemon-status');
     const daemonDetail = document.getElementById('daemon-detail');
-    if (health) {
+    if (r.daemon_status === 'up') {
       daemonEl.textContent = '🟢 activo';
       daemonEl.style.color = '#3fb950';
-      daemonDetail.textContent = `Server en ${API_BASE}`;
+      const age = Math.round(r.daemon_age_seconds ?? -1);
+      daemonDetail.textContent = `PID ${r.daemon?.pid ?? '?'} · último tick ${age}s · uptime ${Math.round((r.uptime_seconds ?? 0) / 60)} min${r.paused ? ' · ⏸ pausado' : ''}`;
     } else {
       daemonEl.textContent = '🔴 inactivo';
       daemonEl.style.color = '#f85149';
-      daemonDetail.textContent = 'opencode serve no responde';
+      daemonDetail.textContent = 'daemon no responde (python atlas_activity.py)';
     }
 
-    document.getElementById('status').textContent = `última actualización: ${new Date().toLocaleTimeString()}`;
+    document.getElementById('events-total').textContent = r.events_total ?? '--';
+    document.getElementById('events-detail').textContent = 'eventos en memory.db';
+    document.getElementById('sessions-total').textContent = r.sessions_total ?? '--';
+    document.getElementById('sessions-detail').textContent = 'sesiones de trabajo';
+    const ltEl = document.getElementById('last-tick');
+    if (r.last_tick) {
+      ltEl.textContent = new Date(r.last_tick).toLocaleTimeString();
+      ltEl.style.color = '#e6edf3';
+      document.getElementById('tick-detail').textContent = `modo foco: ${r.foco_mode || 'soft'}`;
+    } else {
+      ltEl.textContent = '--';
+    }
+
+    document.getElementById('status').textContent = `última actualización: ${new Date().toLocaleTimeString()} · server ${API_BASE}`;
   } catch (e) {
-    document.getElementById('status').textContent = `error: ${e.message}`;
+    document.getElementById('status').textContent = `error: ${e.message} (inicia: python atlas_web_server.py --port 4100)`;
   }
 }
 
 // auto-refresh cada 30s
 load();
+loadTopApps();
 loadFoco();
 loadHealth();
 loadModelo();
-setInterval(() => { load(); loadFoco(); loadHealth(); loadModelo(); }, 30000);
+setInterval(() => { load(); loadTopApps(); loadFoco(); loadHealth(); loadModelo(); }, 30000);
 </script>
 </body>
 </html>

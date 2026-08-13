@@ -170,6 +170,17 @@ if (Test-Path $mcpWinCore) {
     }
 }
 
+# ---------- Dashboard web (datos reales) ----------
+Write-Host "`n[Dashboard web]"
+$webPy = Join-Path $ROOT "atlas_web_server.py"
+Report (Test-Path $webPy) "atlas_web_server.py presente (dashboard + /api/*)"
+Report (Test-Path (Join-Path $ROOT "start_atlas_web.vbs")) "start_atlas_web.vbs presente"
+$taskWeb = Get-ScheduledTask -TaskName "AtlasWeb" -ErrorAction SilentlyContinue
+Report ($null -ne $taskWeb) "tarea AtlasWeb en Task Scheduler (autostart)"
+$webLive = $false
+try { $null = Invoke-RestMethod "http://127.0.0.1:4100/api/overview" -TimeoutSec 3; $webLive = $true } catch {}
+Report $webLive "dashboard respondiendo en :4100"
+
 # ---------- Git hook (F1) ----------
 Write-Host "`n[Git hook F1]"
 Push-Location $ROOT
