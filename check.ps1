@@ -107,6 +107,36 @@ if (Test-Path $fjson) {
     Report $false "foco_rules.json config ausente (corre setup.ps1)"
 }
 
+# ---------- Orquestador (O1) ----------
+Write-Host "`n[Orquestador O1]"
+$capFile = Join-Path $ROOT "memory_data\state\model_capabilities.json"
+if (Test-Path $capFile) {
+    $caps = Get-Content $capFile -Raw | ConvertFrom-Json
+    Report ($null -ne $caps.models -and $null -ne $caps.task_to_model) "model_capabilities.json (modelos + routing)"
+    Report ($caps.regla_dorada) "regla dorada presente (vision=false nunca en tareas visuales)"
+} else {
+    Report $false "model_capabilities.json ausente (corre setup.ps1)"
+}
+$orchSkill = Join-Path $ROOT "skills\atlas_orchestrator\SKILL.md"
+Report (Test-Path $orchSkill) "skill atlas_orchestrator presente"
+$orchSkillCfg = Join-Path $env:USERPROFILE ".config\opencode\skills\atlas_orchestrator\SKILL.md"
+Report (Test-Path $orchSkillCfg) "skill instalado en config de opencode"
+
+# ---------- Health / semáforo (S1) ----------
+Write-Host "`n[Health / semáforo S1]"
+$healthPy = Join-Path $ROOT "atlas_health.py"
+if (Test-Path $healthPy) {
+    Report $true "atlas_health.py presente (MCP + semaforo)"
+    $hres = & $pyBin $healthPy --cli 2>$null | Out-String
+    if ($LASTEXITCODE -eq 0) {
+        Report $true "health check: TODO OK (green/yellow)"
+    } else {
+        Report $false "health check: hay fallos criticos"
+    }
+} else {
+    Report $false "atlas_health.py ausente"
+}
+
 # ---------- Git hook (F1) ----------
 Write-Host "`n[Git hook F1]"
 Push-Location $ROOT

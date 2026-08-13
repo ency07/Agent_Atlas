@@ -199,6 +199,25 @@ New-Item -ItemType Directory -Path $skillDir -Force | Out-Null
 Copy-Item (Join-Path $ROOT "templates\skills\memory\SKILL.md") (Join-Path $skillDir "SKILL.md") -Force
 Write-Host "  skill -> $skillDir\SKILL.md"
 
+# ---------- 5a. Skill orquestador ----------
+$stateDir = Join-Path $ROOT "memory_data\state"
+New-Item -ItemType Directory -Path $stateDir -Force | Out-Null
+$orchSkill = Join-Path $cfgDir "skills\atlas_orchestrator"
+New-Item -ItemType Directory -Path $orchSkill -Force | Out-Null
+Copy-Item (Join-Path $ROOT "templates\skills\atlas_orchestrator\SKILL.md") (Join-Path $orchSkill "SKILL.md") -Force
+Write-Host "  skill orquestador -> $orchSkill\SKILL.md"
+
+# mapa de capacidades de modelos (orquestador)
+$capsFile = Join-Path $stateDir "model_capabilities.json"
+if (Test-Path (Join-Path $ROOT "templates\model_capabilities.json.example")) {
+    if (-not (Test-Path $capsFile)) {
+        Copy-Item (Join-Path $ROOT "templates\model_capabilities.json.example") $capsFile -Force
+        Write-Host "  model_capabilities.json creado (orquestador)"
+    } else {
+        Write-Host "  model_capabilities.json ya existe"
+    }
+}
+
 # ---------- 5b. Config guardián + búsqueda ----------
 Write-Host "`n[5b] Config guardián + búsqueda..." -ForegroundColor Yellow
 $stateDir = Join-Path $ROOT "memory_data\state"

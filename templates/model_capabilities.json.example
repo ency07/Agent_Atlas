@@ -1,0 +1,111 @@
+{
+  "_meta": {
+    "version": 1,
+    "descripcion": "Capacidades por modelo. Orquestador Atlas consulta esto antes de ejecutar tareas.",
+    "como_se_usa": "Si el modelo activo no soporta la capacidad requerida, Atlas avisa y sugiere cambiar de modelo en vez de trabajar a ciegas."
+  },
+  "models": {
+    "omniroute/auto/best-coding": {
+      "vision": false,
+      "coding": 0.95,
+      "reasoning": 0.9,
+      "research": 0.6,
+      "speed": 0.7,
+      "context_ok": true,
+      "ideal_para": ["codigo", "refactor", "debug", "revision_codigo"]
+    },
+    "omniroute/auto/best-reasoning": {
+      "vision": false,
+      "coding": 0.8,
+      "reasoning": 0.98,
+      "research": 0.7,
+      "speed": 0.5,
+      "context_ok": true,
+      "ideal_para": ["planificacion", "arquitectura", "decisiones", "analisis_profundo"]
+    },
+    "omniroute/auto/best-chat": {
+      "vision": false,
+      "coding": 0.5,
+      "reasoning": 0.6,
+      "research": 0.5,
+      "speed": 0.95,
+      "context_ok": false,
+      "ideal_para": ["conversacion", "resumen", "respuesta_rapida"]
+    },
+    "omniroute/auto/best-vision": {
+      "vision": true,
+      "coding": 0.6,
+      "reasoning": 0.7,
+      "research": 0.6,
+      "speed": 0.7,
+      "context_ok": true,
+      "ideal_para": ["revision_visual", "screenshot", "imagen", "ui", "coreldraw"]
+    },
+    "omniroute/auto/best-fast": {
+      "vision": false,
+      "coding": 0.5,
+      "reasoning": 0.5,
+      "research": 0.4,
+      "speed": 0.99,
+      "context_ok": false,
+      "ideal_para": ["consulta_simple", "formato", "traduccion"]
+    },
+    "omniroute/auto/best-research": {
+      "vision": false,
+      "coding": 0.4,
+      "reasoning": 0.7,
+      "research": 0.98,
+      "speed": 0.8,
+      "context_ok": true,
+      "ideal_para": ["investigacion", "web_research", "documentacion"]
+    },
+    "ollama/phi4-mini": {
+      "vision": false,
+      "coding": 0.45,
+      "reasoning": 0.4,
+      "research": 0.35,
+      "speed": 0.9,
+      "context_ok": false,
+      "ideal_para": ["consulta_simple", "fallback", "sin_red"]
+    },
+    "ollama/gemma3:4b": {
+      "vision": false,
+      "coding": 0.4,
+      "reasoning": 0.45,
+      "research": 0.35,
+      "speed": 0.85,
+      "context_ok": false,
+      "ideal_para": ["consulta_simple", "fallback", "sin_red"]
+    },
+    "ollama/mistral:7b": {
+      "vision": false,
+      "coding": 0.5,
+      "reasoning": 0.5,
+      "research": 0.4,
+      "speed": 0.8,
+      "context_ok": false,
+      "ideal_para": ["codigo_basico", "fallback", "sin_red"]
+    }
+  },
+  "task_to_model": {
+    "revision_visual": "omniroute/auto/best-vision",
+    "screenshot_review": "omniroute/auto/best-vision",
+    "imagen_diseño": "omniroute/auto/best-vision",
+    "coreldraw": "omniroute/auto/best-vision",
+    "ui_audit": "omniroute/auto/best-vision",
+    "codigo_profundo": "omniroute/auto/best-coding",
+    "refactor": "omniroute/auto/best-coding",
+    "debug": "omniroute/auto/best-coding",
+    "planificacion": "omniroute/auto/best-reasoning",
+    "arquitectura": "omniroute/auto/best-reasoning",
+    "decision": "omniroute/auto/best-reasoning",
+    "investigacion": "omniroute/auto/best-research",
+    "web_research": "omniroute/auto/best-research",
+    "documentacion": "omniroute/auto/best-research",
+    "resumen": "omniroute/auto/best-chat",
+    "conversacion": "omniroute/auto/best-chat",
+    "consulta_rapida": "omniroute/auto/best-fast"
+  },
+  "fallback_sin_router": "ollama/phi4-mini",
+  "regla_dorada": "NUNCA ejecutar una tarea de revision visual con un modelo vision=false. Avisar y sugerir cambiar a un modelo vision=true antes de intentar."
+}

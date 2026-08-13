@@ -40,6 +40,11 @@
   <div id="status">cargando...</div>
 
   <div class="grid">
+    <div class="card" style="border-color:var(--border);">
+      <h3>Semáforo del sistema</h3>
+      <div class="val" id="health-status" style="font-size:1.4rem;">--</div>
+      <div class="detail" id="health-detail"></div>
+    </div>
     <div class="card">
       <h3>Estado del daemon</h3>
       <div class="val" id="daemon-status">--</div>
@@ -64,6 +69,19 @@
       <h3>Foco hoy</h3>
       <div class="val" id="foco-pct">--</div>
       <div class="detail" id="foco-mode">modo: --</div>
+    </div>
+  </div>
+
+  <h2 style="font-size:1.1rem;margin-bottom:8px;">Estado del sistema</h2>
+  <div style="display:flex;gap:16px;flex-wrap:wrap;">
+    <div style="flex:1;min-width:300px;" class="card">
+      <h3>Componentes</h3>
+      <div id="health-checks" style="font-size:.82rem;line-height:1.8;">cargando...</div>
+    </div>
+    <div style="flex:1;min-width:240px;" class="card">
+      <h3>Modelo orquestado</h3>
+      <div id="modelo-info" style="font-size:.82rem;color:var(--muted);">cargando...</div>
+      <div class="detail" style="margin-top:8px;">Capacidades del modelo activo · mapa: state/model_capabilities.json</div>
     </div>
   </div>
 
@@ -94,6 +112,44 @@
 <script>
 const API_BASE = 'http://127.0.0.1:4096';
 const FOCO_API = 'http://127.0.0.1:4101';
+const HEALTH_API = 'http://127.0.0.1:4102';
+
+const STATUS_COLORS = { green: '#3fb950', yellow: '#d29922', red: '#f85149' };
+const STATUS_LABEL = { green: '🟢 TODO OK', yellow: '🟡 ALERTAS', red: '🔴 FALLOS' };
+
+async function loadHealth() {
+  const el = document.getElementById('health-status');
+  const checksEl = document.getElementById('health-checks');
+  try {
+    const r = await fetch(`${HEALTH_API}/health`).then(r => r.json());
+    el.textContent = STATUS_LABEL[r.status] || r.status;
+    el.style.color = STATUS_COLORS[r.status] || '#e6edf3';
+    document.getElementById('health-detail').textContent = `último chequeo: ${(r.timestamp || '').slice(11, 19)} · ${r.checks.length} componentes`;
+    const fails = r.checks.filter(c => !c.ok);
+    checksEl.innerHTML = r.checks.map(c => {
+      const icon = c.ok ? '🟢' : (c.critical ? '🔴' : '🟡');
+      return `<div>${icon} <b>${c.name}</b> — ${c.detail}</div>`;
+    }).join('') + (fails.length ? `<div style="margin-top:8px;color:${STATUS_COLORS[fails.some(f=>f.critical)?'red':'yellow']};">${fails.length} componente(s) con problema</div>` : '<div style="margin-top:8px;color:var(--green);">todos los componentes OK</div>');
+  } catch (e) {
+    el.textContent = '🔴 HEALTH SIN SERVER';
+    el.style.color = STATUS_COLORS.red;
+    checksEl.textContent = `atlas_health no responde (inicia: python atlas_health.py --http 4102) — ${e.message}`;
+  }
+}
+
+async function loadModelo() {
+  const el = document.getElementById('modelo-info');
+  try {
+    const r = await fetch(`${API_BASE}/config`).then(r => r.json()).catch(() => null);
+    const model = (r && r.model) || 'auto/best-coding';
+    const visionOK = !model.includes('phi4') && !model.includes('mistral') && !model.includes('gemma3:1b') && !model.includes('llama3.2');
+    el.innerHTML = `<div style="margin-bottom:6px;"><b>Modelo activo:</b> ${model}</div>`;
+    el.innerHTML += `<div>visión: <b>${visionOK ? '✅ soportada' : '❌ NO soportada'}</b></div>`;
+    el.innerHTML += `<div style="margin-top:6px;color:var(--yellow);">${visionOK ? '' : '⚠️ tareas de revisión visual requieren cambiar a auto/best-vision (orquestador)'}</div>`;
+  } catch (e) {
+    el.textContent = `error: ${e.message}`;
+  }
+}
 
 async function loadFoco() {
   const pctEl = document.getElementById('foco-pct');
@@ -151,7 +207,9 @@ async function load() {
 // auto-refresh cada 30s
 load();
 loadFoco();
-setInterval(() => { load(); loadFoco(); }, 30000);
+loadHealth();
+loadModelo();
+setInterval(() => { load(); loadFoco(); loadHealth(); loadModelo(); }, 30000);
 </script>
 </body>
 </html>

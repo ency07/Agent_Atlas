@@ -407,9 +407,16 @@ def tray_icon_color() -> str:
             return "red"
         if age > 30:
             return "yellow"
+        # semaforo real: si ningun provider de modelos responde, alerta
+        if not _any_provider_alive():
+            return "yellow"
         return "green"
     except Exception:
         return "red"
+
+
+def _any_provider_alive() -> bool:
+    return _port_open(20128) or _port_open(11434)
 
 
 
@@ -439,7 +446,25 @@ def on_status(icon, item):
         msg = f"PID: {hb['pid']}\nStatus: {hb['status']}\nPaused: {hb['paused']}\nTicks: {hb['ticks']}\nUptime: {hb['uptime_seconds']}s"
     except Exception:
         msg = "Sin heartbeat todavia"
+    omni = "OK" if _port_open(20128) else "caido"
+    ollama = "OK" if _port_open(11434) else "caido"
+    msg += f"\n\nSemáforo:\n  omniroute :20128 -> {omni}\n  ollama :11434 -> {ollama}"
     log(f"STATUS desde bandeja: {msg}")
+    if icon is not None:
+        try:
+            icon.notify(msg, "Atlas — Estado")
+        except Exception:
+            pass
+
+
+def _port_open(port: int, timeout: float = 0.6) -> bool:
+    import socket
+    try:
+        s = socket.create_connection(("127.0.0.1", port), timeout=timeout)
+        s.close()
+        return True
+    except OSError:
+        return False
 
 
 
