@@ -16,7 +16,7 @@ $ROOT = $PSScriptRoot
 Write-Host "==> Atlas bootstrap en: $ROOT" -ForegroundColor Cyan
 
 # ---------- 1. Pre-requisitos ----------
-Write-Host "`n[1/8] Verificando pre-requisitos..." -ForegroundColor Yellow
+Write-Host "`n[1/10] Verificando pre-requisitos..." -ForegroundColor Yellow
 
 function Find-Command($name) {
     $c = Get-Command $name -ErrorAction SilentlyContinue
@@ -31,6 +31,33 @@ Write-Host "  node -> $node"
 $python = Find-Command "python"
 if (-not $python) { Write-Host "FALTA: Python. Instala 3.11+ desde https://python.org y reintenta." -ForegroundColor Red; exit 1 }
 Write-Host "  python -> $python"
+
+# ---------- 1b. Detección de proveedores de modelos (omniroute / 9router) ----------
+Write-Host "`n[1b] Detectando proveedores de modelos (opcionales)..." -ForegroundColor Yellow
+
+# omniroute: npm global o proceso corriendo en :20128
+$omnirouteInstalled = (Find-Command "omniroute") -or (Test-NetConnection -ComputerName 127.0.0.1 -Port 20128 -WarningAction SilentlyContinue).TcpTestSucceeded
+if ($omnirouteInstalled) {
+    Write-Host "  omniroute: DETECTADO" -ForegroundColor Green
+} else {
+    Write-Host "  omniroute: NO detectado" -ForegroundColor Yellow
+}
+
+# 9router: verificar si existe binario o proceso
+$ninerouterInstalled = (Find-Command "9router") -or (Test-NetConnection -ComputerName 127.0.0.1 -Port 4000 -WarningAction SilentlyContinue).TcpTestSucceeded
+if ($ninerouterInstalled) {
+    Write-Host "  9router: DETECTADO" -ForegroundColor Green
+} else {
+    Write-Host "  9router: NO detectado" -ForegroundColor Yellow
+}
+
+# Ollama fallback
+$ollamaRunning = (Test-NetConnection -ComputerName 127.0.0.1 -Port 11434 -WarningAction SilentlyContinue).TcpTestSucceeded
+if ($ollamaRunning) {
+    Write-Host "  Ollama: ACTIVO (puerto 11434)" -ForegroundColor Green
+} else {
+    Write-Host "  Ollama: NO detectado" -ForegroundColor Yellow
+}
 
 # ---------- 2. opencode CLI ----------
 Write-Host "`n[2/8] opencode CLI..." -ForegroundColor Yellow
@@ -61,7 +88,7 @@ if (Test-Path (Join-Path $ROOT "requirements.txt")) {
 }
 
 # ---------- 4. Config opencode ----------
-Write-Host "`n[4/8] Generando opencode.jsonc..." -ForegroundColor Yellow
+Write-Host "`n[4/10] Generando opencode.jsonc..." -ForegroundColor Yellow
 $cfgDir = Join-Path $env:USERPROFILE ".config\opencode"
 $cfgFile = Join-Path $cfgDir "opencode.jsonc"
 New-Item -ItemType Directory -Path $cfgDir -Force | Out-Null
@@ -70,13 +97,13 @@ New-Item -ItemType Directory -Path $cfgDir -Force | Out-Null
 $pyEsc = $pyBin.Replace("\", "\\")
 $rootEsc = $ROOT.Replace("\", "\\")
 
-# MCP de windows/corel/playwright-visual: opcional. Si existe E:\MCP\mcp-windows-ai o
-# un repo hermano, lo usa; si no, deja el placeholder (el setup no los habilita).
+# MCP de windows/corel/playwright-visual: opcional.
 $mcpWin = ""
 foreach ($cand in @("E:\MCP\mcp-windows-ai", "D:\MCP\mcp-windows-ai", (Join-Path $ROOT "..\mcp-windows-ai"))) {
     if (Test-Path (Join-Path $cand "mcp_windows_server.py")) { $mcpWin = $cand; break }
 }
 
+# Leer plantilla base
 $template = Get-Content (Join-Path $ROOT "templates\opencode.jsonc.example") -Raw
 $template = $template.Replace("%%PYTHON_BIN%%", $pyEsc)
 $template = $template.Replace("%%PROJECT_ROOT%%", $rootEsc)
@@ -84,13 +111,86 @@ if ($mcpWin) {
     $template = $template.Replace("%%MCP_WINDOWS_AI%%", $mcpWin.Replace("\", "\\"))
     Write-Host "  MCP windows-ai -> $mcpWin"
 } else {
-    # Sin repo hermano: quitar los MCP corel-draw/windows/playwright-visual
-    # para que opencode no intente arrancarlos con rutas rotas.
     $template = $template -replace '"(corel-draw|windows|playwright-visual)"\s*:\s*\{[^}]*\},\s*', ""
     Write-Host "  MCP windows-ai: no detectado -> MCP corel/windows/playwright-visual DESHABILITADOS" -ForegroundColor DarkYellow
 }
+
+# ----- Proveedores de modelos (dinámico según detección) -----
+$providers = @{}
+$modelDefault = "ollama/phi4-mini"
+
+# omniroute
+if ($omnirouteInstalled) {
+    $providers["omniroute"] = @{
+        name = "OmniRoute"
+        npm = "@ai-sdk/openai-compatible"
+        options = @{ baseURL = "http://localhost:20128/v1"; apiKey = "{env:OMNIROUTE_API_KEY}" }
+        models = @{
+            "best-coding" = @{ name = "best-coding (OmniRoute)" }
+            "best-reasoning" = @{ name = "best-reasoning (OmniRoute)" }
+            "best-chat" = @{ name = "best-chat (OmniRoute)" }
+            "best-fast" = @{ name = "best-fast (OmniRoute)" }
+            "best-vision" = @{ name = "best-vision (OmniRoute)" }
+            "auto/best-coding" = @{ name = "auto/best-coding" }
+            "auto/best-reasoning" = @{ name = "auto/best-reasoning" }
+            "auto/best-chat" = @{ name = "auto/best-chat" }
+            "auto/best-fast" = @{ name = "auto/best-fast" }
+            "auto/best-vision" = @{ name = "auto/best-vision" }
+        }
+    }
+    $modelDefault = "auto/best-coding"
+    Write-Host "  Provider: omniroute (modelos auto/*)" -ForegroundColor Green
+}
+
+# 9router
+if ($ninerouterInstalled) {
+    $providers["ninerouter"] = @{
+        name = "9Router"
+        npm = "@ai-sdk/openai-compatible"
+        options = @{ baseURL = "http://localhost:4000/v1"; apiKey = "{env:NINEROUTER_API_KEY}" }
+        models = @{
+            "best" = @{ name = "9Router best" }
+        }
+    }
+    Write-Host "  Provider: 9router" -ForegroundColor Green
+}
+
+# Ollama (siempre como fallback)
+$providers["ollama"] = @{
+    npm = "@ai-sdk/openai-compatible"
+    name = "Ollama"
+    options = @{ baseURL = "http://localhost:11434/v1" }
+    models = @{
+        "phi4-mini" = @{ name = "phi4-mini" }
+        "mistral:7b" = @{ name = "mistral:7b" }
+        "llama3.2:3b" = @{ name = "llama3.2:3b" }
+        "gemma3:4b" = @{ name = "gemma3:4b" }
+        "gemma3:1b" = @{ name = "gemma3:1b" }
+    }
+}
+if (-not $omnirouteInstalled -and -not $ninerouterInstalled) {
+    Write-Host "  Provider: ollama (fallback)" -ForegroundColor Yellow
+}
+
+# Construir JSON de providers
+$providerJson = $providers | ConvertTo-Json -Depth 10 -Compress
+$providerJson = $providerJson -replace '\\\\', '\\'
+
+# Inyectar providers y model en el template (regex probado, soporta PS 5.1)
+# Reemplaza TODO el bloque provider + la linea "model" en una sola pasada
+$providerBlock = '"provider": ' + $providerJson
+$template = $template -replace '(?s)"provider"\s*:\s*\{.*?\},\s*\n\s*"model"\s*:\s*"[^"]*"', ($providerBlock + "`n  `"model`": `"$modelDefault`"")
+
+if ($mcpWin) {
+    $template = $template.Replace("%%MCP_WINDOWS_AI%%", $mcpWin.Replace("\", "\\"))
+    Write-Host "  MCP windows-ai -> $mcpWin"
+} else {
+    $template = $template -replace '"(corel-draw|windows|playwright-visual)"\s*:\s*\{[^}]*\},\s*', ""
+    Write-Host "  MCP windows-ai: no detectado -> MCP corel/windows/playwright-visual DESHABILITADOS" -ForegroundColor DarkYellow
+}
+
 Set-Content -Path $cfgFile -Value $template -Encoding UTF8
-Write-Host "  generado: $cfgFile"
+Write-Host "  generado: $cfgFile (provider: $($modelDefault))"
 
 # ---------- 5. Skill memory ----------
 Write-Host "`n[5/8] Instalando skill memory..." -ForegroundColor Yellow

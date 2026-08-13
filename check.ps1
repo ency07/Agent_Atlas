@@ -182,7 +182,7 @@ Write-Host "`n[Config opencode]"
 $cfg = Join-Path $env:USERPROFILE ".config\opencode\opencode.jsonc"
 if (Test-Path $cfg) {
     $raw = Get-Content $cfg -Raw
-    Report (-not $raw.Contains("%%")) "opencode.jsonc generado sin placeholders pendientes"
+    Report ($raw -notmatch "%%") "opencode.jsonc generado sin placeholders pendientes"
     Report ($raw -match "memory") "MCP memory declarado en opencode.jsonc"
 } else {
     Report $false "opencode.jsonc no existe en $cfg (corre setup.ps1)"
