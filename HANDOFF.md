@@ -21,6 +21,8 @@ Componentes:
 | `atlas_activity.py` | Daemon de actividad (F2): captura ventana activa + bandeja. |
 | `foco_rules.py` | Clasificador de actividad monetizable/distracción (F3). |
 | `atlas_foco.py` | MCP foco (F3): métricas, modo disciplina, HTTP `/daily` para dashboard. |
+| `atlas_health.py` | MCP semáforo (S1): estado global del sistema, HTTP `/health`. |
+| `skills/atlas_orchestrator/` | Orquestador (O1): selección de modelo por tarea. |
 | `atlas_search.py` | Búsqueda web (DuckDuckGo → SearXNG → DDG HTML) + investigación profunda. |
 | `atlas_guardian.py` | Modo guardián: restricciones configurables sobre acciones del PC. |
 | `atlas_web/api.js` | Wrapper fino UI↔opencode serve. |
@@ -82,6 +84,30 @@ Anti-distracción: clasificación monetizable/distracción, avisos, modos de dis
 | Dashboard foco | ✅ tarjeta "Foco hoy" + top distracciones (sirve `python atlas_foco.py --http 4101`) |
 | Bandeja: switch modo | ✅ submenú "Modo foco" con radio off/soft/strict |
 | Tests clasificador | ✅ 7/7 (apps, títulos navegador, excepciones, default) |
+
+### O1 · ORQUESTADOR DE MODELOS — 🟢 COMPLETADA
+
+Selección de modelo por tipo de tarea. Evita que Atlas trabaje "a ciegas".
+
+| Gate | Estado |
+|---|---|
+| Mapa de capacidades por modelo | ✅ `memory_data/state/model_capabilities.json` (vision/coding/reasoning/research/speed + `task_to_model`) |
+| Skill orquestador | ✅ `skills/atlas_orchestrator/SKILL.md` (instalado en config de opencode por setup.ps1) |
+| Regla dorada | ✅ NUNCA revisión visual con `vision=false` — avisa y sugiere `auto/best-vision` |
+| Alternativas sin visión | ✅ `pw_visual_audit`, `pw_computed_style`, `pw_diff` (deterministas, no requieren que el modelo vea) |
+| Demostración | ✅ Este modelo (best-coding) no lee imágenes → el orquestador lo detecta y sugiere cambio |
+
+### S1 · SEMÁFORO DEL SISTEMA — 🟢 COMPLETADA
+
+Estado global del ecosistema en bandeja + dashboard.
+
+| Gate | Estado |
+|---|---|
+| `atlas_health.py` | ✅ MCP (`health_status`/`health_check`) + CLI + HTTP :4102 |
+| Chequeo por componente | ✅ daemon, omniroute, ollama, venv, state, configs, inbox → green/yellow/red |
+| Bandeja | ✅ color real (providers activos) + "Estado" muestra omniroute/ollama |
+| Dashboard | ✅ tarjeta semáforo + tabla componentes + modelo activo (colores green/yellow/red) |
+| Setup/check | ✅ setup.ps1 registra MCP + skill; check.ps1 valida |
 
 ### F4 · DINERO — ⚪ No iniciada
 
@@ -158,6 +184,8 @@ Solo entra si F4/F5 producen procesos repetibles.
 | `python atlas_search.py` | Servidor MCP de búsqueda (si no se lanza via opencode) |
 | `python atlas_guardian.py` | Servidor MCP del guardián |
 | `python atlas_foco.py --http 4101` | HTTP server de foco para dashboard (GET /daily) |
+| `python atlas_health.py --http 4102` | HTTP server de salud/semáforo (GET /health) |
+| `python atlas_health.py --cli` | Chequeo completo del sistema (green/yellow/red) |
 | `python atlas_foco.py --cli daily` | Resumen de foco del día |
 | `python atlas_foco.py --cli backfill --force` | Reclasifica eventos (tras cambiar reglas) |
 | `powershell -ExecutionPolicy Bypass -File check.ps1` | Diagnóstico completo del ecosistema |
