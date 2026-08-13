@@ -69,6 +69,14 @@
       },
       "enabled": true
     },
+    "atlas-orchestrator": {
+      "type": "local",
+      "command": ["%%PYTHON_BIN%%", "%%PROJECT_ROOT%%\\atlas_orchestrator.py"],
+      "environment": {
+        "MEMORY_ROOT": "%%PROJECT_ROOT%%\\memory_data"
+      },
+      "enabled": true
+    },
     "playwright": {
       "type": "local",
       "command": ["npx", "-y", "@playwright/mcp@latest"],

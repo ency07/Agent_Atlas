@@ -122,6 +122,20 @@ Report (Test-Path $orchSkill) "skill atlas_orchestrator presente"
 $orchSkillCfg = Join-Path $env:USERPROFILE ".config\opencode\skills\atlas_orchestrator\SKILL.md"
 Report (Test-Path $orchSkillCfg) "skill instalado en config de opencode"
 
+# Orquestador completo (MCP con deteccion en vivo)
+$orchPy = Join-Path $ROOT "atlas_orchestrator.py"
+if (Test-Path $orchPy) {
+    Report $true "atlas_orchestrator.py presente (MCP, deteccion en vivo)"
+    $oprov = & $pyBin -c "import sys; sys.path.insert(0, r'$ROOT'); import os; os.environ['MEMORY_ROOT']=r'$ROOT\memory_data'; import atlas_orchestrator as o; print(' '.join(sorted(o.active_models())))" 2>$null
+    if ($LASTEXITCODE -eq 0 -and $oprov) {
+        Report $true "orquestador detecta proveedores activos ($(($oprov -split ' ').Count) modelos)"
+    } else {
+        Report $false "orquestador sin proveedores activos (levanta omniroute/ollama)"
+    }
+} else {
+    Report $false "atlas_orchestrator.py ausente"
+}
+
 # ---------- Health / semáforo (S1) ----------
 Write-Host "`n[Health / semáforo S1]"
 $healthPy = Join-Path $ROOT "atlas_health.py"

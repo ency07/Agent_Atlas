@@ -26,9 +26,12 @@ from mcp.server.fastmcp import FastMCP
 
 mcp = FastMCP("atlas-health")
 
-PROJECT_ROOT = os.environ.get("MEMORY_ROOT", os.path.dirname(os.path.abspath(__file__)))
-STATE_DIR = os.path.join(PROJECT_ROOT, "memory_data", "state")
-INBOX_DIR = os.path.join(PROJECT_ROOT, "memory_data", "inbox")
+# Dos raices: repo (venv, scripts) y memoria (state, inbox).
+# MEMORY_ROOT ya apunta a memory_data cuando corre via MCP; si no, se deduce.
+REPO_ROOT = os.path.dirname(os.path.abspath(__file__))
+MEMORY_ROOT = os.environ.get("MEMORY_ROOT", os.path.join(REPO_ROOT, "memory_data"))
+STATE_DIR = os.path.join(MEMORY_ROOT, "state")
+INBOX_DIR = os.path.join(MEMORY_ROOT, "inbox")
 HEARTBEAT = os.path.join(STATE_DIR, "daemon.heartbeat")
 
 
@@ -77,8 +80,8 @@ def health_report() -> dict:
 
     # infra base
     checks.append(_check_component("venv_python",
-                                   os.path.exists(os.path.join(PROJECT_ROOT, ".venv", "Scripts", "python.exe")),
-                                   ".venv ok" if os.path.exists(os.path.join(PROJECT_ROOT, ".venv")) else "falta .venv (corre setup.ps1)"))
+                                   os.path.exists(os.path.join(REPO_ROOT, ".venv", "Scripts", "python.exe")),
+                                   ".venv ok" if os.path.exists(os.path.join(REPO_ROOT, ".venv")) else "falta .venv (corre setup.ps1)"))
     checks.append(_check_component("state_dir", os.path.isdir(STATE_DIR), STATE_DIR))
 
     # configs de estado
