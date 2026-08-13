@@ -132,6 +132,20 @@ if (-not (Test-Path $searchFile)) {
     Write-Host "  search.json ya existe"
 }
 
+# ---------- 5c. Reglas de foco (F3) ----------
+$focoTemplate = Join-Path $ROOT "templates\foco_rules.json.example"
+$focoFile = Join-Path $stateDir "foco_rules.json"
+if (Test-Path $focoTemplate) {
+    if (-not (Test-Path $focoFile)) {
+        Copy-Item $focoTemplate $focoFile -Force
+        Write-Host "  foco_rules.json creado (modo: soft)"
+    } else {
+        Write-Host "  foco_rules.json ya existe"
+    }
+} else {
+    Write-Host "  AVISO: templates\foco_rules.json.example no existe" -ForegroundColor DarkYellow
+}
+
 # ---------- 6. Git hook (F1) ----------
 Write-Host "`n[6/8] Git hook (core.hooksPath)..." -ForegroundColor Yellow
 Push-Location $ROOT

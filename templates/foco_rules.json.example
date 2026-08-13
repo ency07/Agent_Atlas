@@ -1,0 +1,79 @@
+{
+  "mode": "soft",
+  "categories": {
+    "dev": {
+      "monetizable": true,
+      "apps": [
+        "code.exe", "wezterm-gui.exe", "opencode.exe", "python.exe", "pythonw.exe",
+        "node.exe", "npm.exe", "git.exe", "notepad.exe", "notepad++.exe",
+        "postman.exe", "docker.exe", "sqlitebrowser.exe", "dbeaver.exe",
+        "sublime_text.exe", "atom.exe", "intellij.exe", "idea.exe",
+        "pycharm.exe", "webstorm.exe", "visualstudio.exe", "devenv.exe",
+        "cmd.exe", "powershell.exe", "wt.exe", "conhost.exe",
+        "blender.exe", "gimp.exe", "inkscape.exe", "coreldrw.exe",
+        "mysql.exe", "psql.exe", "mongosh.exe", "redis-cli.exe"
+      ]
+    },
+    "finance": {
+      "monetizable": true,
+      "apps": [
+        "excel.exe", "msaccess.exe"
+      ]
+    },
+    "research": {
+      "monetizable": true,
+      "apps": ["opera.exe", "chrome.exe", "msedge.exe", "firefox.exe", "comet.exe", "brave.exe", "qwen.exe", "librewolf.exe", "sumatraPDF.exe", "okular.exe", "evince.exe"],
+      "title_include": [
+        "github", "stackoverflow", "docs.google", "arxiv", "wikipedia",
+        "perplexity", "chatgpt", "claude", "gemini", "copilot", "readthedocs",
+        "dev.to", "medium.com", "huggingface", "pypi.org", "npmjs.com",
+        "cloudflare", "aws.amazon", "console.cloud.google", "portal.azure",
+        "overleaf", "jupyter", "kaggle", "mdn", "developer.mozilla"
+      ]
+    },
+    "comms": {
+      "monetizable": false,
+      "apps": [
+        "whatsapp.exe", "telegram.exe", "discord.exe", "slack.exe",
+        "teams.exe", "outlook.exe", "thunderbird.exe", "mailbird.exe",
+        "zoom.exe", "skype.exe", "signal.exe"
+      ],
+      "title_include": ["gmail.com", "mail.google", "outlook.live"]
+    },
+    "social": {
+      "monetizable": false,
+      "apps": [
+        "youtube.exe", "tiktok.exe", "instagram.exe", "facebook.exe",
+        "x.exe", "twitter.exe", "reddit.exe", "twitch.exe",
+        "netflix.exe", "spotify.exe", "pinterest.exe", "snapchat.exe"
+      ],
+      "title_include": [
+        "youtube", "tiktok", "instagram", "facebook",
+        "x.com", "twitter", "reddit", "twitch.tv",
+        "netflix", "spotify"
+      ]
+    },
+    "game": {
+      "monetizable": false,
+      "apps": [
+        "steam.exe", "epicgameslauncher.exe", "origin.exe",
+        "battle.net.exe", "riotclient.exe", "valorant.exe",
+        "leagueoflegends.exe", "minecraft.exe", "roblox.exe"
+      ]
+    }
+  },
+  "default_category": "other",
+  "thresholds": {
+    "distraction_alert_after_seconds": 180,
+    "distraction_strict_after_seconds": 60,
+    "notices_per_day": 3,
+    "focus_session_target_minutes": 50
+  },
+  "exceptions": {
+    "apps": ["KeePassXC.exe", "SearchApp.exe", "SnippingTool.exe", "msiexec.exe"],
+    "titles_include": [
+      "contraseñas", "contrasena", "login", "2fa", "auth", "sign in",
+      "iniciar sesión", "papelera de reciclaje"
+    ]
+  }
+}

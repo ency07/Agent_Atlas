@@ -60,6 +60,27 @@
       <div class="val" id="last-tick">--</div>
       <div class="detail" id="tick-detail"></div>
     </div>
+    <div class="card">
+      <h3>Foco hoy</h3>
+      <div class="val" id="foco-pct">--</div>
+      <div class="detail" id="foco-mode">modo: --</div>
+    </div>
+  </div>
+
+  <h2 style="font-size:1.1rem;margin-bottom:8px;">Foco · tiempo del día</h2>
+  <div style="display:flex;gap:16px;flex-wrap:wrap;">
+    <div style="flex:2;min-width:300px;" class="card">
+      <h3>Productivo vs distracción</h3>
+      <div class="bar"><div class="bar-fill" id="foco-bar" style="width:0%;background:var(--green);"></div></div>
+      <div style="display:flex;justify-content:space-between;font-size:.78rem;color:var(--muted);margin-top:6px;">
+        <span id="foco-prod">--</span><span id="foco-dist">--</span>
+      </div>
+      <div class="detail" id="foco-detail"></div>
+    </div>
+    <div style="flex:1;min-width:240px;" class="card">
+      <h3>Top distracciones</h3>
+      <div id="foco-top-dist" style="font-size:.82rem;color:var(--muted);">sin datos</div>
+    </div>
   </div>
 
   <h2 style="font-size:1.1rem;margin-bottom:8px;">Top aplicaciones (últimas 24h)</h2>
@@ -72,6 +93,35 @@
 <script src="api.js"></script>
 <script>
 const API_BASE = 'http://127.0.0.1:4096';
+const FOCO_API = 'http://127.0.0.1:4101';
+
+async function loadFoco() {
+  const pctEl = document.getElementById('foco-pct');
+  const modeEl = document.getElementById('foco-mode');
+  try {
+    const r = await fetch(`${FOCO_API}/daily`).then(r => r.json());
+    const pct = r.focus_pct ?? 0;
+    pctEl.textContent = `${pct}%`;
+    pctEl.style.color = pct >= 60 ? '#3fb950' : (pct >= 40 ? '#d29922' : '#f85149');
+    modeEl.textContent = `modo: ${r.mode}`;
+    document.getElementById('foco-bar').style.width = `${pct}%`;
+    const fmt = s => `${Math.round(s / 60)} min`;
+    document.getElementById('foco-prod').textContent = `✅ ${fmt(r.productive_seconds ?? 0)}`;
+    document.getElementById('foco-dist').textContent = `⚠️ ${fmt(r.distraction_seconds ?? 0)}`;
+    document.getElementById('foco-detail').textContent =
+      `total ${fmt(r.total_seconds ?? 0)} · neutro ${fmt(r.other_seconds ?? 0)}`;
+    const topDist = r.top_distractions ?? [];
+    if (topDist.length) {
+      document.getElementById('foco-top-dist').innerHTML =
+        topDist.map(t => `<div style="margin:4px 0;">⚠️ ${t.app}: ${fmt(t.seconds)}</div>`).join('');
+    } else {
+      document.getElementById('foco-top-dist').textContent = 'sin distracciones detectadas 🎯';
+    }
+  } catch (e) {
+    pctEl.textContent = '--';
+    document.getElementById('foco-detail').textContent = `foco server no responde (inicia: python atlas_foco.py --http)`;
+  }
+}
 
 async function load() {
   document.getElementById('status').textContent = 'actualizando...';
@@ -100,7 +150,8 @@ async function load() {
 
 // auto-refresh cada 30s
 load();
-setInterval(load, 30000);
+loadFoco();
+setInterval(() => { load(); loadFoco(); }, 30000);
 </script>
 </body>
 </html>

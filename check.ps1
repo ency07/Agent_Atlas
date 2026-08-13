@@ -81,6 +81,32 @@ if (Test-Path $guardianPy) {
     Report $false "atlas_guardian.py ausente"
 }
 
+# ---------- Foco (F3) ----------
+Write-Host "`n[Foco F3]"
+$focoPy = Join-Path $ROOT "foco_rules.py"
+if (Test-Path $focoPy) {
+    Report $true "foco_rules.py presente"
+    $fr = & $pyBin $focoPy --validate 2>$null
+    Report ($fr -match "^OK") "reglas foco válidas (mode $((Get-Content (Join-Path $ROOT 'memory_data\state\foco_rules.json') -Raw -ErrorAction SilentlyContinue | ConvertFrom-Json).mode))"
+    $ftest = & $pyBin $focoPy --test 2>$null
+    Report ($ftest -match "7/7") "tests clasificador (7/7)"
+} else {
+    Report $false "foco_rules.py ausente"
+}
+$focoServer = Join-Path $ROOT "atlas_foco.py"
+if (Test-Path $focoServer) {
+    Report $true "atlas_foco.py presente (MCP foco)"
+} else {
+    Report $false "atlas_foco.py ausente"
+}
+$fjson = Join-Path $ROOT "memory_data\state\foco_rules.json"
+if (Test-Path $fjson) {
+    $fcfg = Get-Content $fjson -Raw | ConvertFrom-Json
+    Report ($fcfg.mode -in @("off","soft","strict")) "nivel foco: $($fcfg.mode)"
+} else {
+    Report $false "foco_rules.json config ausente (corre setup.ps1)"
+}
+
 # ---------- Git hook (F1) ----------
 Write-Host "`n[Git hook F1]"
 Push-Location $ROOT

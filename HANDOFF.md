@@ -19,6 +19,8 @@ Componentes:
 | `mcp_memory_server.py` | Servidor MCP de memoria (FastMCP). Núcleo. |
 | `atlas_chat.py` | Chat flotante (F2): `opencode serve` + ventana frameless. |
 | `atlas_activity.py` | Daemon de actividad (F2): captura ventana activa + bandeja. |
+| `foco_rules.py` | Clasificador de actividad monetizable/distracción (F3). |
+| `atlas_foco.py` | MCP foco (F3): métricas, modo disciplina, HTTP `/daily` para dashboard. |
 | `atlas_search.py` | Búsqueda web (DuckDuckGo → SearXNG → DDG HTML) + investigación profunda. |
 | `atlas_guardian.py` | Modo guardián: restricciones configurables sobre acciones del PC. |
 | `atlas_web/api.js` | Wrapper fino UI↔opencode serve. |
@@ -63,10 +65,23 @@ Componentes:
 | Wrapper `api.js` | ✅ `atlas_web/api.js` (fetch a opencode serve) |
 | Dashboard base | ✅ `atlas_web/dashboard.html` (estado daemon, eventos, top apps) |
 
-### F3 · FOCO — ⚪ No iniciada
+### F3 · FOCO — 🟢 100% COMPLETADA
 
 Anti-distracción: clasificación monetizable/distracción, avisos, modos de disciplina.
-Requiere: eventos continuos de actividad (F2 listo).
+
+| Gate | Estado |
+|---|---|
+| Clasificación monetizable/distracción | ✅ `foco_rules.py`: categorías (dev/research/comms/social/game/other/exception), prioridad por título de pestaña, reglas editables |
+| Reglas `activity_rules.json` editable | ✅ `state/foco_rules.json` + `templates/foco_rules.json.example` |
+| Umbrales ajustables sin tocar código | ✅ `thresholds` (180s soft / 60s strict, presupuesto 3/día, target 50min) |
+| Avisos de distracción | ✅ balloon de bandeja (`icon.notify`) con presupuesto ≤3/día; sin bandeja → evento `focus_notice` auditado |
+| Modos de disciplina | ✅ `off` / `soft` (default) / `strict`, cambiables desde bandeja, MCP o archivo |
+| Override manual | ✅ `foco_override(app, category)` (MCP) |
+| Métrica tiempo productivo vs fugado → F4 | ✅ `foco_daily_summary(date)` (MCP) + CLI `--cli daily` |
+| Backfill históricos | ✅ `foco_backfill(force)` (MCP) + CLI `--cli backfill [--force]` — 360 eventos clasificados |
+| Dashboard foco | ✅ tarjeta "Foco hoy" + top distracciones (sirve `python atlas_foco.py --http 4101`) |
+| Bandeja: switch modo | ✅ submenú "Modo foco" con radio off/soft/strict |
+| Tests clasificador | ✅ 7/7 (apps, títulos navegador, excepciones, default) |
 
 ### F4 · DINERO — ⚪ No iniciada
 
@@ -142,6 +157,9 @@ Solo entra si F4/F5 producen procesos repetibles.
 | `python atlas_activity.py --interval 5` | Capturar cada 5s |
 | `python atlas_search.py` | Servidor MCP de búsqueda (si no se lanza via opencode) |
 | `python atlas_guardian.py` | Servidor MCP del guardián |
+| `python atlas_foco.py --http 4101` | HTTP server de foco para dashboard (GET /daily) |
+| `python atlas_foco.py --cli daily` | Resumen de foco del día |
+| `python atlas_foco.py --cli backfill --force` | Reclasifica eventos (tras cambiar reglas) |
 | `powershell -ExecutionPolicy Bypass -File check.ps1` | Diagnóstico completo del ecosistema |
 | `powershell -ExecutionPolicy Bypass -File setup.ps1` | Bootstrap en PC nuevo |
 | `powershell -ExecutionPolicy Bypass -File setup.ps1 -InstallF2` | Bootstrap + autostart chat |

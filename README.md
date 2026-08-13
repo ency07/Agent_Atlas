@@ -22,6 +22,8 @@ Componentes:
 | `atlas_secret_reminder.py` | Recordatorio semanal de rotación de secretos (producción #6). |
 | `atlas_search.py` | **Búsqueda web (F3+)**: DuckDuckGo → SearXNG → DDG HTML. |
 | `atlas_guardian.py` | **Modo guardián**: restricciones configurables sobre acciones. |
+| `foco_rules.py` | Clasificador de actividad monetizable/distracción (F3). |
+| `atlas_foco.py` | **Foco (F3)**: métricas foco, modo disciplina, HTTP server para dashboard. |
 | `atlas_web/api.js` | Wrapper fino UI↔opencode serve. |
 | `atlas_web/dashboard.html` | Dashboard base de actividad. |
 | `start_atlas_chat.vbs` | Autostart oculto del chat flotante (Task Scheduler). |
@@ -150,6 +152,47 @@ Herramientas MCP:
 - `guardian_set_level("relax"|"guard"|"strict")`
 - `guardian_get_config()` / `guardian_add_whitelist()` / `guardian_remove_whitelist()`
 - `guardian_add_allowed_dir(path)`
+
+## Foco · Anti-distracción (F3)
+
+Atlas clasifica cada evento de actividad como **productivo** o **distracción**
+y puede avisarte cuando pierdas el foco. Todo configurable sin tocar código.
+
+### Clasificador
+
+- `foco_rules.py` clasifica apps por categoría (dev, research, comms, social,
+  game, other, exception) y marca si son monetizables.
+- **Primero mira la title de la pestaña** (más preciso en navegadores) y luego
+  la app. KeePassXC, etc. → exception (neutro).
+- Reglas editables: `state/foco_rules.json` (plantilla en `templates/foco_rules.json.example`).
+
+### Modos de disciplina
+
+| Modo | Comportamiento |
+|---|---|
+| `off` | Solo clasifica y mide (sin avisos). |
+| `soft` (default) | Clasifica + avisa si estás en distracción > 3min, presupuesto 3 avisos/día. |
+| `strict` | Avisa más agresivo (> 1min) + registro de fuga en cada sesión. |
+
+Cambiar modo: desde la bandeja de Atlas (`Modo foco`), por MCP (`foco_set_mode`)
+o editando `state/foco_rules.json`.
+
+### Dashboard de foco
+
+Tarjeta "Foco hoy" en `atlas_web/dashboard.html` con:
+- % productivo vs distracción
+- Tiempo total productivo, distracción, neutro
+- Top distracciones del día
+
+Sirve desde `python atlas_foco.py --http 4101` (GET `/daily`).
+
+### Herramientas MCP (`atlas-foco`)
+
+- `foco_set_mode("off"|"soft"|"strict")` → cambia modo
+- `foco_get_rules()` → reglas actuales
+- `foco_daily_summary(date?)` → resumen del día (traspaso a F4)
+- `foco_override(app, category)` → override manual de categoría
+- `foco_backfill(force?)` → reclasifica eventos históricos
 
 ## Documentación
 

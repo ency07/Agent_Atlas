@@ -60,6 +60,14 @@ INGEST_EVERY = 300     # ingestar inbox cada 300s (5 min)
 HOST = "127.0.0.1"
 PORT = 4096
 
+# --- F3 FOCO: estado ---
+_foco_distraction_start = 0.0
+_foco_distraction_app = ""
+_foco_distraction_title = ""
+_foco_notices_today = 0
+_foco_last_notice_date = ""
+_icon = None
+
 # --- Windows API ---
 user32 = ctypes.windll.user32
 kernel32 = ctypes.windll.kernel32
@@ -107,6 +115,7 @@ def now_iso() -> str:
 
 from atlas_log import get_logger
 from atlas_monitor import track_error, RateLimiter
+import foco_rules
 
 log = get_logger("atlas_activity")
 
@@ -163,6 +172,8 @@ def flush_event(app: str, title: str, start: float, end: float) -> None:
         return
     INBOX_DIR.mkdir(parents=True, exist_ok=True)
     ts = datetime.fromtimestamp(start, tz=timezone.utc).isoformat(timespec="seconds")
+    rules = foco_rules.load_rules()
+    cat, mon = foco_rules.classify(app, title[:200], rules)
     ev = {
         "id": f"act_{int(start)}_{os.getpid()}",
         "ts": ts,
@@ -171,8 +182,8 @@ def flush_event(app: str, title: str, start: float, end: float) -> None:
         "project": "global",
         "app": app,
         "window_title": title[:200],
-        "category": None,
-        "monetizable": False,
+        "category": cat,
+        "monetizable": mon,
         "duration_seconds": dur,
     }
     f = INBOX_DIR / f"activity-{time.strftime('%Y%m%d')}.jsonl"
@@ -187,6 +198,7 @@ def write_heartbeat(status: str = "ok") -> None:
         "pid": os.getpid(),
         "status": status,
         "paused": _paused,
+        "foco_mode": foco_rules.get_mode(),
         "last_tick": now_iso(),
         "uptime_seconds": int(time.time() - _start_time),
         "ticks": _tick_count,
@@ -211,6 +223,101 @@ def do_ingest() -> None:
     except Exception as exc:
         track_error("atlas_activity", "event_ingest", exc=exc)
 
+
+
+def _reset_foco_budget_if_new_day() -> None:
+    global _foco_notices_today, _foco_last_notice_date
+    today = datetime.now().strftime("%Y-%m-%d")
+    if today != _foco_last_notice_date:
+        _foco_notices_today = 0
+        _foco_last_notice_date = today
+
+
+def check_foco_drift(app: str, title: str) -> None:
+    """
+    F3 FOCO — Detección de fuga de atención.
+
+    Si el modo no es 'off' y la app activa es distracción conocida
+    (monetizable=False y categoría no neutral) durante más del umbral,
+    muestra un aviso en la bandeja (presupuesto limitado por día).
+    """
+    global _foco_distraction_start, _foco_distraction_app, _foco_distraction_title
+    global _foco_notices_today
+
+    rules = foco_rules.load_rules()
+    mode = foco_rules.get_mode(rules)
+    if mode == "off":
+        _foco_distraction_start = 0.0
+        _foco_distraction_app = ""
+        return
+
+    cat, mon = foco_rules.classify(app, title, rules)
+    is_distraction = (mon is False) and cat not in ("other", "exception")
+
+    if not is_distraction:
+        _foco_distraction_start = 0.0
+        _foco_distraction_app = ""
+        return
+
+    # es distracción → trackear streak
+    if app != _foco_distraction_app:
+        _foco_distraction_start = time.time()
+        _foco_distraction_app = app
+        _foco_distraction_title = title
+        return
+
+    # misma distracción → ver si pasó el umbral
+    thr = foco_rules.get_thresholds(rules)
+    threshold = thr.get("distraction_strict_after_seconds", 60) if mode == "strict" \
+        else thr.get("distraction_alert_after_seconds", 180)
+
+    elapsed = time.time() - _foco_distraction_start
+    if elapsed < threshold:
+        return
+
+    # umbral superado → aviso con presupuesto
+    _reset_foco_budget_if_new_day()
+    limit = thr.get("notices_per_day", 3)
+    if _foco_notices_today >= limit:
+        return
+
+    _foco_notices_today += 1
+    msg = f"⚠️ Llevas {int(elapsed // 60)} min en {app} ({cat})."
+    log.info("foco aviso", app=app, category=cat, elapsed=int(elapsed), budget_left=limit - _foco_notices_today)
+
+    # balloon en bandeja (si hay tray); si no, evento focus_notice auditado
+    if HAS_TRAY and _icon is not None:
+        try:
+            _icon.notify(f"Foco: {int(elapsed // 60)} min en {app} ({cat}) — aviso {_foco_notices_today}/{limit}", "Atlas · Foco")
+            return
+        except Exception:
+            pass
+
+    _write_focus_notice(app, cat, int(elapsed))
+
+
+def _write_focus_notice(app: str, cat: str, elapsed: int) -> None:
+    """Registra un aviso de foco como evento auditable (sin bandeja)."""
+    try:
+        INBOX_DIR.mkdir(parents=True, exist_ok=True)
+        ev = {
+            "id": f"fn_{int(time.time())}_{os.getpid()}",
+            "ts": now_iso(),
+            "source": "daemon",
+            "type": "focus_notice",
+            "project": "global",
+            "app": app,
+            "window_title": "",
+            "category": cat,
+            "monetizable": False,
+            "duration_seconds": elapsed,
+            "data": {"elapsed": elapsed, "budget": "audit"},
+        }
+        f = INBOX_DIR / f"focus-notice-{time.strftime('%Y%m%d')}.jsonl"
+        with open(f, "a", encoding="utf-8") as fh:
+            fh.write(json.dumps(ev, ensure_ascii=False) + "\n")
+    except Exception as exc:
+        track_error("atlas_activity", "focus_notice", exc=exc)
 
 
 def daemon_loop(interval: int) -> None:
@@ -239,6 +346,9 @@ def daemon_loop(interval: int) -> None:
 
         now = time.time()
         app, title = get_foreground_info()
+
+        # F3 FOCO — detección de fuga de atención
+        check_foco_drift(app, title)
 
         # misma ventana -> acumular
         if app == _current_app and title == _current_title:
@@ -339,8 +449,24 @@ def on_quit(icon, item):
     icon.stop()
 
 
+def on_set_mode(mode):
+    def _cb(icon, item):
+        r = foco_rules.set_mode(mode)
+        if "error" not in r:
+            log.info("modo foco cambiado desde bandeja", mode=mode)
+        return True
+    return _cb
+
+
+def _mode_checked(mode):
+    def _chk(item):
+        return foco_rules.get_mode() == mode
+    return _chk
+
+
 
 def run_tray():
+    global _icon
     icon_color = tray_icon_color()
     icon = pystray.Icon(
         "Atlas",
@@ -348,11 +474,17 @@ def run_tray():
         "Atlas Activity Daemon",
         menu=pystray.Menu(
             pystray.MenuItem("Pausar / Reanudar", on_pause, default=True),
+            pystray.MenuItem("Modo foco", pystray.Menu(
+                pystray.MenuItem("off — solo medir", on_set_mode("off"), radio=True, checked=_mode_checked("off")),
+                pystray.MenuItem("soft — avisos con presupuesto", on_set_mode("soft"), radio=True, checked=_mode_checked("soft")),
+                pystray.MenuItem("strict — avisos agresivos", on_set_mode("strict"), radio=True, checked=_mode_checked("strict")),
+            )),
             pystray.MenuItem("Abrir chat", on_open_chat),
             pystray.MenuItem("Estado", on_status),
             pystray.MenuItem("Salir", on_quit),
         ),
     )
+    _icon = icon
     # thread del daemon
     t = threading.Thread(target=daemon_loop, args=(interval,), daemon=True)
     t.start()
