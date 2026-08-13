@@ -206,7 +206,8 @@ def do_ingest() -> None:
         py = str(PROJECT_ROOT / ".venv" / "Scripts" / "python.exe")
         srv = str(PROJECT_ROOT / "mcp_memory_server.py")
         subprocess.run([py, srv, "--cli", "event_ingest"],
-                       timeout=30, capture_output=True)
+                       timeout=30, capture_output=True,
+                       creationflags=subprocess.CREATE_NO_WINDOW)
     except Exception as exc:
         track_error("atlas_activity", "event_ingest", exc=exc)
 

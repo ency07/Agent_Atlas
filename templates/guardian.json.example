@@ -1,0 +1,8 @@
+{
+  "level": "guard",
+  "whitelist_binaries": ["python", "node", "npm", "git", "pip", "wscript", "powershell", "cmd"],
+  "whitelist_processes": ["python.exe", "node.exe", "code.exe", "powershell.exe", "cmd.exe"],
+  "allowed_dirs": [],
+  "blocked_ops": ["run_script", "process_kill", "registry_write"],
+  "confirm_destructive": true
+}

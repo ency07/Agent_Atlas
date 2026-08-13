@@ -47,7 +47,8 @@ def _bin_version(bin_path: str):
     """Devuelve la version del binario opencode (o '' si no se puede)."""
     try:
         out = subprocess.run(
-            [bin_path, "--version"], capture_output=True, text=True, timeout=15
+            [bin_path, "--version"], capture_output=True, text=True, timeout=15,
+            creationflags=subprocess.CREATE_NO_WINDOW,
         ).stdout.strip()
         import re
         m = re.search(r"\d+\.\d+\.\d+", out)
@@ -104,6 +105,7 @@ def stop_server(port: int):
             ["powershell", "-NoProfile", "-Command",
              f"Get-CimInstance Win32_Process | Where-Object {{ $_.CommandLine -match 'serve --port={port}' }} | ForEach-Object {{ $_.ProcessId }}"],
             timeout=10, text=True,
+            creationflags=subprocess.CREATE_NO_WINDOW,
         ).split():
             pid = int(p.strip())
             if pid > 0:

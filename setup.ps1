@@ -99,6 +99,39 @@ New-Item -ItemType Directory -Path $skillDir -Force | Out-Null
 Copy-Item (Join-Path $ROOT "templates\skills\memory\SKILL.md") (Join-Path $skillDir "SKILL.md") -Force
 Write-Host "  skill -> $skillDir\SKILL.md"
 
+# ---------- 5b. Config guardián + búsqueda ----------
+Write-Host "`n[5b] Config guardián + búsqueda..." -ForegroundColor Yellow
+$stateDir = Join-Path $ROOT "memory_data\state"
+New-Item -ItemType Directory -Path $stateDir -Force | Out-Null
+
+$guardianFile = Join-Path $stateDir "guardian.json"
+if (-not (Test-Path $guardianFile)) {
+    @{
+        level = "guard"
+        whitelist_binaries = @("python","node","npm","git","pip","wscript","powershell","cmd")
+        whitelist_processes = @("python.exe","node.exe","code.exe","powershell.exe","cmd.exe")
+        allowed_dirs = @($ROOT, (Join-Path $env:USERPROFILE "Documents"))
+        blocked_ops = @("run_script","process_kill","registry_write")
+        confirm_destructive = $true
+    } | ConvertTo-Json -Depth 4 | Set-Content -Path $guardianFile -Encoding UTF8
+    Write-Host "  guardian.json creado (nivel: guard)"
+} else {
+    Write-Host "  guardian.json ya existe"
+}
+
+$searchFile = Join-Path $stateDir "search.json"
+if (-not (Test-Path $searchFile)) {
+    @{
+        searxng_url = ""
+        timeout_ddgs = 15
+        timeout_searxng = 10
+        max_results = 10
+    } | ConvertTo-Json | Set-Content -Path $searchFile -Encoding UTF8
+    Write-Host "  search.json creado (SearXNG desactivado, solo ddgs)"
+} else {
+    Write-Host "  search.json ya existe"
+}
+
 # ---------- 6. Git hook (F1) ----------
 Write-Host "`n[6/8] Git hook (core.hooksPath)..." -ForegroundColor Yellow
 Push-Location $ROOT

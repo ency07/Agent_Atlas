@@ -2,7 +2,7 @@
 
 > Documento de estado del proyecto. Léelo primero si retomas el trabajo.
 
-**Última actualización:** 11 de agosto de 2026
+**Última actualización:** 12 de agosto de 2026
 
 ---
 
@@ -19,6 +19,8 @@ Componentes:
 | `mcp_memory_server.py` | Servidor MCP de memoria (FastMCP). Núcleo. |
 | `atlas_chat.py` | Chat flotante (F2): `opencode serve` + ventana frameless. |
 | `atlas_activity.py` | Daemon de actividad (F2): captura ventana activa + bandeja. |
+| `atlas_search.py` | Búsqueda web (DuckDuckGo → SearXNG → DDG HTML) + investigación profunda. |
+| `atlas_guardian.py` | Modo guardián: restricciones configurables sobre acciones del PC. |
 | `atlas_web/api.js` | Wrapper fino UI↔opencode serve. |
 | `atlas_web/dashboard.html` | Dashboard base de actividad. |
 | `start_atlas_chat.vbs` | Autostart oculto del chat flotante. |
@@ -89,6 +91,41 @@ Solo entra si F4/F5 producen procesos repetibles.
 
 ---
 
+## F3+ · MANOS EN EL PC — 🟢 Búsqueda + guardián operativos
+
+### Búsqueda web (`atlas_search.py`, MCP `atlas-search`)
+
+- `web_search(query, max_results)` → cadena de respaldo: **DuckDuckGo (`ddgs`)
+  → SearXNG → DuckDuckGo HTML** (fallback duro).
+- `web_research(topic, depth=1)` → búsqueda, lectura de top-5 fuentes, extracción
+  de hechos, preguntas de seguimiento (depth>1), informe sintetizado **guardado
+  como nota Obsidian `type: research`** en la bóveda, devuelve resumen + ruta.
+- Config: `memory_data/state/search.json` (`searxng_url` vacío = solo ddgs).
+
+### Modo guardián (`atlas_guardian.py`, MCP `atlas-guardian`)
+
+- Niveles: `relax` (todo permitido) / `guard` (default, lista blanca + preguntas)
+  / `strict` (bloquea `run_script`, `process_kill`, `registry_write`).
+- `guardian_check(operation, params)` → `{allowed, reason, requires_confirmation}`.
+- `guardian_set_level(...)`, `guardian_add/remove_whitelist`,
+  `guardian_add_allowed_dir`, `guardian_get_config`.
+- Intentos bloqueados → evento `guard_block` en la DB (auditable).
+- Config: `memory_data/state/guardian.json`.
+
+### Integración windows server
+
+- `mcp_windows_server.py` (repo hermano `E:\MCP\mcp-windows-ai`) consulta el
+  guardián ANTES de `run_command`, `run_script`, `process_start`,
+  `process_kill` y `file_delete`. Si la operación está bloqueada devuelve
+  `{"error": "BLOQUEADO por atlas-guardian", "guard_block": true, ...}`.
+- Sin config del guardián → NO bloquea (modo abierto).
+
+### Pendientes
+
+- [ ] Deshabilitar MCP `playwright`/`ollama` en opencode.jsonc si ensucian el chat (playwright-visual cubre el navegador).
+
+---
+
 ## Comandos útiles
 
 | Comando | Qué hace |
@@ -103,6 +140,8 @@ Solo entra si F4/F5 producen procesos repetibles.
 | `python atlas_activity.py` | Daemon + bandeja (F2) |
 | `python atlas_activity.py --no-tray` | Daemon sin bandeja (servidor) |
 | `python atlas_activity.py --interval 5` | Capturar cada 5s |
+| `python atlas_search.py` | Servidor MCP de búsqueda (si no se lanza via opencode) |
+| `python atlas_guardian.py` | Servidor MCP del guardián |
 | `powershell -ExecutionPolicy Bypass -File check.ps1` | Diagnóstico completo del ecosistema |
 | `powershell -ExecutionPolicy Bypass -File setup.ps1` | Bootstrap en PC nuevo |
 | `powershell -ExecutionPolicy Bypass -File setup.ps1 -InstallF2` | Bootstrap + autostart chat |

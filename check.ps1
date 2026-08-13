@@ -58,6 +58,29 @@ if (Test-Path $serverPy) {
     Report $false "faltan archivos del proyecto"
 }
 
+# ---------- Búsqueda web + guardián (Bloque A/C) ----------
+Write-Host "`n[Búsqueda web + guardián]"
+$searchPy = Join-Path $ROOT "atlas_search.py"
+if (Test-Path $searchPy) {
+    Report $true "atlas_search.py presente"
+    $ddgs = & $pyBin -c "import ddgs; print('ok')" 2>$null
+    Report ($ddgs -match "ok") "paquete 'ddgs' (búsqueda web)"
+} else {
+    Report $false "atlas_search.py ausente"
+}
+$guardianPy = Join-Path $ROOT "atlas_guardian.py"
+if (Test-Path $guardianPy) {
+    Report $true "atlas_guardian.py presente"
+    $gjson = Join-Path $ROOT "memory_data\state\guardian.json"
+    Report (Test-Path $gjson) "guardian.json config"
+    if (Test-Path $gjson) {
+        $gcfg = Get-Content $gjson -Raw | ConvertFrom-Json
+        Report ($gcfg.level -in @("relax","guard","strict")) "nivel guardián: $($gcfg.level)"
+    }
+} else {
+    Report $false "atlas_guardian.py ausente"
+}
+
 # ---------- Git hook (F1) ----------
 Write-Host "`n[Git hook F1]"
 Push-Location $ROOT

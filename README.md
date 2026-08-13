@@ -20,6 +20,8 @@ Componentes:
 | `atlas_log.py` | Logs estructurados JSON (producción #1). |
 | `atlas_monitor.py` | Monitoreo de errores + rate limiting (producción #2/#3). |
 | `atlas_secret_reminder.py` | Recordatorio semanal de rotación de secretos (producción #6). |
+| `atlas_search.py` | **Búsqueda web (F3+)**: DuckDuckGo → SearXNG → DDG HTML. |
+| `atlas_guardian.py` | **Modo guardián**: restricciones configurables sobre acciones. |
 | `atlas_web/api.js` | Wrapper fino UI↔opencode serve. |
 | `atlas_web/dashboard.html` | Dashboard base de actividad. |
 | `start_atlas_chat.vbs` | Autostart oculto del chat flotante (Task Scheduler). |
@@ -97,6 +99,57 @@ schtasks /Delete /TN "AtlasChat" /F   # desinstalar autostart
 
 El server vive en `127.0.0.1:4096`; log en `atlas_chat.log`. Detalle en
 [`docs/PUESTA_EN_MARCHA.md`](docs/PUESTA_EN_MARCHA.md).
+
+## Búsqueda web + investigación (F3+)
+
+Atlas busca en internet sin API keys, con cadena de respaldo automática:
+
+| Nivel | Proveedor |
+|---|---|
+| 1º | DuckDuckGo (`ddgs`, pip, open-source MIT) |
+| 2º | SearXNG self-hosted (`state/search.json` → `searxng_url`) |
+| 3º | DuckDuckGo HTML (fallback duro, sin lib) |
+
+Herramientas MCP (server `atlas-search`):
+
+- `web_search(query, max_results)` → resultados `[{title, url, snippet, source}]`
+- `web_research(topic, depth=1)` → busca, lee las 5 fuentes más relevantes,
+  extrae hechos, genera preguntas de seguimiento (depth>1), sintetiza informe
+  y lo guarda como **nota Obsidian** (`type: research`) en la bóveda. Devuelve
+  resumen + ruta de la nota + fuentes.
+
+Config en `memory_data/state/search.json`:
+
+```json
+{ "searxng_url": "", "timeout_ddgs": 15, "timeout_searxng": 10, "max_results": 10 }
+```
+
+Para activar SearXNG: `"searxng_url": "http://localhost:8080"` (o levanta con
+`docker run -p 8080:8080 searxng/searxng`). Si no está levantado, se salta
+silenciosamente al siguiente proveedor.
+
+## Modo guardián (F3+)
+
+`atlas_guardian.py` (server MCP `atlas-guardian`) restringe las acciones de
+Atlas sobre el PC. Niveles configurables en `memory_data/state/guardian.json`:
+
+| Nivel | Comportamiento |
+|---|---|
+| `relax` | Todo permitido, todo se registra en logs. |
+| `guard` (default) | Lista blanca de binarios; acciones sensibles → pregunta. |
+| `strict` | Solo acciones de bajo riesgo; bloquea `run_script`/`process_kill`/`registry_write`. |
+
+Qué restringe:
+- `run_command` / `run_script`: lista blanca de binarios permitidos.
+- `process_kill`: solo procesos de la lista blanca (guard pide confirmación).
+- `file_delete`: solo dentro de carpetas permitidas (`allowed_dirs`).
+- Toda acción bloqueada se registra como evento `guard_block` en la DB (auditable).
+
+Herramientas MCP:
+- `guardian_check(operation, params)` → `{allowed, reason, requires_confirmation}`
+- `guardian_set_level("relax"|"guard"|"strict")`
+- `guardian_get_config()` / `guardian_add_whitelist()` / `guardian_remove_whitelist()`
+- `guardian_add_allowed_dir(path)`
 
 ## Documentación
 

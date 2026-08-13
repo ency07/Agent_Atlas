@@ -37,15 +37,31 @@
       "command": ["%%PYTHON_BIN%%", "-m", "mcp_server_git"],
       "enabled": true
     },
+    "atlas-search": {
+      "type": "local",
+      "command": ["%%PYTHON_BIN%%", "%%PROJECT_ROOT%%\\atlas_search.py"],
+      "environment": {
+        "MEMORY_ROOT": "%%PROJECT_ROOT%%\\memory_data"
+      },
+      "enabled": true
+    },
+    "atlas-guardian": {
+      "type": "local",
+      "command": ["%%PYTHON_BIN%%", "%%PROJECT_ROOT%%\\atlas_guardian.py"],
+      "environment": {
+        "MEMORY_ROOT": "%%PROJECT_ROOT%%\\memory_data"
+      },
+      "enabled": true
+    },
     "playwright": {
       "type": "local",
       "command": ["npx", "-y", "@playwright/mcp@latest"],
-      "enabled": true
+      "enabled": false
     },
     "ollama": {
       "type": "local",
       "command": ["npx", "-y", "ollama-mcp-server"],
-      "enabled": true
+      "enabled": false
     },
     "github": {
       "type": "http",
