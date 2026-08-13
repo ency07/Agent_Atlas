@@ -97,9 +97,9 @@ New-Item -ItemType Directory -Path $cfgDir -Force | Out-Null
 $pyEsc = $pyBin.Replace("\", "\\")
 $rootEsc = $ROOT.Replace("\", "\\")
 
-# MCP de windows/corel/playwright-visual: opcional.
+# MCP de windows/corel/playwright-visual: opcional. Ahora consolidado dentro del repo (mcp_windows/).
 $mcpWin = ""
-foreach ($cand in @("E:\MCP\mcp-windows-ai", "D:\MCP\mcp-windows-ai", (Join-Path $ROOT "..\mcp-windows-ai"))) {
+foreach ($cand in @((Join-Path $ROOT "mcp_windows"), "E:\MCP\mcp-windows-ai", "D:\MCP\mcp-windows-ai", (Join-Path $ROOT "..\mcp-windows-ai"))) {
     if (Test-Path (Join-Path $cand "mcp_windows_server.py")) { $mcpWin = $cand; break }
 }
 

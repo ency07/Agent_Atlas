@@ -1,0 +1,34 @@
+# MCP Windows AI - Dependencias
+# ===============================
+# Instalar con: pip install -r requirements.txt
+
+# ── MCP SDK (Model Context Protocol) ──────────────────────────────────────
+mcp>=1.5.0
+
+# ── Comunicación con Ollama API ──────────────────────────────────────────
+requests>=2.31.0
+
+# ── Automatización de Windows ────────────────────────────────────────────
+pyautogui>=0.9.54          # Mouse, teclado, capturas de pantalla
+pygetwindow>=0.0.9         # Gestión de ventanas
+
+# ── Sistema y procesos ───────────────────────────────────────────────────
+psutil>=5.9.8              # Información del sistema y procesos
+
+# ── Portapapeles ─────────────────────────────────────────────────────────
+pyperclip>=1.8.2           # Acceso al portapapeles
+
+# ── Win32 API (Opcional pero recomendado) ────────────────────────────────
+pywin32>=306               # API nativa de Windows (ventanas, registro, etc.)
+
+# ── Procesamiento de imágenes (para screenshot) ──────────────────────────
+Pillow>=10.0.0             # Procesamiento de imágenes
+
+# ── Navegador real para feedback visual (mcp_playwright_visual_server.py) ──
+playwright>=1.45.0         # Requiere además: playwright install chromium
+
+# ── Creación de documentos Office y PDF ──────────────────────────────────
+python-docx>=1.1.0         # Crear documentos Word (.docx)
+openpyxl>=3.1.0            # Crear Excel (.xlsx) con fórmulas y formato
+python-pptx>=1.0.0         # Crear presentaciones PowerPoint (.pptx)
+fpdf2>=2.8.0               # Crear PDFs con membretes y tablas

@@ -1,9 +1,9 @@
-Ôªø# CONFIG_OPCODE ‚Äî C√≥mo cablear opencode.jsonc
+# CONFIG_OPCODE ó CÛmo cablear opencode.jsonc
 
-El `setup.ps1` genera la config autom√°ticamente. Este documento explica los
-placeholders y qu√© hacer cuando hay que ajustarla a mano.
+El `setup.ps1` genera la config autom·ticamente. Este documento explica los
+placeholders y quÈ hacer cuando hay que ajustarla a mano.
 
-## D√≥nde vive
+## DÛnde vive
 
 ```
 %USERPROFILE%\.config\opencode\
@@ -16,14 +16,14 @@ placeholders y qu√© hacer cuando hay que ajustarla a mano.
 
 `templates/opencode.jsonc.example` usa estos tokens:
 
-| Token | Qu√© es | Ejemplo |
+| Token | QuÈ es | Ejemplo |
 |---|---|---|
 | `%%PYTHON_BIN%%` | python.exe del venv | `D:\Dev\Atlas\.venv\Scripts\python.exe` |
-| `%%PROJECT_ROOT%%` | ra√≠z del repo Atlas | `D:\Dev\Atlas` |
-| `%%MCP_WINDOWS_AI%%` | repo mcp-windows-ai (opcional) | `E:\MCP\mcp-windows-ai` |
+| `%%PROJECT_ROOT%%` | raÌz del repo Atlas | `D:\Dev\Atlas` |
+| `%%MCP_WINDOWS_AI%%` | repo mcp-windows-ai (opcional) | `E:\Agente_IA\mcp_windows` |
 
 En JSON las rutas van con doble barra: `D:\\Dev\\Atlas`. `setup.ps1` hace esa
-sustituci√≥n autom√°ticamente.
+sustituciÛn autom·ticamente.
 
 ## Regenerar la config a mano
 
@@ -44,8 +44,8 @@ Provienen del repo externo [`ency07/mcp-windows-ai`](https://github.com/ency07/m
 Si no los clonaste:
 
 ```powershell
-git clone https://github.com/ency07/mcp-windows-ai E:\MCP\mcp-windows-ai
-cd E:\MCP\mcp-windows-ai
+git clone https://github.com/ency07/mcp-windows-ai E:\Agente_IA\mcp_windows
+cd E:\Agente_IA\mcp_windows
 pip install -r requirements.txt
 ```
 
@@ -54,7 +54,7 @@ esas entradas del `mcp` del jsonc para evitar errores al arrancar opencode.
 
 ## Modelos y proveedor
 
-- **`opencode.json`** define `omniroute` (modelos `auto/*`) ‚Äî ese archivo es de
+- **`opencode.json`** define `omniroute` (modelos `auto/*`) ó ese archivo es de
   este PC y NO se genera. En otro PC:
   - Usa `omniroute` si lo instalas y configuras, o
   - Borra el provider y deja el `ollama` que ya viene en `opencode.jsonc`.

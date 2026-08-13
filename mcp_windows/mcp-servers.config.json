@@ -1,0 +1,20 @@
+{
+  "mcpServers": {
+    "windows-automation": {
+      "description": "MCP Server para controlar Windows automáticamente desde Ollama o cualquier cliente MCP",
+      "command": "python",
+      "args": [
+        "mcp_windows_server.py"
+      ],
+      "env": {}
+    },
+    "playwright-visual": {
+      "description": "MCP Server que envuelve Playwright (Chromium real) y adjunta screenshot + estilos computados + alertas deterministas en cada acción, para que la IA no navegue a ciegas",
+      "command": "python",
+      "args": [
+        "mcp_playwright_visual_server.py"
+      ],
+      "env": {}
+    }
+  }
+}

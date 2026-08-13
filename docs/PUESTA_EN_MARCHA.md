@@ -1,16 +1,16 @@
-Ôªø# PUESTA EN MARCHA ‚Äî Atlas en un PC nuevo
+# PUESTA EN MARCHA ó Atlas en un PC nuevo
 
-Gu√≠a completa para pasar del clon al sistema funcionando. Si algo falla,
+GuÌa completa para pasar del clon al sistema funcionando. Si algo falla,
 revisa [TROUBLESHOOTING.md](TROUBLESHOOTING.md).
 
 ## 0. Prerrequisitos
 
 Instala en el PC nuevo (si no los tienes):
 
-- **Node.js >= 20** ‚Üí https://nodejs.org (instala `npm` incluido).
-- **Python >= 3.11** ‚Üí https://python.org (marca "Add to PATH").
-- **Git** ‚Üí https://git-scm.com (o `winget install Git.Git`).
-- (Opcional) **WebView2 runtime** ‚Äî casi siempre ya viene en Windows 10/11.
+- **Node.js >= 20** ? https://nodejs.org (instala `npm` incluido).
+- **Python >= 3.11** ? https://python.org (marca "Add to PATH").
+- **Git** ? https://git-scm.com (o `winget install Git.Git`).
+- (Opcional) **WebView2 runtime** ó casi siempre ya viene en Windows 10/11.
   Se necesita para el chat flotante (F2, `pywebview`).
 
 Verifica en una terminal:
@@ -30,7 +30,7 @@ cd Atlas
 
 > La memoria viaja en `memory_data/vault/`. Al clonar ya tienes el cerebro.
 
-## 2. Bootstrap autom√°tico
+## 2. Bootstrap autom·tico
 
 ```powershell
 powershell -ExecutionPolicy Bypass -File .\setup.ps1
@@ -66,7 +66,7 @@ omniroute serve        # o como tengas configurado tu servidor local
 - La API key se pasa por variable de entorno `OMNIROUTE_API_KEY`
   (ver `opencode.json` global de opencode).
 
-### B. Ollama local (m√°s simple, sin claves)
+### B. Ollama local (m·s simple, sin claves)
 
 ```powershell
 winget install Ollama.Ollama
@@ -84,17 +84,17 @@ Abre opencode en cualquier carpeta:
 opencode
 ```
 
-La skill `memory` carga autom√°ticamente: recupera sesiones hu√©rfanas, ingesta
+La skill `memory` carga autom·ticamente: recupera sesiones huÈrfanas, ingesta
 eventos y muestra el contexto del proyecto. Prueba:
 
 ```
 dime donde quedamos
 ```
 
-## 5. Verificaci√≥n manual
+## 5. VerificaciÛn manual
 
 ```powershell
-# diagn√≥stico completo
+# diagnÛstico completo
 .\check.ps1
 
 # health del server de memoria
@@ -107,7 +107,7 @@ python .\mcp_memory_server.py --cli projects
 ## 6. Chat flotante (F2)
 
 El chat flotante es una ventana frameless siempre-al-frente que apunta al
-chat web de `opencode serve` (headless). La memoria de Atlas funciona ah√≠ igual
+chat web de `opencode serve` (headless). La memoria de Atlas funciona ahÌ igual
 que en la terminal.
 
 ### Arranque manual
@@ -121,11 +121,11 @@ python .\atlas_chat.py --server-only   # solo el server (sin ventana)
 - El modelo por defecto del chat es `omniroute/auto/best-chat` (cambiable con
   `--model` o env `ATLAS_CHAT_MODEL`).
 - El server arranca en `127.0.0.1:4096`. Si ya corre, la ventana se reutiliza.
-- El log est√° en `atlas_chat.log` (junto al proyecto).
+- El log est· en `atlas_chat.log` (junto al proyecto).
 
 ### Autostart al iniciar Windows
 
-Registra la tarea `AtlasChat` (Task Scheduler, al iniciar sesi√≥n, oculta):
+Registra la tarea `AtlasChat` (Task Scheduler, al iniciar sesiÛn, oculta):
 
 ```powershell
 powershell -ExecutionPolicy Bypass -File .\setup.ps1 -InstallF2
@@ -148,4 +148,4 @@ schtasks /Delete /TN "AtlasChat" /F
 - [ ] `setup.ps1` termina sin errores
 - [ ] `check.ps1` imprime "TODO OK"
 - [ ] `opencode` responde con memoria ("dime donde quedamos")
-- [ ] `python mcp_memory_server.py --cli health` ‚Üí `"status": "ok"`
+- [ ] `python mcp_memory_server.py --cli health` ? `"status": "ok"`

@@ -1,0 +1,12 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+
+# Datos en tiempo de ejecución
+memory_data/
+tests/output/
+
+# Entornos virtuales
+venv/
+.venv/

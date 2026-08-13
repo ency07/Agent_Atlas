@@ -212,6 +212,7 @@ Solo entra si F4/F5 producen procesos repetibles.
 4. **Lo que no está en la bóveda no existe** — toda decisión que Atlas recuerde pasa por Obsidian.
 5. **F6 solo existe si F4/F5 demuestran procesos repetibles.**
 6. **Mission Control** (`E:\PROYECTOS\mission_control`) es el cimiento de F4 (dashboard financiero).
+7. **MCP consolidados** — mcp_windows_server.py, mcp_corel_server.py, mcp_playwright_visual_server.py ahora viven en `E:\Agente_IA\mcp_windows\` (ya no dependen del repo hermano).
 
 ---
 

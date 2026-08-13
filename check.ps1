@@ -151,6 +151,25 @@ if (Test-Path $healthPy) {
     Report $false "atlas_health.py ausente"
 }
 
+# ---------- MCP windows consolidado ----------
+Write-Host "`n[MCP windows consolidado]"
+$mcpWinDir = Join-Path $ROOT "mcp_windows"
+$mcpWinCore = Join-Path $mcpWinDir "mcp_windows_server.py"
+$mcpCorel = Join-Path $mcpWinDir "mcp_corel_server.py"
+$mcpPw = Join-Path $mcpWinDir "mcp_playwright_visual_server.py"
+Report (Test-Path $mcpWinCore) "mcp_windows consolidado en repo (mcp_windows/)"
+Report (Test-Path $mcpCorel) "mcp_corel_server.py presente"
+Report (Test-Path $mcpPw) "mcp_playwright_visual_server.py presente"
+if (Test-Path $mcpWinCore) {
+    $cfgLocal = Join-Path $env:USERPROFILE ".config\opencode\opencode.jsonc"
+    if (Test-Path $cfgLocal) {
+        $cfgText = Get-Content $cfgLocal -Raw
+        # en JSON la ruta aparece con backslashes escapados (doble barra)
+        $jsonPath = $mcpWinCore.Replace("\", "\\")
+        Report ($cfgText.Contains($jsonPath)) "config local apunta a mcp_windows consolidado"
+    }
+}
+
 # ---------- Git hook (F1) ----------
 Write-Host "`n[Git hook F1]"
 Push-Location $ROOT

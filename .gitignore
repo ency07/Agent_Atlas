@@ -33,6 +33,7 @@ Thumbs.db
 *.log
 tmp/
 .playwright-mcp/
+mcp_windows/tests/output/
 
 # --- Capturas / descargas sueltas ---
 *.png

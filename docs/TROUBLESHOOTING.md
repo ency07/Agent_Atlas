@@ -1,16 +1,16 @@
-ï»¿# TROUBLESHOOTING â€” Fallos comunes y soluciÃ³n
+# TROUBLESHOOTING — Fallos comunes y solución
 
 ## El chat/opencode no responde
 
 ### "Error: model not found" o el modelo no existe
-- El proveedor `omniroute` no estÃ¡ corriendo: verifica
+- El proveedor `omniroute` no está corriendo: verifica
   `Test-NetConnection 127.0.0.1 -Port 20128`. Si no responde, arranca omniroute
   (o usa Ollama local).
-- Revisa quÃ© modelo tienes seleccionado en `opencode.jsonc` (`"model"`).
+- Revisa qué modelo tienes seleccionado en `opencode.jsonc` (`"model"`).
 - Lista modelos disponibles: `opencode models`.
 
-### "port 20128" / proveedor caÃ­do
-- Omnironte vive fuera del repo. Sus secretos estÃ¡n en `%APPDATA%\omniroute\.env`.
+### "port 20128" / proveedor caído
+- Omnironte vive fuera del repo. Sus secretos están en `%APPDATA%\omniroute\.env`.
 - Alternativa sin omniroute: usa `ollama/phi4-mini` (config ya generada).
 
 ## La memoria no carga
@@ -18,10 +18,10 @@
 ### opencode no muestra la skill memory
 - Verifica que `%USERPROFILE%\.config\opencode\skills\memory\SKILL.md` exista
   (lo instala `setup.ps1`).
-- En opencode pide explÃ­citamente: "usa la skill memory".
+- En opencode pide explícitamente: "usa la skill memory".
 
 ### MCP memory falla al arrancar ("Connection closed")
-- **Causa tÃ­pica:** el venv tiene `mcp>=2.0.0`, que **eliminÃ³** el mÃ³dulo
+- **Causa típica:** el venv tiene `mcp>=2.0.0`, que **eliminó** el módulo
   `mcp.server.fastmcp` que usan todos los servers de Atlas. Verifica con:
   `python -c "from mcp.server.fastmcp import FastMCP"`.
 - Fix: `python -m pip install "mcp>=1.26.0,<2"` (ver `requirements.txt`, el pin
@@ -29,10 +29,10 @@
 - El Python del venv debe tener `mcp` instalado:
   `python -m pip install -r requirements.txt`.
 - Comprueba el server standalone:
-  `python .\mcp_memory_server.py --cli health` â†’ debe dar `"status": "ok"`.
+  `python .\mcp_memory_server.py --cli health` ? debe dar `"status": "ok"`.
 - Revisa que `opencode.jsonc` no tenga placeholders `%%` sin reemplazar
-  (regenera con `setup.ps1` o a mano â€” ver `docs/CONFIG_OPCODE.md`).
-- DiagnÃ³stico del estado de todos los MCP: `opencode mcp list`.
+  (regenera con `setup.ps1` o a mano — ver `docs/CONFIG_OPCODE.md`).
+- Diagnóstico del estado de todos los MCP: `opencode mcp list`.
 
 ### MCP corel-draw / windows / playwright-visual fallan
 - Son del repo externo `mcp-windows-ai` y requieren sus deps (pyautogui,
@@ -41,8 +41,8 @@
 - Si los clonaste pero fallan: `python -m pip install -r requirements.txt` en el
   venv (ya las incluye).
 
-### memory.db no existe / vacÃ­o
-- Es derivado: se regenera solo al arrancar el MCP. Si estÃ¡ corrupto, borra
+### memory.db no existe / vacío
+- Es derivado: se regenera solo al arrancar el MCP. Si está corrupto, borra
   `memory_data/state/` (el vault `.md` es la fuente; no se pierde nada).
 
 ## `check.ps1` marca fallos
@@ -51,11 +51,11 @@
 |---|---|---|
 | node/opencode no encontrado | No instalado o no en PATH | `npm install -g opencode-ai` |
 | omniroute :20128 | Proveedor no arrancado | Arranca omniroute u usa Ollama |
-| venv / paquete mcp | `setup.ps1` no corriÃ³ | Corre `setup.ps1` |
-| pywebview ausente | No se instalÃ³ | `pip install pywebview` |
+| venv / paquete mcp | `setup.ps1` no corrió | Corre `setup.ps1` |
+| pywebview ausente | No se instaló | `pip install pywebview` |
 | config con `%%` | Placeholder sin resolver | Regenera config |
 
-## Sesiones huÃ©rfanas / "donde quedamos" vacÃ­o
+## Sesiones huérfanas / "donde quedamos" vacío
 
 - Normal tras cerrar sin `/guardar`. Se recuperan al iniciar
   (`memory_session_recover`).
@@ -68,14 +68,14 @@
 - `pywebview` usa el runtime de Edge. Si falla, reinstala WebView2 desde
   https://developer.microsoft.com/microsoft-edge/webview2/
 - Si `pywebview` crashea, `atlas_chat.py` abre el navegador por defecto
-  automÃ¡ticamente. Revisa `atlas_chat.log` para el error real.
+  automáticamente. Revisa `atlas_chat.log` para el error real.
 
 ### El chat flotante no arranca ("No se encontro opencode CLI")
 - `atlas_chat.py` busca `opencode` en `~\.opencode\bin\opencode.exe`, en el npm
   global y en el PATH. Instala con `npm install -g opencode-ai`.
 
 ### El chat flotante abre pero dice "ya hay una ventana Atlas abierta"
-- Es la protecciÃ³n anti-duplicados. Si de verdad no ves ninguna ventana, mata el
+- Es la protección anti-duplicados. Si de verdad no ves ninguna ventana, mata el
   proceso pythonw y reintenta:
   `Get-Process pythonw | Stop-Process -Force`
 
@@ -88,10 +88,10 @@
 ## Git
 
 ### "no such file" al clonar
-- AsegÃºrate de que el remoto exista y tengas permiso. En este PC el remoto aÃºn
-  no estÃ¡ configurado (`git remote add origin <URL>`).
+- Asegúrate de que el remoto exista y tengas permiso. En este PC el remoto aún
+  no está configurado (`git remote add origin <URL>`).
 
-### Quiero ver quÃ© hay en el repo antes de pushear
+### Quiero ver qué hay en el repo antes de pushear
 ```powershell
 git status
 git log --oneline
