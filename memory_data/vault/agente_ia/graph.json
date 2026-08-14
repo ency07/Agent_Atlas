@@ -1,0 +1,21 @@
+{
+  "project": "agente_ia",
+  "generated": "2026-08-14T18:00:17+00:00",
+  "nodes": [
+    {
+      "id": "20260814-121159-20260814-tareas-alta-completadas-logrota",
+      "label": "20260814-121159-20260814-tareas-alta-completadas-logrota",
+      "type": "summary",
+      "project": "agente_ia",
+      "properties": "Se completaron las 3 tareas ALTA del roadmap tras F1/F3:\n\n1. **Rotación de logs** (`atlas_logrotate.py`): rota logs 7 días, comprime .gz, limpia errors.jsonl (10000 líneas). Tarea `AtlasLogRotate` diaria 04:00.\n\n2. **Boot check E2E** (`atlas_bootcheck.py`): verifica daemon memoria, dashboard web (:4"
+    },
+    {
+      "id": "20260814-130017-20260814-tareas-media-completadas-sync-c",
+      "label": "20260814-130017-20260814-tareas-media-completadas-sync-c",
+      "type": "summary",
+      "project": "agente_ia",
+      "properties": "Se completaron las 4 tareas MEDIA del roadmap tras F1/F3 (el 20260814):\n\n1. **Auto-sync capacidades** (`atlas_sync_capabilities.py`): consulta /v1/models de omniroute/9router/ollama, regenera model_capabilities.json (preservando capacidades curadas), genera diff. Tarea `AtlasSyncCapabilities` lunes "
+    }
+  ],
+  "edges": []
+}

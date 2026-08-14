@@ -1,6 +1,6 @@
 {
   "project": "test",
-  "generated": "2026-08-14T16:19:28+00:00",
+  "generated": "2026-08-14T18:38:02+00:00",
   "nodes": [
     {
       "id": "20260814-103148-test-note",
@@ -47,6 +47,69 @@
     {
       "id": "20260814-111928-test-note",
       "label": "20260814-111928-test-note",
+      "type": "fact",
+      "project": "test",
+      "properties": "Contenido de prueba\n"
+    },
+    {
+      "id": "20260814-120821-test-note",
+      "label": "20260814-120821-test-note",
+      "type": "fact",
+      "project": "test",
+      "properties": "Contenido de prueba\n"
+    },
+    {
+      "id": "20260814-121013-test-note",
+      "label": "20260814-121013-test-note",
+      "type": "fact",
+      "project": "test",
+      "properties": "Contenido de prueba\n"
+    },
+    {
+      "id": "20260814-122338-test-note",
+      "label": "20260814-122338-test-note",
+      "type": "fact",
+      "project": "test",
+      "properties": "Contenido de prueba\n"
+    },
+    {
+      "id": "20260814-123021-test-note",
+      "label": "20260814-123021-test-note",
+      "type": "fact",
+      "project": "test",
+      "properties": "Contenido de prueba\n"
+    },
+    {
+      "id": "20260814-123739-test-note",
+      "label": "20260814-123739-test-note",
+      "type": "fact",
+      "project": "test",
+      "properties": "Contenido de prueba\n"
+    },
+    {
+      "id": "20260814-125910-test-note",
+      "label": "20260814-125910-test-note",
+      "type": "fact",
+      "project": "test",
+      "properties": "Contenido de prueba\n"
+    },
+    {
+      "id": "20260814-132354-test-note",
+      "label": "20260814-132354-test-note",
+      "type": "fact",
+      "project": "test",
+      "properties": "Contenido de prueba\n"
+    },
+    {
+      "id": "20260814-132642-test-note",
+      "label": "20260814-132642-test-note",
+      "type": "fact",
+      "project": "test",
+      "properties": "Contenido de prueba\n"
+    },
+    {
+      "id": "20260814-133801-test-note",
+      "label": "20260814-133801-test-note",
       "type": "fact",
       "project": "test",
       "properties": "Contenido de prueba\n"

@@ -339,6 +339,7 @@ def analyze(task: str) -> dict:
             result["decision"] = {
                 "action": "block_and_advise",
                 "suggested_model": None,
+                "vision_supported": False,
                 "reason": ("Ningun modelo ACTIVO con vision. No ejecutar revision visual a ciegas. "
                            "Levanta omniroute/9router o cambia de config para usar un modelo vision=true."),
             }
@@ -349,6 +350,7 @@ def analyze(task: str) -> dict:
         result["decision"] = {
             "action": "no_providers",
             "suggested_model": None,
+            "vision_supported": False,
             "reason": "Ningun provider de modelos responde (omniroute:20128, 9router:4000, ollama:11434).",
         }
         return result

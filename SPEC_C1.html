@@ -1,0 +1,244 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<title>Atlas — SPEC C1 · Capa de Ejecución Profesional</title>
+<style>
+body{background:#101820;color:#e6e6e6;font-family:'Segoe UI',system-ui,sans-serif;margin:2rem auto;max-width:1100px;line-height:1.45}
+h1{font-size:1.6rem}h2{font-size:1.15rem;margin-top:2rem;border-bottom:1px solid #333;padding-bottom:4px}
+.sub{color:#9ab}code{background:#0d141b;padding:1px 5px;border-radius:4px;color:#8cf}
+table{border-collapse:collapse;width:100%;font-size:.86rem}td,th{border:1px solid #333;padding:6px;text-align:left}
+details{margin:8px 0;background:#18222c;border-radius:8px;padding:8px 12px;border-left:4px solid #1976d2}
+summary{cursor:pointer;color:#8cf;font-weight:600}ul{margin:6px 0 6px 18px}
+.req{border-left-color:#c62828}.warn{color:#f9a825}
+</style>
+</head>
+<body>
+<h1>Atlas — SPEC C1 · Capa de Ejecución Profesional</h1>
+<p class="sub">Contrato de implementación · v1.0 · 14/08/2026 · Dirigido a: IA ejecutora / programador<br>
+<b>Regla de lectura:</b> cada REQ es bloqueante. Prohibido cerrar con "debería funcionar". Toda afirmación requiere evidencia (test, log, captura, comando).</p>
+
+<h2>01 · Propósito y norte</h2>
+<p>Atlas ejecuta <b>la intención del usuario, sobre los programas del usuario, con calidad profesional verificable</b>.</p>
+<ul>
+<li>No asume programas: opera el navegador/app que el usuario indique (registro de programas).</li>
+<li>No ejecuta la frase literal: construye orden de trabajo (objetivo, alcance, profundidad, entregable, criterios).</li>
+<li>No entrega "informes de preparatoria": estándar profesional de 6 bloques, maquetación con oficio, evidencia real.</li>
+<li>No declara éxito sin evidencia: loop ejecutar → verificar → corregir; limitaciones honestas.</li>
+<li>Todo entregable se guarda, se publica en dashboard y se versiona.</li>
+</ul>
+
+<h2>02 · Diagnóstico actual (por qué queda flojo hoy)</h2>
+<table>
+<tr><th>Causa</th><th>Evidencia (ATLAS_REPORTE 13/08)</th><th>Efecto</th></tr>
+<tr><td>Modelo de chat hardcodeado</td><td><code>omniroute/auto/best-chat</code> en atlas_chat; orquestador NO cambia runtime</td><td>Planificación y recuperación débiles en tareas agénticas</td></tr>
+<tr><td>Ejecución a ciegas</td><td>playwright-visual existe pero el chat no invoca visión; best-chat puede carecer de visión (viola regla dorada)</td><td>No verifica estado real tras cada paso</td></tr>
+<tr><td>Navegador equivocado</td><td>playwright-visual abre su propio Chromium, no el navegador del usuario</td><td>"Configúrame MI extensión" nunca queda en el navegador real</td></tr>
+<tr><td>Diálogos nativos fuera del DOM</td><td>Playwright solo ve DOM; confirmaciones del SO invisibles</td><td>El agente se enreda y sigue como si nada</td></tr>
+<tr><td>Sin verificación ni recovery</td><td>No hay loop verificar→corregir; errores se acumulan</td><td>Entregas a medias con éxito falso</td></tr>
+<tr><td>Sin memoria procedural</td><td>No existen runbooks en bóveda</td><td>Reimprovisa y repite enredos</td></tr>
+</table>
+
+<h2>03 · Glosario</h2>
+<ul>
+<li><b>Orden de trabajo:</b> interpretación estructurada de la petición antes de ejecutar.</li>
+<li><b>Nivel (L0–L3):</b> profundidad de investigación/entrega con criterios medibles.</li>
+<li><b>Runbook:</b> procedimiento verificado guardado en bóveda, reutilizable, con versión de programa.</li>
+<li><b>Crítico:</b> pase de auditoría con modelo distinto antes de entregar.</li>
+<li><b>Checkpoint:</b> estado reanudable de tarea larga en <code>state/tasks/&lt;id&gt;.json</code>.</li>
+<li><b>Exemplar:</b> entregable calificado "así sí" por el usuario; referencia few-shot.</li>
+</ul>
+
+<h2>04 · Skills nuevas (6) — contenido detallado</h2>
+
+<details><summary>skill: ejecucion-verificada (MASTER)</summary>
+<p><code>description:</code> "Usar al ejecutar CUALQUIER tarea que modifique o configure programas, archivos o el PC del usuario. Obligatoria antes de tocar UI, apps o configs."</p>
+<ol>
+<li>Construir orden de trabajo (plantilla §17). Si ambigüedad crítica → preguntar UNA vez.</li>
+<li>Leer <code>preferences/programas.md</code>; si el programa no está registrado → preguntar y recordar.</li>
+<li>Buscar runbook aplicable (skill runbooks). Si existe → seguirlo; si no → planificar pasos con criterio de éxito POR PASO.</li>
+<li>Ejecutar UN paso. Verificar con cascada: API/CLI → UIA (<code>read_ui_state</code>) → OCR/captura+visión → teclado/mouse.</li>
+<li>Fallo → reintentar con alternativa (máx 2). Segundo fallo → checkpoint + reportar con evidencia, nunca éxito falso.</li>
+<li>Diálogo nativo detectado (UIA/OCR) → operarlo con teclado/mouse vía windows MCP.</li>
+<li>Verificación final contra criterios de aceptación de la orden.</li>
+<li>Si el procedimiento es nuevo y exitoso → guardar runbook.</li>
+<li>Ritual de entrega (skill entrega).</li>
+</ol></details>
+
+<details><summary>skill: informe-profesional</summary>
+<p><code>description:</code> "Usar cuando el usuario pida informe, reporte, análisis, comparativa o documento. Aplica estándar de 6 bloques y maquetación profesional."</p>
+<ol>
+<li>Orden de trabajo + nivel (default del usuario: L2/L3).</li>
+<li>Estructura obligatoria (§08). Resumen ejecutivo con conclusiones PRIMERO.</li>
+<li>Visualización con oficio: tabla para comparativas, SVG inline para series, timeline para secuencias. Autonomía de forma, estándar de fondo.</li>
+<li>HTML single-file sin dependencias externas (abrible offline) · DOCX vía windows MCP si el usuario lo prefiere · MD en bóveda siempre.</li>
+<li>Pase crítico (skill critico) ANTES de mostrar.</li>
+<li>Versionado <code>-v1/-v2</code> si hay feedback; exemplar si el usuario lo califica "así sí".</li>
+</ol></details>
+
+<details><summary>skill: investigacion-exhaustiva</summary>
+<p><code>description:</code> "Usar para búsquedas exhaustivas, estudios profundos, tendencias, análisis de mercado. Protocolo L3."</p>
+<ol>
+<li>Descomponer en 3-6 sub-preguntas.</li>
+<li>3-4 rondas: <code>web_search</code> + <code>web_research</code> + fuentes académicas (CrossRef/arXiv).</li>
+<li>Jerarquía de fuentes (§15); ≥3 por afirmación clave; fecha de captura y cita textual con link.</li>
+<li>Contradicciones entre fuentes → sección explícita, no se ocultan.</li>
+<li>Datos vs opinión separados. Entregar vía informe-profesional.</li>
+</ol></details>
+
+<details><summary>skill: runbooks</summary>
+<p><code>description:</code> "Usar ANTES de ejecutar procedimientos repetidos (instalar extensión, exportar diseño, publicar informe) y DESPUÉS de uno exitoso nuevo."</p>
+<ul>
+<li>Formato: <code>vault/&lt;proyecto&gt;/runbooks/&lt;nombre&gt;.md</code> con pasos, selectores/UIA names, verificaciones, versión del programa, fecha última verificación.</li>
+<li>Ciclo: verificado → reusado → <code>stale</code> si cambia versión del programa → re-verificar antes de usar.</li>
+</ul></details>
+
+<details><summary>skill: critico</summary>
+<p><code>description:</code> "Usar ANTES de entregar cualquier entregable. Pase de auditoría con modelo DISTINTO al generador."</p>
+<ul><li>Checklist §09 contra criterios de aceptación de la orden. Detecta placeholders, invención, huecos, maquetación pobre. Exige corrección ANTES de mostrar al usuario.</li></ul></details>
+
+<details><summary>skill: entrega</summary>
+<p><code>description:</code> "Usar al finalizar toda tarea con entregable. Ritual de persistencia y presentación."</p>
+<ol>
+<li>Guardar en <code>vault/outputs/</code> + <code>publish_report</code> (dashboard <code>/api/informes</code>).</li>
+<li>Entrada en grafo + resumen en sesión.</li>
+<li>Mensaje final: "listo · publicado en dashboard · archivado · cubrí A/B/C · excluí D por alcance · limitaciones: X · fuentes en anexo".</li>
+</ol></details>
+
+<h2>05 · MCPs — herramientas nuevas (firmas exactas)</h2>
+<table>
+<tr><th>Server</th><th>Tool</th><th>Firma</th><th>Comportamiento / evidencia</th></tr>
+<tr><td>windows</td><td><code>screen_capture</code></td><td>(window_title? | region?[x,y,w,h]) → PNG</td><td>mss/win32; devuelve ruta+base64; test: captura ventana real del navegador del usuario</td></tr>
+<tr><td>windows</td><td><code>read_ui_state</code></td><td>(window_title?) → JSON árbol UIA</td><td>UI Automation: name/type/rect/state de elementos interactivos; test: lista botones de la app abierta</td></tr>
+<tr><td>windows</td><td><code>ocr_screen</code></td><td>(region?) → texto</td><td>OCR WinRT local (sin nube); test: lee texto de diálogo nativo</td></tr>
+<tr><td>windows</td><td><code>open_app</code></td><td>(path_or_name, args?) → pid</td><td>Governed por guardian (MEDIUM); test: abre el navegador registrado</td></tr>
+<tr><td>memory</td><td><code>publish_report</code></td><td>(html_path, title, level) → url</td><td>Copia a vault/outputs + grafo + registro en /api/informes</td></tr>
+<tr><td>atlas-search</td><td><code>web_research_academic</code></td><td>(query) → resultados</td><td>APIs abiertas CrossRef/arXiv; sin scraping frágil</td></tr>
+<tr><td>atlas-web</td><td><code>GET /api/informes</code></td><td>— → metadata[]</td><td>Lista vault/outputs/*.html (título, fecha, nivel); <code>/informe/&lt;id&gt;</code> lo sirve</td></tr>
+</table>
+<p class="warn">NO agregar: plugins de opencode, SaaS, MCP de charts (SVG inline en el HTML), scrapers frágiles. CDP a navegador del usuario SOLO con permiso explícito y arranque suyo con debugging.</p>
+
+<h2>06 · Orquestador como director</h2>
+<table>
+<tr><th>Tipo de tarea</th><th>Modelo</th><th>Protocolo</th><th>Tools</th><th>Entregable</th><th>Verificación</th></tr>
+<tr><td>UI en app del usuario</td><td>best-vision</td><td>ejecucion-verificada</td><td>windows+capture+UIA+OCR</td><td>evidencia (capturas)</td><td>estado UI final verificado</td></tr>
+<tr><td>Investigación exhaustiva</td><td>best-reasoning</td><td>L3</td><td>search+académico+bóveda</td><td>HTML profesional</td><td>≥3 fuentes/afirmación</td></tr>
+<tr><td>Informe/documento</td><td>best-reasoning</td><td>informe-profesional</td><td>docx/HTML</td><td>HTML o DOCX</td><td>pase crítico</td></tr>
+<tr><td>Código</td><td>best-coding</td><td>tests+gates</td><td>según stack</td><td>commit+tests</td><td>suite verde</td></tr>
+<tr><td>Chat rápido</td><td>best-fast</td><td>directo (L0/L1)</td><td>—</td><td>respuesta</td><td>—</td></tr>
+</table>
+<ul>
+<li><b>Switch runtime obligatorio:</b> el orquestador APLICA el modelo (deuda MEDIA del reporte → REQ). Regla dorada extendida: si el protocolo exige visión/research y el modelo no la tiene → switch automático o aviso; nunca a ciegas.</li>
+<li><b>Roles:</b> generador (best-reasoning) ≠ crítico (modelo de OTRO provider si existe).</li>
+<li><b>Presupuesto:</b> costo/tiempo estimado por nivel; si supera umbral → informar ANTES de ejecutar. Reporte de costo en el entregable.</li>
+</ul>
+
+<h2>07 · Niveles de profundidad (criterios medibles)</h2>
+<table>
+<tr><th>Nivel</th><th>Rondas</th><th>Fuentes mín.</th><th>Entregable</th><th>Costo esp.</th></tr>
+<tr><td>L0</td><td>0</td><td>—</td><td>respuesta directa</td><td>mín</td></tr>
+<tr><td>L1</td><td>1</td><td>1 citada</td><td>respuesta + fuente</td><td>bajo</td></tr>
+<tr><td>L2</td><td>2-3</td><td>2/afirmación</td><td>estructura+tabla+conclusiones, archivado</td><td>medio</td></tr>
+<tr><td>L3</td><td>3-4</td><td>3/afirmación clave</td><td>HTML profesional+anexos+contradicciones+dashboard</td><td>alto (presupuestado)</td></tr>
+</table>
+<p>Default del usuario: L2/L3 (perfil profesional en <code>preferences/style_profile.md</code>).</p>
+
+<h2>08 · Estándar de entregable profesional</h2>
+<ol>
+<li><b>Cabecera:</b> título, fecha, orden original literal, alcance, nivel, costo/tiempo.</li>
+<li><b>Resumen ejecutivo:</b> conclusiones PRIMERO, 5-10 líneas, cero relleno.</li>
+<li><b>Hallazgos:</b> por tema; tablas/comparativas; datos con fuente; SVG inline donde comunique mejor.</li>
+<li><b>Evidencia:</b> fuentes jerarquizadas, links, fecha captura, citas textuales.</li>
+<li><b>Conclusiones y recomendaciones:</b> accionables, priorizadas P1/P2/P3.</li>
+<li><b>Anexos + Limitaciones:</b> datos crudos, glosario, y "no verificado" con evidencia del intento (honestidad &gt; perfección).</li>
+</ol>
+<p><b>Estilo:</b> datos &gt; adjetivos · frases cortas · prohibido relleno ("en el mundo dinámico de hoy") · números con fuente · tablas para comparar.<br>
+<b>Formatos:</b> HTML single-file offline (primario) · DOCX (alternativo) · MD bóveda (siempre). <b>Nunca .txt plano</b> salvo petición.<br>
+<b>Plantillas + exemplars:</b> <code>vault/global/templates/</code> + entregables calificados "así sí" como referencia few-shot.</p>
+
+<h2>09 · Crítico y auto-auditoría</h2>
+<ul>
+<li>Checklist: ¿responde la orden punto por punto? · ¿resumen ejecutivo con conclusiones primero? · ¿toda afirmación con fuente? · ¿sin placeholders/TODO/invención? · ¿legible para quien no vio el proceso? · ¿offline? · ¿guardado+publicado? · ¿limitaciones honestas?</li>
+<li>Modelo crítico DISTINTO al generador. Corrige ANTES de mostrar.</li>
+<li>Feedback del usuario ("quedó flojo") → <code>type=feedback</code> en bóveda → ajusta <code>style_profile.md</code> (REQ-C12).</li>
+</ul>
+
+<h2>10 · Persistencia y ritual de entrega</h2>
+<p>Todo entregable: <code>vault/outputs/</code> + grafo + <code>/api/informes</code> + resumen en chat (§04 entrega). Versionado <code>-v1/-v2</code>. Nada se entrega solo por chat.</p>
+
+<h2>11 · Runbooks</h2>
+<p>Ciclo: verificado → reusado → stale → re-verificado. Frontmatter: <code>programa, version, ultima_verificacion, pasos, verificaciones</code>.</p>
+
+<h2>12 · Checkpoints</h2>
+<p>Tareas &gt;N pasos: <code>state/tasks/&lt;id&gt;.json</code> (pasos, estado, evidencia). Reanudable tras caída (<code>task_resume</code>). Integra con <code>memory_session_recover</code>.</p>
+
+<h2>13 · Seguridad en entregables</h2>
+<p>Redactor de secretos + datos personales ANTES de publicar o enviar a modelo cloud (REQ-C14). Entregables con sensibles → solo local.</p>
+
+<h2>14 · Evals (medir el % real)</h2>
+<p>Casos mensuales con rúbrica: (1) instalar extensión en navegador del usuario · (2) informe L3 de 5 fuentes · (3) diseño Corel + export · (4) config con diálogo nativo · (5) comparativa con tabla. Rúbrica: orden entendida · criterios % · evidencia · maquetación (crítico) · costo/tiempo. Tarea programada mensual + panel en dashboard.</p>
+
+<h2>15 · Fuentes</h2>
+<p>Jerarquía: oficial &gt; académica &gt; prensa &gt; foro. Contradicciones → sección explícita. Datos vs opinión separados.</p>
+
+<h2>16 · REQs C1–C16 (bloqueantes)</h2>
+<table>
+<tr><th>REQ</th><th>Requisito</th><th>Aceptación / evidencia</th></tr>
+<tr><td>C1</td><td>Orden de trabajo antes de ejecutar; pregunta solo ambigüedad crítica</td><td>Test: petición vaga produce orden con criterios antes de actuar</td></tr>
+<tr><td>C2</td><td>Registro de programas del usuario; nunca asumir</td><td><code>preferences/programas.md</code> poblado; test: tarea menciona app no registrada → pregunta una vez</td></tr>
+<tr><td>C3</td><td>Manejo universal: API/CLI → UIA → OCR/visión → kbd/mouse; Playwright solo para Atlas</td><td>Test: configura extensión en navegador del usuario con evidencia de estado final</td></tr>
+<tr><td>C4</td><td>Orquestador aplica paquete completo + switch runtime</td><td>Test: tarea UI usa best-vision sin intervención; routing_log muestra switch</td></tr>
+<tr><td>C5</td><td>Niveles L0–L3 con criterios; default L2/L3</td><td>Test: "exhaustivo" → L3 con ≥3 rondas y anexos</td></tr>
+<tr><td>C6</td><td>Estándar 6 bloques; HTML offline primario; nunca .txt</td><td>Crítico valida estructura; entregable abrible sin internet</td></tr>
+<tr><td>C7</td><td>Auto-auditoría con modelo distinto antes de entregar</td><td>Test: entregable con error sembrado → crítico lo detecta y corrige</td></tr>
+<tr><td>C8</td><td>Persistencia total + ritual de entrega</td><td>Todo entregable en outputs + dashboard + grafo</td></tr>
+<tr><td>C9</td><td>Evidencia real: ≥3 fuentes L3; capturas en UI; prohibido inventar</td><td>Auditoría de fuentes en entregable</td></tr>
+<tr><td>C10</td><td><code>screen_capture</code>+<code>read_ui_state</code>+<code>ocr_screen</code>+<code>open_app</code> en windows MCP</td><td>Tests unitarios + prueba real sobre app del usuario</td></tr>
+<tr><td>C11</td><td>Runbooks verificados reutilizables; stale si cambia versión</td><td>2 runbooks verificados en bóveda</td></tr>
+<tr><td>C12</td><td>Feedback → style_profile.md</td><td>Test: corrección del usuario modifica perfil y siguiente entregable</td></tr>
+<tr><td>C13</td><td>Checkpoints reanudables</td><td>Test: matar proceso a mitad de tarea L3 → reanuda sin perder evidencia</td></tr>
+<tr><td>C14</td><td>Redacción de sensibles en entregables</td><td>Test: entregable con token sembrado → sale redactado</td></tr>
+<tr><td>C15</td><td>Evals mensuales con rúbrica + panel</td><td>Tarea programada + primer reporte de % efectividad</td></tr>
+<tr><td>C16</td><td>Jerarquía de fuentes + contradicciones explícitas</td><td>Informe L3 con sección de contradicciones</td></tr>
+</table>
+
+<h2>17 · Plantillas</h2>
+<details><summary>Orden de trabajo (YAML)</summary>
+<pre>orden:
+  literal: "&lt;palabras exactas del usuario&gt;"
+  objetivo: ...
+  alcance: [...]
+  fuera: [...]
+  profundidad: L2|L3
+  programas: [...]
+  entregable: html|docx|md
+  criterios: [...]
+  presupuesto: {max_rondas: N, max_costo: ...}</pre></details>
+<details><summary>Esqueleto de informe profesional (HTML)</summary>
+<pre>&lt;header&gt; título · fecha · orden literal · alcance · nivel &lt;/header&gt;
+&lt;section resumen&gt; conclusiones primero &lt;/section&gt;
+&lt;section hallazgos&gt; tablas + SVG inline &lt;/section&gt;
+&lt;section evidencia&gt; fuentes jerarquizadas + citas &lt;/section&gt;
+&lt;section recomendaciones&gt; P1/P2/P3 &lt;/section&gt;
+&lt;section anexos&gt; datos + limitaciones honestas &lt;/section&gt;</pre></details>
+
+<h2>18 · Antes vs después</h2>
+<table>
+<tr><th>Hoy</th><th>Con C1</th></tr>
+<tr><td>1 búsqueda → 3 bullets en chat → nada guardado</td><td>Orden L3 → 3-4 rondas → HTML profesional → dashboard + bóveda → "cubrí A/B/C, excluí D, fuentes en anexo"</td></tr>
+<tr><td>Extensión: clica en su Chromium, diálogo nativo invisible, éxito falso</td><td>Abre TU navegador → UIA/OCR ve el diálogo → kbd/mouse lo opera → verifica en chrome://extensions equivalente → runbook guardado</td></tr>
+</table>
+
+<h2>19 · Definición de terminado C1</h2>
+<ul>
+<li>6 skills instaladas y activadas por description sin invocación manual.</li>
+<li>Tools C10 operativas sobre el navegador real del usuario.</li>
+<li><code>/api/informes</code> sirviendo reportes reales.</li>
+<li>Switch runtime probado (routing_log).</li>
+<li>3 entregables calificados "profesional" por el usuario.</li>
+<li>Crítico detecta error sembrado (test).</li>
+<li>2 runbooks verificados · evals programados · style_profile activo.</li>
+</ul>
+<p class="sub">SPEC C1 v1.0 · E:\Agente_IA\SPEC_C1.html · Complementa roadmap v1.4</p>
+</body>
+</html>
