@@ -335,6 +335,24 @@ if (Test-Path $supVbs) {
     Write-Host "  AVISO: start_atlas_supervisor.vbs no encontrado" -ForegroundColor DarkYellow
 }
 
+# ---------- 9c. Rotación de logs (F1) ----------
+Write-Host "`n[9c/10] Rotación de logs..." -ForegroundColor Yellow
+$logVbs = Join-Path $ROOT "start_atlas_logrotate.vbs"
+if (Test-Path $logVbs) {
+    $actionLog = New-ScheduledTaskAction -Execute 'wscript.exe' -Argument "`"$logVbs`""
+    $triggerLog = New-ScheduledTaskTrigger -Daily -At '04:00'
+    $settingsLog = New-ScheduledTaskSettingsSet -AllowStartIfOnBatteries -DontStopIfGoingOnBatteries -ExecutionTimeLimit (New-TimeSpan -Hours 1)
+    Register-ScheduledTask -TaskName 'AtlasLogRotate' -Action $actionLog -Trigger $triggerLog -Settings $settingsLog -Force | Out-Null
+    $taskLog = Get-ScheduledTask -TaskName 'AtlasLogRotate' -ErrorAction SilentlyContinue
+    if ($taskLog) {
+        Write-Host "  tarea AtlasLogRotate registrada (diario 04:00, mantiene 7 dias)"
+    } else {
+        Write-Host "  AVISO: no se pudo registrar AtlasLogRotate" -ForegroundColor DarkYellow
+    }
+} else {
+    Write-Host "  AVISO: start_atlas_logrotate.vbs no encontrado" -ForegroundColor DarkYellow
+}
+
 # ---------- 10. Diagnostico ----------
 Write-Host "`n[10/10] Diagnostico..." -ForegroundColor Yellow
 & (Join-Path $ROOT "check.ps1")

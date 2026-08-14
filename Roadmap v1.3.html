@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<title>Atlas — Roadmap v1.3 · Endurecimiento antes de F4</title>
+<style>
+body{background:#101820;color:#e6e6e6;font-family:'Segoe UI',system-ui,sans-serif;margin:2rem auto;max-width:1100px;line-height:1.45}
+h1{font-size:1.6rem}h2{font-size:1.15rem;margin-top:2rem;border-bottom:1px solid #333;padding-bottom:4px}
+.sub{color:#9ab}
+.card{border-radius:10px;padding:12px 14px;margin:12px 0;border-left:6px solid;background:#18222c}
+.g{border-color:#2e7d32}.y{border-color:#f9a825}.r{border-color:#c62828}.x{border-color:#546e7a}.b{border-color:#1976d2}
+.chip{display:inline-block;padding:2px 8px;border-radius:10px;font-size:.75rem;margin-left:8px}
+.cg{background:#2e7d32}.cy{background:#f9a825;color:#000}.cr{background:#c62828}.cx{background:#546e7a}.cb{background:#1976d2}
+code{background:#0d141b;padding:1px 5px;border-radius:4px;color:#8cf}
+table{border-collapse:collapse;width:100%;font-size:.88rem}
+td,th{border:1px solid #333;padding:6px;text-align:left}
+details{margin:6px 0}summary{cursor:pointer;color:#8cf}
+ul{margin:6px 0 6px 18px}
+</style>
+</head>
+<body>
+<h1>Atlas — Roadmap v1.3</h1>
+<p class="sub">Resincronizado con reporte en vivo 13/08/2026 · Endurecimiento (F2.5) ANTES de F4/F5 · 🟢 estable · 🟡 débil · 🔴 riesgoso · ⚪ horizonte · 🔵 continuo</p>
+
+<h2>01 · Estado actual (hecho, no se replantea)</h2>
+<div class="card g"><b>F1 CORE 100%</b> — memory.db + FTS5 · bóveda · grafos · inbox daemon · backups · rotación secretos<span class="chip cg">✔</span></div>
+<div class="card g"><b>F2 ACTIVIDAD 100%</b> — daemon + bandeja + heartbeat + rate limit · <b>bug de chat → se muda a F2.5</b><span class="chip cg">✔</span></div>
+<div class="card g"><b>F3 FOCO 100%</b> — foco_rules.json · off/soft/strict · resumen diario · backfill · overrides<span class="chip cg">✔</span></div>
+<div class="card g"><b>O1 Orquestador 100% · S1 Semáforo 100%</b> — detección viva por API · circuit breaker · fallback chain · health real<span class="chip cg">✔</span></div>
+<div class="card g"><b>Transversales</b> — guardián · atlas_search · Corel MCP · Playwright · dashboard :4100 (datos reales)<span class="chip cg">✔</span></div>
+
+<h2>02 · Orden de ejecución (la respuesta)</h2>
+<table>
+<tr><th>Cuándo</th><th>Qué</th><th>Por qué</th></tr>
+<tr><td><b>ANTES (F2.5)</b></td><td>3 deudas ALTA + supervisor + instancia única + boot check + rotación logs + git/backup cifrado + tests críticos</td><td>F4/F5 se montan sobre la base; sin esto heredan fallos silenciosos y single-point-of-loss</td></tr>
+<tr><td><b>PARALELO a F4</b></td><td>Costo/uso por modelo · auto-sync capacidades · routing en dashboard</td><td>F4 consume modelos; sin costo no hay ROI</td></tr>
+<tr><td><b>COMO F4</b></td><td>Piloto Corel POD + mission_control contable</td><td>Monetiza manos que ya existen</td></tr>
+<tr><td><b>DESPUÉS</b></td><td>F5 Tutor · memoria profunda · UX (hotkey/voz) · fallback local 7B</td><td>Mejoras, no bloqueantes</td></tr>
+<tr><td><b>F6</b></td><td>Solo si F4/F5 demuestran repetibles</td><td>Horizonte</td></tr>
+</table>
+
+<h2>03 · Diagrama de fases restantes</h2>
+
+<div class="card y"><b>F2.5 · ENDURECIMIENTO</b><span class="chip cy">🟡 Ahora</span>
+<ul>
+<li><b>Entregables:</b> chat con stderr → <code>atlas_chat.log</code> + preferir <code>~/.opencode/bin/opencode.exe</code> + reintento · 9Router <code>--port 4000</code> + tareas ONLOGON OmniRoute/9Router · orquestador como modelo default · <code>atlas_supervisor</code> (actúa sobre el semáforo: reinicia caídos) · instancia única (mutex) · boot check E2E con toast · rotación de logs · <code>.gitignore</code> <code>memory_data/</code> + origin privado + backup cifrado (age/gpg) · pytest crítico (foco, breaker, ingest, guardian, FTS5) + failure injection</li>
+<li><b>Gates de salida:</b> chat sobrevive 3 reboots con evidencia en log · supervisor reinicia daemon matado (probado) · restore de backup cifrado probado · pytest verde · cero procesos duplicados · routing_log visible en :4100</li>
+<li><b>Traspasa a F4/F5:</b> base sin fallos silenciosos + backup fuera del disco + regresión cubierta</li>
+</ul></div>
+
+<div class="card r"><b>F4 · DINERO — Piloto Corel POD + contabilidad</b><span class="chip cr">🔴 Riesgoso</span>
+<ul>
+<li><b>Entregables:</b> pipeline POD: tendencia (<code>atlas_search</code>) → diseño en Corel → export PNG → subida a plataforma <b>con validación humana</b> · mission_control contable (CSV banco/Stripe + entrada manual) · costo/uso por modelo · panel financiero en :4100 (regla HUD: cero datos hardcodeados)</li>
+<li><b>Gates de salida:</b> 3 diseños subidos con validación · import CSV contable OK · costo por request visible · toda oportunidad pasa validación humana</li>
+</ul></div>
+
+<div class="card r"><b>F5 · TUTOR — Trading Tutor (demo)</b><span class="chip cr">🔴 Riesgoso</span>
+<ul>
+<li><b>Entregables:</b> journal demo · checklist · adaptador CSV TradingView → normalizado · tutor de estrategias</li>
+<li><b>Gates:</b> 10 trades demo con análisis · checklist bloquea sin confirmación · <b>nunca dinero real</b></li>
+</ul></div>
+
+<div class="card x"><b>F6 · HORIZONTE — Automatización</b><span class="chip cx">⚪ Sin compromiso</span></div>
+
+<div class="card b"><b>CAPA CONTINUA (paralela, no bloquea)</b><span class="chip cb">🔵</span>
+<ul>
+<li><b>Orquestador que aprende:</b> auto-sync semanal de <code>model_capabilities.json</code> desde <code>/v1/models</code> + latencia real en <code>routing_log</code> + switch en runtime + fallback local 7-8B si RAM lo aguanta</li>
+<li><b>Memoria profunda:</b> embeddings locales (<code>nomic-embed-text</code>) + resumen semanal + olvido selectivo</li>
+<li><b>UX:</b> hotkey <code>Win+Alt+M</code> · voz local opcional (VoiceMode) solo con verde estable</li>
+</ul></div>
+
+<h2>04 · Trazabilidad</h2>
+<table>
+<tr><th>De → A</th><th>Qué traspasa</th><th>Estado</th></tr>
+<tr><td>F2.5 → F4 / F5</td><td>Base sin fallos silenciosos + backup fuera del disco + tests</td><td>🟢 bloqueante</td></tr>
+<tr><td>Corel MCP (existente) → F4</td><td>Manos que ya diseñan y exportan PNG</td><td>🟢</td></tr>
+<tr><td>Costo por modelo → F4 POD</td><td>ROI por diseño (costo de generación vs ingreso)</td><td>🟡</td></tr>
+<tr><td>F3 → F4</td><td>Tiempo productivo vs fugado</td><td>🟢</td></tr>
+<tr><td>F2 → F5</td><td>Captura de ventana/sesión</td><td>🟡</td></tr>
+<tr><td>F1 → F5</td><td>Journal/memoria/contexto</td><td>🟢</td></tr>
+<tr><td>Capa continua → todos</td><td>Aprendizaje/UX/memoria profunda</td><td>🟢 no bloqueante</td></tr>
+</table>
+
+<h2>05 · Puntos donde puede romperse</h2>
+<details><summary>🔴 Chat silencioso (stderr DEVNULL) · F2.5</summary>stderr → log + exe directo + reintento + boot check con toast.</details>
+<details><summary>🔴 Todo en un solo disco · F2.5</summary>origin privado sin bóveda + backup cifrado externo + restore probado.</details>
+<details><summary>🔴 9Router por defecto :20128 = choque con OmniRoute · F2.5</summary>Instalar con <code>--port 4000</code> + ONLOGON para ambos.</details>
+<details><summary>🟡 Supervisor como nuevo punto único de fallo · F2.5</summary>Supervisor mínimo + tarea Task Scheduler que vigila al supervisor.</details>
+<details><summary>🟡 Tests sin CI → se dejan de correr · F2.5</summary>Hook post-commit corre suite crítica corta; caos mensual mata procesos y verifica recuperación.</details>
+<details><summary>🟡 Capacidades muertas (<code>best-research</code>) · continua</summary>Auto-sync semanal + alerta de diff.</details>
+<details><summary>🟡 Fallback local débil (1.5b) · continua</summary>7-8B local si RAM lo permite.</details>
+<details><summary>🔴 TradingView frágil · F5</summary>Adaptador CSV → normalizado; nunca scraping como núcleo.</details>
+<details><summary>🟡 Ingresos dependen de ti · F4</summary>CSV + entrada manual rápida; el agente lo pide proactivamente.</details>
+
+<h2>06 · Reglas anti-ruptura</h2>
+<ul>
+<li><b>Ninguna fase nueva con deudas ALTA abiertas</b> — el endurecimiento va antes.</li>
+<li>Todo componente nuevo nace con log + test + entrada en supervisor.</li>
+<li>Sin costo por modelo visible, no se escala contenido.</li>
+<li>F1 nunca se replantea · integraciones externas = adaptadores · bóveda nunca en git sin cifrar · lo que no está en la bóveda no existe.</li>
+</ul>
+
+<h2>07 · Checklist de salida F2.5</h2>
+<ul>
+<li>Chat arranca al logon con evidencia en log, 3 reboots seguidos.</li>
+<li>9Router en :4000 + ONLOGON OmniRoute/9Router activos.</li>
+<li>Orquestador registrado como default.</li>
+<li>Supervisor reinicia daemon matado (prueba ejecutada).</li>
+<li>Restore de backup cifrado probado.</li>
+<li>Pytest crítico verde + failure injection (matar OmniRoute → fallback OK).</li>
+<li>Cero procesos duplicados.</li>
+</ul>
+
+<p class="sub">Atlas · Roadmap v1.3 · E:\Agente_IA\roadmap.html · <b>Aprobado ejecutar F2.5 antes de F4</b></p>
+</body>
+</html>

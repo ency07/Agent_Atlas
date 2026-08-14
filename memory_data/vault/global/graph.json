@@ -1,6 +1,6 @@
 {
   "project": "global",
-  "generated": "2026-08-11T15:04:14+00:00",
+  "generated": "2026-08-14T16:09:49+00:00",
   "nodes": [
     {
       "id": "20260810-213157-f1-y-f2-completadas-atlas-al-100-en-core",
@@ -15,6 +15,55 @@
       "type": "decision",
       "project": "global",
       "properties": "Los 6 puntos de endurecimiento de producción quedaron implementados y commiteados (f859bfd) ANTES de pasar a F3/F4:\n\n1. Logs estructurados JSON → atlas_log.py (ts/level/source/request_id/error), usado por atlas_chat.py y atlas_activity.py en logs/\n2. Monitoreo de errores → atlas_monitor.py: logs/err"
+    },
+    {
+      "id": "20260813-150027-consolidaci-n-mcp-en-repo-portabilidad-c",
+      "label": "20260813-150027-consolidaci-n-mcp-en-repo-portabilidad-c",
+      "type": "decision",
+      "project": "global",
+      "properties": "Se movieron los servers MCP de Windows/CorelDRAW/Playwright-visual desde el repo hermano E:\\MCP\\mcp-windows-ai hacia E:\\Agente_IA\\mcp_windows\\ (completo: servers + docs + tests + examples + requirements).\n\n- setup.ps1: ahora busca mcp_windows/ primero (legado solo de respaldo)\n- check.ps1: sección ["
+    },
+    {
+      "id": "20260813-150607-sesi-n-orquestador-vivo-mcp-consolidado-",
+      "label": "20260813-150607-sesi-n-orquestador-vivo-mcp-consolidado-",
+      "type": "session",
+      "project": "global",
+      "properties": "Sesión productiva: 3 features completados + commits:\n\n1. ORQUESTADOR VIVO (822d357, 35b720e): atlas_orchestrator.py MCP 7 tools. Detección REAL por API (no puerto): active_providers consulta /v1/models (omniroute/9router) o /api/tags (ollama) con caché 15s. Puerto abierto + API sin responder = NO us"
+    },
+    {
+      "id": "20260814-103148-guard_block-registry_write",
+      "label": "20260814-103148-guard_block-registry_write",
+      "type": "fact",
+      "project": "global",
+      "properties": "# Guard Block Event\n**Operation**: registry_write\n**Params**: {\"key\": \"HKLM\\\\SOFTWARE\\\\Test\"}\n**Reason**: Operación 'registry_write' bloqueada en modo strict\n**Level**: strict\n**Timestamp**: 2026-08-14T15:31:48.389767+00:00\n\n"
+    },
+    {
+      "id": "20260814-103514-guard_block-registry_write",
+      "label": "20260814-103514-guard_block-registry_write",
+      "type": "fact",
+      "project": "global",
+      "properties": "# Guard Block Event\n**Operation**: registry_write\n**Params**: {\"key\": \"HKLM\\\\SOFTWARE\\\\Test\"}\n**Reason**: Operación 'registry_write' bloqueada en modo strict\n**Level**: strict\n**Timestamp**: 2026-08-14T15:35:14.115810+00:00\n\n"
+    },
+    {
+      "id": "20260814-103615-guard_block-registry_write",
+      "label": "20260814-103615-guard_block-registry_write",
+      "type": "fact",
+      "project": "global",
+      "properties": "# Guard Block Event\n**Operation**: registry_write\n**Params**: {\"key\": \"HKLM\\\\SOFTWARE\\\\Test\"}\n**Reason**: Operación 'registry_write' bloqueada en modo strict\n**Level**: strict\n**Timestamp**: 2026-08-14T15:36:15.111459+00:00\n\n"
+    },
+    {
+      "id": "20260814-103650-guard_block-registry_write",
+      "label": "20260814-103650-guard_block-registry_write",
+      "type": "fact",
+      "project": "global",
+      "properties": "# Guard Block Event\n**Operation**: registry_write\n**Params**: {\"key\": \"HKLM\\\\SOFTWARE\\\\Test\"}\n**Reason**: Operación 'registry_write' bloqueada en modo strict\n**Level**: strict\n**Timestamp**: 2026-08-14T15:36:50.672701+00:00\n\n"
+    },
+    {
+      "id": "20260814-110949-guard_block-registry_write",
+      "label": "20260814-110949-guard_block-registry_write",
+      "type": "fact",
+      "project": "global",
+      "properties": "# Guard Block Event\n**Operation**: registry_write\n**Params**: {\"key\": \"HKLM\\\\SOFTWARE\\\\Test\"}\n**Reason**: Operación 'registry_write' bloqueada en modo strict\n**Level**: strict\n**Timestamp**: 2026-08-14T16:09:49.772430+00:00\n\n"
     }
   ],
   "edges": []

@@ -25,6 +25,8 @@ Report ([bool](Get-Command python -ErrorAction SilentlyContinue)) "python en PAT
 Write-Host "`n[Proveedor de modelos]"
 $omniroute = Test-NetConnection -ComputerName 127.0.0.1 -Port 20128 -WarningAction SilentlyContinue
 Report ($omniroute.TcpTestSucceeded) "omniroute localhost:20128 (proveedor auto/*)"
+$ninerouter = Test-NetConnection -ComputerName 127.0.0.1 -Port 4000 -WarningAction SilentlyContinue
+Report ($ninerouter.TcpTestSucceeded) "9router localhost:4000 (proveedor catálogo 679)"
 
 # ---------- Entorno Python ----------
 Write-Host "`n[Entorno Python]"
@@ -245,7 +247,9 @@ if (Test-Path $rotFile) {
 } else {
     Report $false "sin calendario de rotacion de secretos (corre --cli secret_rotation)"
 }
+Push-Location $ROOT
 $tags = git tag 2>$null
+Pop-Location
 Report ($tags -match "stable-f1f2") "git tag de rollback 'stable-f1f2' presente"
 Report (Test-Path (Join-Path $ROOT "HANDOFF.md")) "HANDOFF.md con plan de rollback"
 $taskRem = Get-ScheduledTask -TaskName "AtlasSecretReminder" -ErrorAction SilentlyContinue
@@ -260,6 +264,15 @@ if (Test-Path $cfg) {
     Report ($raw -match "memory") "MCP memory declarado en opencode.jsonc"
 } else {
     Report $false "opencode.jsonc no existe en $cfg (corre setup.ps1)"
+}
+
+# Test: setup.ps1 genera opencode.jsonc valido (regresion: coma tras provider)
+$testGen = Join-Path $ROOT 'tests/test_setup_config.ps1'
+if (Test-Path $testGen) {
+    & $testGen
+    Report ($LASTEXITCODE -eq 0) "setup.ps1 genera JSONC valido (test generacion)"
+} else {
+    Report $false "test generacion JSONC no encontrado: $testGen"
 }
 
 # ---------- Chat flotante (F2) ----------

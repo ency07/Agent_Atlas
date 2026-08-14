@@ -36,6 +36,9 @@ HOST = "127.0.0.1"
 PORT = int(os.environ.get("ATLAS_CHAT_PORT", "4096"))
 MODEL = os.environ.get("ATLAS_CHAT_MODEL", "omniroute/auto/best-chat")
 MUTEX_NAME = "Local\\AtlasChatSingleInstance"
+STARTUP_TIMEOUT = int(os.environ.get("ATLAS_CHAT_TIMEOUT", "90"))
+LOG_DIR = Path(__file__).resolve().parent / "logs"
+STDERR_LOG = LOG_DIR / "atlas_chat_stderr.log"
 
 from atlas_log import get_logger
 from atlas_monitor import track_error
@@ -117,7 +120,11 @@ def stop_server(port: int):
 
 
 def start_server(opencode_bin: str, port: int, model: str):
-    """Lanza opencode serve oculto con el modelo por defecto elegido."""
+    """Lanza opencode serve oculto con el modelo por defecto elegido.
+
+    El stderr se redirige a logs/atlas_chat_stderr.log (nunca a DEVNULL)
+    para poder diagnosticar fallos de arranque (ej. al logon del sistema).
+    """
     log.info(f"iniciando opencode serve en {HOST}:{port}", port=port, model=model)
     env = dict(os.environ)
     env["OPENCODE_CONFIG_CONTENT"] = json.dumps({"model": model})
@@ -127,16 +134,20 @@ def start_server(opencode_bin: str, port: int, model: str):
     cwd = str(desk) if desk.exists() else str(Path.home())
     args = [opencode_bin, "serve", f"--port={port}", "--hostname", HOST]
     flags = subprocess.CREATE_NO_WINDOW
+    LOG_DIR.mkdir(parents=True, exist_ok=True)
+    stderr_f = open(STDERR_LOG, "a", encoding="utf-8", errors="replace")
+    stderr_f.write(f"\n--- {datetime.now().isoformat()} opencode serve --port={port} ---\n")
+    stderr_f.flush()
     if str(opencode_bin).lower().endswith((".cmd", ".bat")):
         proc = subprocess.Popen(
             args, env=env, cwd=cwd, shell=True,
-            stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
+            stdout=subprocess.DEVNULL, stderr=stderr_f,
             creationflags=flags,
         )
     else:
         proc = subprocess.Popen(
             args, env=env, cwd=cwd,
-            stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
+            stdout=subprocess.DEVNULL, stderr=stderr_f,
             creationflags=flags,
         )
     return proc
@@ -282,6 +293,35 @@ def new_session_url(port: int):
         return None
 
 
+def wait_for_server(port: int, timeout: int = None) -> bool:
+    """Espera a que opencode responda en el puerto, con reintentos.
+
+    El primer arranque tras el logon puede tardar por competicion de
+    recursos (Ollama/OmniRoute/WebView2 cargando). Devuelve True si OK.
+    """
+    timeout = timeout or STARTUP_TIMEOUT
+    deadline = time.time() + timeout
+    last_err = ""
+    while time.time() < deadline:
+        if server_up(port):
+            return True
+        time.sleep(1)
+        # log de progreso cada 15s para no morir en silencio
+        elapsed = int(deadline - time.time())
+        if elapsed % 15 == 0:
+            try:
+                with open(STDERR_LOG, encoding="utf-8", errors="replace") as f:
+                    tail = f.read()[-400:]
+                log.warning(
+                    f"aun sin respuesta en {HOST}:{port} (faltan {elapsed}s); "
+                    f"stderr tail: {tail!r}",
+                    port=port, remaining=elapsed,
+                )
+            except Exception:
+                pass
+    return False
+
+
 def main():
     server_only = "--server-only" in sys.argv
     port = PORT
@@ -306,32 +346,24 @@ def main():
             stop_server(port)
             start_server(opencode_bin, port, model)
             log.info("esperando a que el nuevo server responda...")
-            deadline = time.time() + 40
-            ok = False
-            while time.time() < deadline:
-                if server_up(port):
-                    ok = True
-                    break
-                time.sleep(1)
-            if not ok:
-                log.error(f"ERROR: el server no respondio tras reinicio")
-                raise SystemExit("opencode serve no arranco a tiempo tras reinicio (ver atlas_chat.log)")
+            if not wait_for_server(port):
+                log.error("ERROR: el server no respondio tras reinicio")
+                raise SystemExit("opencode serve no arranco a tiempo tras reinicio (ver atlas_chat.log y atlas_chat_stderr.log)")
             log.info("server reiniciado con modelo correcto")
         else:
             log.info(f"server ya activo en {HOST}:{port}; reutilizando", model=cur)
     else:
         start_server(opencode_bin, port, model)
         log.info("esperando a que el server responda...")
-        deadline = time.time() + 40
-        ok = False
-        while time.time() < deadline:
-            if server_up(port):
-                ok = True
-                break
-            time.sleep(1)
-        if not ok:
-            log.error(f"ERROR: el server no respondio en {HOST}:{port}")
-            raise SystemExit("opencode serve no arranco a tiempo (ver atlas_chat.log)")
+        if not wait_for_server(port):
+            # 1er intento fallo -> segundo intento con stderr ya capturado
+            log.warning("primer intento sin respuesta; reintentando...")
+            stop_server(port)
+            time.sleep(2)
+            start_server(opencode_bin, port, model)
+            if not wait_for_server(port):
+                log.error(f"ERROR: el server no respondio en {HOST}:{port}")
+                raise SystemExit("opencode serve no arranco a tiempo (ver atlas_chat.log y atlas_chat_stderr.log)")
         log.info("server listo")
 
     url = f"http://{HOST}:{port}/"
