@@ -23,6 +23,12 @@ bun.lock
 *.pem
 *.key
 
+# --- Claves age (nunca commitear) ---
+.age_keys/
+
+# --- Backups cifrados ---
+backups_encrypted/
+
 # --- Editor / SO ---
 .vscode/
 .idea/

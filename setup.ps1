@@ -281,6 +281,26 @@ if (Test-Path $vbsBk) {
     Write-Host "  AVISO: start_atlas_backup.vbs no encontrado" -ForegroundColor DarkYellow
 }
 
+# ---------- 7b. Backup cifrado (age, F1) ----------
+Write-Host "`n[7b/10] Backup cifrado con age..." -ForegroundColor Yellow
+$vbsEnc = Join-Path $ROOT "start_atlas_encrypted_backup.vbs"
+if (Test-Path $vbsEnc) {
+    $vbsEncSafe = $vbsEnc.Replace("`"", "`"`"")
+    & schtasks /Create /TN "AtlasEncryptedBackup" /TR "wscript.exe `"$vbsEncSafe`"" /SC DAILY /ST 03:30 /F | Out-Null
+    if ($LASTEXITCODE -eq 0) {
+        Write-Host "  tarea AtlasEncryptedBackup registrada (diario 03:30, cifrado age)"
+    } else {
+        Write-Host "  AVISO: no se pudo registrar tarea AtlasEncryptedBackup (schtasks exit=$LASTEXITCODE)" -ForegroundColor DarkYellow
+    }
+} else {
+    Write-Host "  AVISO: start_atlas_encrypted_backup.vbs no encontrado" -ForegroundColor DarkYellow
+}
+if (Test-Path (Join-Path $ROOT ".age_keys\public_key.txt")) {
+    Write-Host "  [OK] Clave pública age presente: $((Get-Content (Join-Path $ROOT '.age_keys\public_key.txt')).Trim())"
+} else {
+    Write-Host "  AVISO: no hay claves age. Genera: python atlas_backup_encrypted.py generate" -ForegroundColor DarkYellow
+}
+
 # ---------- 8. Daemon actividad (F2) ----------
 Write-Host "`n[8/9] Daemon actividad (F2)..." -ForegroundColor Yellow
 $actVbs = Join-Path $ROOT "start_atlas_activity.vbs"
