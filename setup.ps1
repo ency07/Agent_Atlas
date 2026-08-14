@@ -7,6 +7,7 @@
 # a partir de templates/opencode.jsonc.example resolviendo rutas.
 # -InstallF2: ademas registra la tarea de Windows que abre el chat
 #   flotante (atlas_chat.py) al iniciar sesion.
+# Instalacion completa de providers: ver docs/CLONAR_EN_OTRA_PC.md
 # ============================================================
 param([switch]$InstallF2)
 $ErrorActionPreference = "Stop"
@@ -24,6 +25,12 @@ function Find-Command($name) {
     return $null
 }
 
+function Test-Port($port) {
+    try {
+        return Test-NetConnection -ComputerName 127.0.0.1 -Port $port -WarningAction SilentlyContinue -InformationLevel Quiet
+    } catch { return $false }
+}
+
 $node = Find-Command "node"
 if (-not $node) { Write-Host "FALTA: Node.js. Instala desde https://nodejs.org y reintenta." -ForegroundColor Red; exit 1 }
 Write-Host "  node -> $node"
@@ -36,7 +43,7 @@ Write-Host "  python -> $python"
 Write-Host "`n[1b] Detectando proveedores de modelos (opcionales)..." -ForegroundColor Yellow
 
 # omniroute: npm global o proceso corriendo en :20128
-$omnirouteInstalled = (Find-Command "omniroute") -or (Test-NetConnection -ComputerName 127.0.0.1 -Port 20128 -WarningAction SilentlyContinue).TcpTestSucceeded
+$omnirouteInstalled = (Find-Command "omniroute") -or (Test-Port 20128)
 if ($omnirouteInstalled) {
     Write-Host "  omniroute: DETECTADO" -ForegroundColor Green
 } else {
@@ -44,7 +51,7 @@ if ($omnirouteInstalled) {
 }
 
 # 9router: verificar si existe binario o proceso
-$ninerouterInstalled = (Find-Command "9router") -or (Test-NetConnection -ComputerName 127.0.0.1 -Port 4000 -WarningAction SilentlyContinue).TcpTestSucceeded
+$ninerouterInstalled = (Find-Command "9router") -or (Test-Port 4000)
 if ($ninerouterInstalled) {
     Write-Host "  9router: DETECTADO" -ForegroundColor Green
 } else {
@@ -52,7 +59,7 @@ if ($ninerouterInstalled) {
 }
 
 # Ollama fallback
-$ollamaRunning = (Test-NetConnection -ComputerName 127.0.0.1 -Port 11434 -WarningAction SilentlyContinue).TcpTestSucceeded
+$ollamaRunning = Test-Port 11434
 if ($ollamaRunning) {
     Write-Host "  Ollama: ACTIVO (puerto 11434)" -ForegroundColor Green
 } else {
@@ -454,4 +461,4 @@ Write-Host "  1. Ejecuta:  opencode   (en cualquier carpeta; la memoria carga so
 Write-Host "  2. Verifica la memoria:  opencode run 'dime donde quedamos'"
 Write-Host "  3. Chat flotante:  python atlas_chat.py  (o .\start_atlas_chat.vbs)"
 Write-Host "  4. Backup manual:  python mcp_memory_server.py --cli backup"
-Write-Host "  5. Revisa docs/PUESTA_EN_MARCHA.md si algo falla."
+Write-Host "  5. Revisa docs/CLONAR_EN_OTRA_PC.md si algo falla o faltan providers."

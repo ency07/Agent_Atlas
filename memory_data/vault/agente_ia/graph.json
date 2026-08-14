@@ -1,6 +1,6 @@
 {
   "project": "agente_ia",
-  "generated": "2026-08-14T18:00:17+00:00",
+  "generated": "2026-08-14T18:45:57+00:00",
   "nodes": [
     {
       "id": "20260814-121159-20260814-tareas-alta-completadas-logrota",
@@ -15,6 +15,13 @@
       "type": "summary",
       "project": "agente_ia",
       "properties": "Se completaron las 4 tareas MEDIA del roadmap tras F1/F3 (el 20260814):\n\n1. **Auto-sync capacidades** (`atlas_sync_capabilities.py`): consulta /v1/models de omniroute/9router/ollama, regenera model_capabilities.json (preservando capacidades curadas), genera diff. Tarea `AtlasSyncCapabilities` lunes "
+    },
+    {
+      "id": "20260814-134557-20260814-f2.5-alta-completadas-chat-fix-",
+      "label": "20260814-134557-20260814-f2.5-alta-completadas-chat-fix-",
+      "type": "summary",
+      "project": "agente_ia",
+      "properties": "Se completaron las 3 deudas ALTA de la fase F2.5 Endurecimiento (roadmap v1.4, orden: F2.5 → C1 → F4 → F5) el 20260814:\n\n1. **CHAT (bug crítico de logon)**: `atlas_chat.py` usaba `import datetime` pero llamaba `datetime.now()` → NameError silencioso al arrancar por wscript (pythonw sin consola). El "
     }
   ],
   "edges": []

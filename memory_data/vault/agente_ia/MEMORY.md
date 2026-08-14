@@ -11,6 +11,7 @@
 ## Notas recientes
 - [[20260814-121159-20260814-tareas-alta-completadas-logrota]] · 20260814-121159-20260814-tareas-alta-completadas-logrota
 - [[20260814-130017-20260814-tareas-media-completadas-sync-c]] · 20260814-130017-20260814-tareas-media-completadas-sync-c
+- [[20260814-134557-20260814-f2.5-alta-completadas-chat-fix-]] · 20260814-134557-20260814-f2.5-alta-completadas-chat-fix-
 
 ## Sesiones recientes
 - (sin sesiones aun)

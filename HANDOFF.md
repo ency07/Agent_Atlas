@@ -254,6 +254,7 @@ Solo entra si F4/F5 producen procesos repetibles.
 ## Documentación
 
 - [`docs/PUESTA_EN_MARCHA.md`](docs/PUESTA_EN_MARCHA.md) — paso a paso en PC nuevo
+- [`docs/CLONAR_EN_OTRA_PC.md`](docs/CLONAR_EN_OTRA_PC.md) — clonar repo en otra PC (100% funcional)
 - [`docs/ARQUITECTURA.md`](docs/ARQUITECTURA.md) — componentes y flujo de memoria
 - [`docs/CONFIG_OPCODE.md`](docs/CONFIG_OPCODE.md) — cómo cablear opencode.jsonc
 - [`docs/QUE_NO_HACER.md`](docs/QUE_NO_HACER.md) — errores prohibidos
