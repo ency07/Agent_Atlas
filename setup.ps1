@@ -391,6 +391,24 @@ if (Test-Path $bootVbs) {
     Write-Host "  AVISO: start_atlas_bootcheck.vbs no encontrado" -ForegroundColor DarkYellow
 }
 
+# ---------- 9e. Sync capacidades (MEDIA) ----------
+Write-Host "`n[9e/10] Sync capacidades de modelos (semanal)..." -ForegroundColor Yellow
+$syncVbs = Join-Path $ROOT "start_atlas_sync_caps.vbs"
+if (Test-Path $syncVbs) {
+    $actionSync = New-ScheduledTaskAction -Execute 'wscript.exe' -Argument "`"$syncVbs`""
+    $triggerSync = New-ScheduledTaskTrigger -Weekly -DaysOfWeek Monday -At '03:15'
+    $settingsSync = New-ScheduledTaskSettingsSet -AllowStartIfOnBatteries -DontStopIfGoingOnBatteries -ExecutionTimeLimit (New-TimeSpan -Hours 1)
+    Register-ScheduledTask -TaskName 'AtlasSyncCapabilities' -Action $actionSync -Trigger $triggerSync -Settings $settingsSync -Force | Out-Null
+    $taskSync = Get-ScheduledTask -TaskName 'AtlasSyncCapabilities' -ErrorAction SilentlyContinue
+    if ($taskSync) {
+        Write-Host "  tarea AtlasSyncCapabilities registrada (lunes 03:15, refresca model_capabilities.json)"
+    } else {
+        Write-Host "  AVISO: no se pudo registrar AtlasSyncCapabilities" -ForegroundColor DarkYellow
+    }
+} else {
+    Write-Host "  AVISO: start_atlas_sync_caps.vbs no encontrado" -ForegroundColor DarkYellow
+}
+
 # ---------- 10. Diagnostico ----------
 Write-Host "`n[10/10] Diagnostico..." -ForegroundColor Yellow
 & (Join-Path $ROOT "check.ps1")
