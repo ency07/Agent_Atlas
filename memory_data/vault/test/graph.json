@@ -1,6 +1,6 @@
 {
   "project": "test",
-  "generated": "2026-08-14T16:09:50+00:00",
+  "generated": "2026-08-14T16:19:28+00:00",
   "nodes": [
     {
       "id": "20260814-103148-test-note",
@@ -40,6 +40,13 @@
     {
       "id": "20260814-110950-test-note",
       "label": "20260814-110950-test-note",
+      "type": "fact",
+      "project": "test",
+      "properties": "Contenido de prueba\n"
+    },
+    {
+      "id": "20260814-111928-test-note",
+      "label": "20260814-111928-test-note",
       "type": "fact",
       "project": "test",
       "properties": "Contenido de prueba\n"

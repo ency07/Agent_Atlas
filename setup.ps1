@@ -353,6 +353,24 @@ if (Test-Path $logVbs) {
     Write-Host "  AVISO: start_atlas_logrotate.vbs no encontrado" -ForegroundColor DarkYellow
 }
 
+# ---------- 9d. Boot check E2E (F1) ----------
+Write-Host "`n[9d/10] Boot check E2E..." -ForegroundColor Yellow
+$bootVbs = Join-Path $ROOT "start_atlas_bootcheck.vbs"
+if (Test-Path $bootVbs) {
+    $actionBoot = New-ScheduledTaskAction -Execute 'wscript.exe' -Argument "`"$bootVbs`""
+    $triggerBoot = New-ScheduledTaskTrigger -AtLogOn
+    $settingsBoot = New-ScheduledTaskSettingsSet -AllowStartIfOnBatteries -DontStopIfGoingOnBatteries -ExecutionTimeLimit (New-TimeSpan -Hours 0) -RestartCount 3 -RestartInterval (New-TimeSpan -Minutes 1)
+    Register-ScheduledTask -TaskName 'AtlasBootCheck' -Action $actionBoot -Trigger $triggerBoot -Settings $settingsBoot -Force | Out-Null
+    $taskBoot = Get-ScheduledTask -TaskName 'AtlasBootCheck' -ErrorAction SilentlyContinue
+    if ($taskBoot) {
+        Write-Host "  tarea AtlasBootCheck registrada (autostart al iniciar sesion, toast verde/rojo)"
+    } else {
+        Write-Host "  AVISO: no se pudo registrar AtlasBootCheck" -ForegroundColor DarkYellow
+    }
+} else {
+    Write-Host "  AVISO: start_atlas_bootcheck.vbs no encontrado" -ForegroundColor DarkYellow
+}
+
 # ---------- 10. Diagnostico ----------
 Write-Host "`n[10/10] Diagnostico..." -ForegroundColor Yellow
 & (Join-Path $ROOT "check.ps1")

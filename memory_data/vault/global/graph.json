@@ -1,6 +1,6 @@
 {
   "project": "global",
-  "generated": "2026-08-14T16:09:49+00:00",
+  "generated": "2026-08-14T16:19:28+00:00",
   "nodes": [
     {
       "id": "20260810-213157-f1-y-f2-completadas-atlas-al-100-en-core",
@@ -64,6 +64,13 @@
       "type": "fact",
       "project": "global",
       "properties": "# Guard Block Event\n**Operation**: registry_write\n**Params**: {\"key\": \"HKLM\\\\SOFTWARE\\\\Test\"}\n**Reason**: Operación 'registry_write' bloqueada en modo strict\n**Level**: strict\n**Timestamp**: 2026-08-14T16:09:49.772430+00:00\n\n"
+    },
+    {
+      "id": "20260814-111928-guard_block-registry_write",
+      "label": "20260814-111928-guard_block-registry_write",
+      "type": "fact",
+      "project": "global",
+      "properties": "# Guard Block Event\n**Operation**: registry_write\n**Params**: {\"key\": \"HKLM\\\\SOFTWARE\\\\Test\"}\n**Reason**: Operación 'registry_write' bloqueada en modo strict\n**Level**: strict\n**Timestamp**: 2026-08-14T16:19:28.258234+00:00\n\n"
     }
   ],
   "edges": []
