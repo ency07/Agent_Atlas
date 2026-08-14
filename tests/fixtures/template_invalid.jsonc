@@ -1,0 +1,19 @@
+{
+  // Template ROTO a proposito: JSON invalido (coma final tras "enabled": true).
+  // New-OpencodeConfigJsonc debe lanzar una excepcion en la validacion JSON.
+  "provider": {
+    "ollama": {
+      "name": "Ollama",
+      "models": {
+        "phi4-mini": { "name": "phi4-mini" }
+      }
+    }
+  },
+  "model": "ollama/phi4-mini",
+  "mcp": {
+    "memory": {
+      "type": "local",
+      "enabled": true,
+    }
+  }
+}

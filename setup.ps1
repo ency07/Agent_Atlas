@@ -93,27 +93,15 @@ $cfgDir = Join-Path $env:USERPROFILE ".config\opencode"
 $cfgFile = Join-Path $cfgDir "opencode.jsonc"
 New-Item -ItemType Directory -Path $cfgDir -Force | Out-Null
 
-# ruta con \ escapadas para JSON
-$pyEsc = $pyBin.Replace("\", "\\")
-$rootEsc = $ROOT.Replace("\", "\\")
-
 # MCP de windows/corel/playwright-visual: opcional. Ahora consolidado dentro del repo (mcp_windows/).
 $mcpWin = ""
 foreach ($cand in @((Join-Path $ROOT "mcp_windows"), "E:\MCP\mcp-windows-ai", "D:\MCP\mcp-windows-ai", (Join-Path $ROOT "..\mcp-windows-ai"))) {
     if (Test-Path (Join-Path $cand "mcp_windows_server.py")) { $mcpWin = $cand; break }
 }
 
-# Leer plantilla base
-$template = Get-Content (Join-Path $ROOT "templates\opencode.jsonc.example") -Raw
-$template = $template.Replace("%%PYTHON_BIN%%", $pyEsc)
-$template = $template.Replace("%%PROJECT_ROOT%%", $rootEsc)
-if ($mcpWin) {
-    $template = $template.Replace("%%MCP_WINDOWS_AI%%", $mcpWin.Replace("\", "\\"))
-    Write-Host "  MCP windows-ai -> $mcpWin"
-} else {
-    $template = $template -replace '"(corel-draw|windows|playwright-visual)"\s*:\s*\{[^}]*\},\s*', ""
-    Write-Host "  MCP windows-ai: no detectado -> MCP corel/windows/playwright-visual DESHABILITADOS" -ForegroundColor DarkYellow
-}
+# Cargar generador de config (extraido para poder testearlo de forma aislada:
+# tests\setup-ps1-jsonc-validation.ps1 usa exactamente la misma funcion)
+. (Join-Path $ROOT "scripts\New-OpencodeConfig.ps1")
 
 # ----- Proveedores de modelos (dinámico según detección) -----
 $providers = @{}
@@ -149,10 +137,18 @@ if ($ninerouterInstalled) {
         npm = "@ai-sdk/openai-compatible"
         options = @{ baseURL = "http://localhost:4000/v1"; apiKey = "{env:NINEROUTER_API_KEY}" }
         models = @{
-            "best" = @{ name = "9Router best" }
+            "anthropic/claude-sonnet-4-20250514" = @{ name = "Claude Sonnet 4 (9Router)" }
+            "anthropic/claude-opus-4-20250514" = @{ name = "Claude Opus 4 (9Router)" }
+            "openai/gpt-4o" = @{ name = "GPT-4o (9Router)" }
+            "gemini/gemini-2.5-pro" = @{ name = "Gemini 2.5 Pro (9Router)" }
+            "ag/gemini-3.6-flash-high" = @{ name = "Gemini 3.6 Flash (9Router)" }
+            "blackbox/deepseek-v4-flash" = @{ name = "DeepSeek V4 Flash (9Router)" }
+            "glm-cn/glm-4.5-air" = @{ name = "GLM 4.5 Air (9Router)" }
+            "alicode-intl/kimi-k2.5" = @{ name = "Kimi K2.5 (9Router)" }
+            "blackbox/gpt-5.5" = @{ name = "GPT-5.5 (9Router)" }
         }
     }
-    Write-Host "  Provider: 9router" -ForegroundColor Green
+    Write-Host "  Provider: 9router (catálogo real 679 modelos)" -ForegroundColor Green
 }
 
 # Ollama (siempre como fallback)
@@ -172,23 +168,16 @@ if (-not $omnirouteInstalled -and -not $ninerouterInstalled) {
     Write-Host "  Provider: ollama (fallback)" -ForegroundColor Yellow
 }
 
-# Construir JSON de providers
-$providerJson = $providers | ConvertTo-Json -Depth 10 -Compress
-$providerJson = $providerJson -replace '\\\\', '\\'
-
-# Inyectar providers y model en el template (regex probado, soporta PS 5.1)
-# Reemplaza TODO el bloque provider + la linea "model" en una sola pasada
-$providerBlock = '"provider": ' + $providerJson
-$template = $template -replace '(?s)"provider"\s*:\s*\{.*?\},\s*\n\s*"model"\s*:\s*"[^"]*"', ($providerBlock + "`n  `"model`": `"$modelDefault`"")
+# Generar config: New-OpencodeConfigJsonc inyecta el bloque provider (con coma
+# final) + la linea "model", y lanza excepcion si el JSONC resultante no es valido.
+$template = New-OpencodeConfigJsonc -TemplatePath (Join-Path $ROOT "templates\opencode.jsonc.example") -ProjectRoot $ROOT -PythonBin $pyBin -Providers $providers -DefaultModel $modelDefault -McpWindowsRoot $mcpWin
+Write-Host "  validación JSON: OK"
 
 if ($mcpWin) {
-    $template = $template.Replace("%%MCP_WINDOWS_AI%%", $mcpWin.Replace("\", "\\"))
     Write-Host "  MCP windows-ai -> $mcpWin"
 } else {
-    $template = $template -replace '"(corel-draw|windows|playwright-visual)"\s*:\s*\{[^}]*\},\s*', ""
     Write-Host "  MCP windows-ai: no detectado -> MCP corel/windows/playwright-visual DESHABILITADOS" -ForegroundColor DarkYellow
 }
-
 Set-Content -Path $cfgFile -Value $template -Encoding UTF8
 Write-Host "  generado: $cfgFile (provider: $($modelDefault))"
 
@@ -326,6 +315,24 @@ if (Test-Path $remVbs) {
     }
 } else {
     Write-Host "  AVISO: start_secret_reminder.vbs no encontrado" -ForegroundColor DarkYellow
+}
+
+# ---------- 9b. Supervisor auto-reparación (F1) ----------
+Write-Host "`n[9b/10] Supervisor auto-reparación..." -ForegroundColor Yellow
+$supVbs = Join-Path $ROOT "start_atlas_supervisor.vbs"
+if (Test-Path $supVbs) {
+    $actionSup = New-ScheduledTaskAction -Execute 'wscript.exe' -Argument "`"$supVbs`""
+    $triggerSup = New-ScheduledTaskTrigger -AtLogOn
+    $settingsSup = New-ScheduledTaskSettingsSet -AllowStartIfOnBatteries -DontStopIfGoingOnBatteries -ExecutionTimeLimit (New-TimeSpan -Hours 0) -RestartCount 3 -RestartInterval (New-TimeSpan -Minutes 1)
+    Register-ScheduledTask -TaskName 'AtlasSupervisor' -Action $actionSup -Trigger $triggerSup -Settings $settingsSup -Force | Out-Null
+    $taskSup = Get-ScheduledTask -TaskName 'AtlasSupervisor' -ErrorAction SilentlyContinue
+    if ($taskSup) {
+        Write-Host "  tarea AtlasSupervisor registrada (autostart al iniciar sesion, restart on failure)"
+    } else {
+        Write-Host "  AVISO: no se pudo registrar AtlasSupervisor" -ForegroundColor DarkYellow
+    }
+} else {
+    Write-Host "  AVISO: start_atlas_supervisor.vbs no encontrado" -ForegroundColor DarkYellow
 }
 
 # ---------- 10. Diagnostico ----------
