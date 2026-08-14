@@ -1,0 +1,565 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Atlas — Reporte Técnico Completo del Proyecto</title>
+<style>
+  :root { --bg:#0d1117; --bg2:#161b22; --bg3:#1f2630; --border:#30363d; --text:#e6edf3; --muted:#8b949e; --accent:#58a6ff; --green:#3fb950; --yellow:#d29922; --red:#f85149; --purple:#bc8cff; }
+  * { box-sizing:border-box; margin:0; padding:0; }
+  body { background:var(--bg); color:var(--text); font-family:'Segoe UI',system-ui,sans-serif; padding:28px; line-height:1.6; }
+  .wrap { max-width:1100px; margin:0 auto; }
+  h1 { font-size:1.9rem; margin-bottom:2px; color:var(--accent); }
+  h2 { font-size:1.3rem; margin:34px 0 10px; padding-bottom:6px; border-bottom:1px solid var(--border); color:var(--accent); }
+  h3 { font-size:1.05rem; margin:22px 0 6px; color:var(--green); }
+  .sub { color:var(--muted); margin-bottom:22px; }
+  .meta { background:var(--bg2); border:1px solid var(--border); border-radius:10px; padding:14px 18px; margin-bottom:24px; font-size:.9rem; }
+  .meta b { color:var(--text); }
+  .card { background:var(--bg2); border:1px solid var(--border); border-radius:12px; padding:18px 20px; margin:14px 0; }
+  .card h4 { font-size:.9rem; color:var(--muted); text-transform:uppercase; letter-spacing:.06em; margin-bottom:8px; }
+  pre { background:#0a0e14; border:1px solid var(--border); border-radius:8px; padding:14px 16px; overflow-x:auto; font-family:'Cascadia Code',Consolas,monospace; font-size:.8rem; color:#c9d1d9; margin:12px 0; line-height:1.45; }
+  .ascii-title { color:var(--purple); font-weight:600; }
+  .ok { color:var(--green); font-weight:700; }
+  .warn { color:var(--yellow); font-weight:700; }
+  .bad { color:var(--red); font-weight:700; }
+  table { width:100%; border-collapse:collapse; font-size:.85rem; margin:12px 0; }
+  th,td { padding:8px 12px; text-align:left; border-bottom:1px solid var(--border); vertical-align:top; }
+  th { color:var(--muted); font-size:.75rem; text-transform:uppercase; letter-spacing:.05em; background:var(--bg3); }
+  .tag { display:inline-block; padding:1px 9px; border-radius:20px; font-size:.72rem; font-weight:600; margin-right:4px; }
+  .t-green{background:rgba(63,185,80,.15);color:var(--green);}
+  .t-yellow{background:rgba(210,153,34,.15);color:var(--yellow);}
+  .t-red{background:rgba(248,81,73,.15);color:var(--red);}
+  .t-blue{background:rgba(88,166,255,.15);color:var(--accent);}
+  .t-purple{background:rgba(188,140,255,.15);color:var(--purple);}
+  ul { padding-left:22px; margin:8px 0; }
+  li { margin:3px 0; }
+  .grid2 { display:grid; grid-template-columns:1fr 1fr; gap:16px; }
+  @media (max-width:800px){ .grid2{grid-template-columns:1fr;} }
+  .flow-node { color:var(--accent); font-weight:700; }
+  .flow-ok { color:var(--green); }
+  .flow-fail { color:var(--red); }
+  .break { background:rgba(248,81,73,.12); border:1px dashed var(--red); border-radius:6px; padding:2px 6px; font-weight:700; color:var(--red); }
+  code { background:var(--bg3); padding:1px 6px; border-radius:4px; font-size:.85em; font-family:Consolas,monospace; }
+  .toc { columns:2; column-gap:30px; }
+  .toc a { color:var(--accent); text-decoration:none; }
+  .toc li { margin:5px 0; }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<h1>🧠 Atlas — Reporte Técnico Completo</h1>
+<div class="sub">Sistema de Agente IA personal con "manos en el PC" · Generado para ser leído por otra IA o humano · 13/08/2026</div>
+
+<div class="meta">
+  <b>Ruta:</b> <code>E:\Agente_IA</code> &nbsp;·&nbsp; <b>Git:</b> repo local (sin remote aún) &nbsp;·&nbsp; <b>Estado global:</b> <span class="ok">VERDE</span> (health 9/9 OK)<br>
+  <b>Python:</b> <code>.venv</code> local · <b>Node:</b> v24.18.0 · <b>Ollama:</b> activo :11434 (qwen2.5:1.5b) · <b>OmniRoute:</b> activo :20128 (260 modelos) · <b>9Router:</b> <span class="bad">caído / no instalado</span> :4000
+</div>
+
+<nav>
+<h2>📑 Índice</h2>
+<ol class="toc">
+  <li><a href="#resumen">Resumen ejecutivo</a></li>
+  <li><a href="#que-es">Qué es Atlas</a></li>
+  <li><a href="#arquitectura">Arquitectura general (diagrama ASCII)</a></li>
+  <li><a href="#componentes">Componentes / módulos</a></li>
+  <li><a href="#flujos">Diagramas de flujo por escenario (dónde se rompe)</a></li>
+  <li><a href="#providers">Proveedores de modelos y orquestador</a></li>
+  <li><a href="#mcp">Servidores MCP</a></li>
+  <li><a href="#tareas">Tareas programadas (auto-inicio)</a></li>
+  <li><a href="#puertos">Tabla de puertos y procesos</a></li>
+  <li><a href="#hace-no">Qué hace y qué NO hace</a></li>
+  <li><a href="#riesgos">Riesgos, conflictos y puntos de fallo</a></li>
+  <li><a href="#estado">Estado de fases (roadmap F1–F6)</a></li>
+  <li><a href="#portar">Cómo portar a otro PC</a></li>
+  <li><a href="#pendientes">Pendientes / deudas técnicas</a></li>
+  <li><a href="#log">Historial de commits reciente</a></li>
+</ol>
+</nav>
+
+<!-- ============ RESUMEN ============ -->
+<h2 id="resumen">1. Resumen ejecutivo</h2>
+<div class="card">
+<p>Atlas es un <b>asistente de IA con control sobre tu PC Windows</b> (web browser, CorelDRAW, archivos, ventanas, teclado/mouse) que además <b>se observa a sí mismo</b>: registra tu actividad, clasifica si tu tiempo fue productivo o "fugado", evalúa su propia salud y <b>decide dinámicamente qué modelo de IA usar</b> según la tarea (routing inteligente entre varios proveedores).</p>
+<p style="margin-top:8px;">Se compone de <b>13+ scripts Python</b> que actúan como <b>servidores MCP</b> (Model Context Protocol) y <b>servidores HTTP</b>, más tareas de Windows que los levantan automáticamente al iniciar sesión. El núcleo es un <b>SQLite</b> (<code>memory_data/state/memory.db</code>) que centraliza eventos, sesiones, notas y decisiones.</p>
+</div>
+
+<!-- ============ QUE ES ============ -->
+<h2 id="que-es">2. Qué es Atlas (identidad y propósito)</h2>
+<div class="card">
+<h4>Propósito</h4>
+<ul>
+  <li><b>Ser un agente con "manos en el PC"</b>: puede navegar la web, manipular CorelDRAW (diseño vectorial POD), controlar ventanas/teclado/mouse, y ejecutar scripts — siempre gobernado por un <b>modo guardián</b> con niveles de riesgo.</li>
+  <li><b>Memoria persistente</b>: guarda notas, decisiones, hechos y sesiones en una bóveda Obsidian + índice FTS5, con grafo de conocimiento.</li>
+  <li><b>Auto-observación (Foco)</b>: el daemon de actividad captura la app activa, clasifica cada evento como productivo/distracción y calcula % de foco diario.</li>
+  <li><b>Auto-gestión de modelos (Orquestador)</b>: detecta en vivo qué proveedores responden (OmniRoute, 9Router, Ollama) y qué modelos existen de verdad; sugiere el mejor modelo por tarea sin inventar.</li>
+  <li><b>Auto-reparación</b>: semáforo de salud (verde/amarillo/rojo), logging estructurado JSON, monitoreo de errores, backups automáticos y rotación de secretos.</li>
+</ul>
+</div>
+
+<!-- ============ ARQUITECTURA ============ -->
+<h2 id="arquitectura">3. Arquitectura general (diagrama ASCII)</h2>
+<div class="card">
+<pre><span class="ascii-title">VISTA GLOBAL DEL ECOSISTEMA ATLAS</span>
+
+ ┌─────────────────────────────── WINDOWS (PC del usuario) ─────────────────────────────────┐
+ │                                                                                          │
+ │  ┌──────────────┐   tareas al LOGON                                                    │
+ │  │ TASK SCHEDULER├───────────────────────────────────────────────────┐                  │
+ │  │ AtlasActivity│  AtlasChat · AtlasWeb · AtlasBackup · AtlasSecret  │                  │
+ │  └──────┬───────┘                                                      │                  │
+ │         │ pythonw (sin consola)                                        │                  │
+ │         ▼                                                              ▼                  │
+ │  ┌──────────────────┐   captura app activa    ┌──────────────────┐  ┌─────────────────┐  │
+ │  │  atlas_activity  │────────────────────────▶│   memory.db      │◀─│ atlas_web_server│  │
+ │  │  (daemon+bandeja)│        eventos          │  (SQLite +FTS5)  │  │  :4100 dashboard│  │
+ │  └──────────────────┘                         └───▲───────▲─────┘  └─────────────────┘  │
+ │            ▲                                      │       │                              │
+ │            │ heartbeat                        leen/escriben:                            │
+ │            │                              ┌─────┴───┐ ┌──┴─────┐ ┌──────────┐           │
+ │            │                              │atlas_foco│ │atlas_   │ │memory_   │           │
+ │            │                              │ :4101(MCP)│ │health   │ │server MCP│           │
+ │            │                              └─────────┘ │ :4102    │ └──────────┘           │
+ │            │                                          └─────────┘                         │
+ │  ┌──────────────────┐   consulta modelos     ┌──────────────────┐  ┌─────────────────┐   │
+ │  │ atlas_orchestrator│────────▶──────────────▶│ PROVEEDORES IA  │  │ atlas_chat      │   │
+ │  │ (MCP + :4103)     │                        └─────────────────┘  │ ventana flotante│   │
+ │  └──────────────────┘      omniroute:20128    │ ▸ OmniRoute 20128│  │ pywebview+opencode│ │
+ │             ▲             9router:4000        │ ▸ 9Router  4000  │  │ serve :4096      │   │
+ │             │             ollama:11434        │ ▸ Ollama   11434 │  └─────────────────┘   │
+ │  ┌──────────┴──────────┐                     └─────────────────┘                         │
+ │  │ MCP WINDOWS/TOOLS   │  manos en el PC                                                  │
+ │  │ mcp_windows_server  │  ventanas·teclado·mouse·archivos                                 │
+ │  │ mcp_corel_server    │  CorelDRAW (diseño POD)                                          │
+ │  │ mcp_playwright_visual│ navegador real (Playwright)                                     │
+ │  └─────────────────────┘                                                                    │
+ └──────────────────────────────────────────────────────────────────────────────────────────┘
+            ▲
+            │ via opencode (CLI/UI)
+   ┌────────┴────────┐
+   │  OPENCODE       │  El chat de Atlas es opencode serve :4096 embebido en pywebview
+   │  (agent runner) │  Los servidores MCP de arriba se registran en ~/.config/opencode
+   └─────────────────┘</pre>
+</div>
+
+<!-- ============ COMPONENTES ============ -->
+<h2 id="componentes">4. Componentes / módulos</h2>
+
+<h3>4.1 Núcleo de datos — <code>mcp_memory_server.py</code></h3>
+<div class="card">
+<table>
+<tr><th>Función</th><th>Detalle</th></tr>
+<tr><td>Bóveda</td><td><code>memory_data/vault/</code> — notas Obsidian con frontmatter: <code>notes/ decisions/ facts/ sessions/ preferences/</code></td></tr>
+<tr><td>Base de datos</td><td><code>memory_data/state/memory.db</code> — SQLite con tablas <code>events</code> (780+ filas), <code>sessions</code>, FTS5 para búsqueda</td></tr>
+<tr><td>Grafos</td><td><code>vault/global/graph.json</code>, <code>vault/desplegar/graph.json</code> — grafo de conocimiento (frontmatter + wikilinks)</td></tr>
+<tr><td>Daemon inbox</td><td>git hooks (<code>post-commit</code>) escriben eventos a <code>memory_data/inbox/</code>; <code>event_ingest</code> los drena a SQLite</td></tr>
+<tr><td>Backups</td><td><code>--cli backup</code> genera zip en <code>memory_data/backup/</code>; tarea <code>AtlasBackup</code> diaria</td></tr>
+<tr><td>Secretos</td><td><code>state/secret_rotation.json</code> — calendario de rotación cada 90 días</td></tr>
+</table>
+</div>
+
+<h3>4.2 Observación de actividad — <code>atlas_activity.py</code> (daemon + bandeja)</h3>
+<div class="card">
+<ul>
+<li>Captura la <b>ventana activa</b> cada N segundos (default 10s) y escribe eventos con <code>app</code>, <code>window_title</code>, <code>category</code>, <code>monetizable</code>, <code>duration_seconds</code>.</li>
+<li>Escribe <code>state/daemon.heartbeat</code> (PID, status, last_tick, uptime, foco_mode) — lo consumen health y dashboard.</li>
+<li>Trae bandeja de sistema (pystray). Con <code>--no-tray</code> corre como servicio para servidor.</li>
+<li><b>Rate limiting</b>: máx 6 eventos/min hacia inbox para no inundar.</li>
+</ul>
+</div>
+
+<h3>4.3 Foco / disciplina — <code>atlas_foco.py</code> + <code>foco_rules.py</code></h3>
+<div class="card">
+<ul>
+<li>Clasifica apps por categorías (<code>dev</code>, <code>research</code>, <code>social</code>, etc.) con reglas en <code>state/foco_rules.json</code>.</li>
+<li>Modos: <code>off</code> (solo medir), <code>soft</code> (avisos con presupuesto), <code>strict</code> (avisos agresivos).</li>
+<li><code>foco_daily_summary</code> → % de foco del día, top distracciones. <code>backfill</code> reclasifica eventos históricos.</li>
+<li>Overrides manuales: <code>foco_override(app, categoria)</code> fuerza la clasificación de un ejecutable.</li>
+</ul>
+</div>
+
+<h3>4.4 Salud / semáforo — <code>atlas_health.py</code></h3>
+<div class="card">
+<ul>
+<li><code>health_report()</code> → status <span class="ok">green</span>/<span class="warn">yellow</span>/<span class="bad">red</span> + checks detallados (daemon, omniroute, ollama, venv, state, configs, inbox).</li>
+<li>Verificación <b>real por API</b>: omniroute/ollama se comprueban con GET a su API, no solo el puerto (evita falsos positivos).</li>
+<li>HTTP server opcional <code>--http 4102</code>; el dashboard lo consume vía <code>atlas_web_server</code>.</li>
+</ul>
+</div>
+
+<h3>4.5 Orquestador de modelos — <code>atlas_orchestrator.py</code> <span class="tag t-purple">CLAVE</span></h3>
+<div class="card">
+<ul>
+<li><b>Detección viva</b>: consulta la API real de cada provider (<code>/v1/models</code> en OmniRoute/9Router, <code>/api/tags</code> en Ollama) con caché de 15s. Puerto abierto + API que no responde = <b>NO usable</b>.</li>
+<li><b>Pool real</b>: solo ofrece modelos que existen de verdad (OmniRoute expone 260; curar lista: best-coding/reasoning/fast/chat/vision).</li>
+<li><b>Routing por tarea</b>: <code>analyze(task)</code> → <code>best_model_for(task)</code> con mapa de capacidades (<code>state/model_capabilities.json</code>) + heurística por nombre si el modelo es desconocido.</li>
+<li><b>Circuit breaker</b>: 3 fallos consecutivos → cooldown 300s → degrade y prueba el siguiente provider (fallback chain omniroute → 9router → ollama).</li>
+<li><b>Decisiones registradas</b> en <code>state/routing_log.json</code>; tools <code>register_error/register_success</code> para retroalimentar.</li>
+<li><b>Regla dorada</b>: nunca sugerir modelo sin la capacidad requerida (ej. visión) — avisa y recomienda cambiar en vez de trabajar a ciegas.</li>
+<li>MCP + CLI (<code>--cli</code>) + HTTP (<code>--http 4103</code>).</li>
+</ul>
+</div>
+
+<h3>4.6 Dashboard real — <code>atlas_web_server.py</code> <span class="tag t-green">NUEVO</span></h3>
+<div class="card">
+<ul>
+<li>Un solo servidor en <code>:4100</code> que sirve el HTML (<code>atlas_web/dashboard.html</code>) y una API unificada con datos reales de memory.db.</li>
+<li>Endpoints: <code>/api/overview</code> (daemon, events_total, sessions_total, last_tick), <code>/api/top-apps</code> (top 12 apps 24h), <code>/api/foco</code>, <code>/api/health</code>, <code>/api/orchestrator</code>, <code>/api/modelo</code>.</li>
+<li>Reutiliza la lógica de foco/health/orquestador importándolos (sin duplicar código). Elimina la dependencia de opencode serve + 3 servers.</li>
+<li>Autostart: tarea <code>AtlasWeb</code> (ONLOGON) + <code>start_atlas_web.vbs</code>.</li>
+</ul>
+</div>
+
+<h3>4.7 Chat flotante — <code>atlas_chat.py</code> <span class="tag t-yellow">PROBLEMA</span></h3>
+<div class="card">
+<ul>
+<li>Arranca <code>opencode serve</code> headless en <code>:4096</code> y abre una ventana <b>pywebview (WebView2)</b> frameless que apunta a una sesión del server.</li>
+<li>Modelo hardcodeado: <code>omniroute/auto/best-chat</code> (existe en el catálogo real).</li>
+<li><b>Falla conocida</b>: no inicia al arrancar el sistema (ver <a href="#flujos">flujo 3</a>). El 13/08 16:52 la tarea corrió (resultado 0) pero no escribió logs y <code>:4096</code> quedó sin server.</li>
+</ul>
+</div>
+
+<h3>4.8 Búsqueda web — <code>atlas_search.py</code></h3>
+<div class="card">
+<ul>
+<li>Servidor MCP con <code>web_search</code> (DuckDuckGo → SearXNG → DDG HTML, cadena de respaldo) y <code>web_research</code> (investigación multi-ronda que guarda informe en la bóveda).</li>
+</ul>
+</div>
+
+<h3>4.9 Guardián — <code>atlas_guardian.py</code></h3>
+<div class="card">
+<ul>
+<li>Niveles <code>relax</code> / <code>guard</code> / <code>strict</code>. Valida operaciones (<code>run_command</code>, <code>process_kill</code>, <code>file_delete</code>, <code>registry_write</code>) → <code>allowed/requires_confirmation</code>.</li>
+<li>Config: <code>state/guardian.json</code>; listas blancas de binarios/procesos. Integrado también dentro de <code>mcp_windows_server.py</code> (candidatos de config vía env <code>ATLAS_GUARDIAN_CONFIG</code>).</li>
+</ul>
+</div>
+
+<h3>4.10 Monitoreo/errores — <code>atlas_monitor.py</code> + <code>atlas_log.py</code></h3>
+<div class="card">
+<ul>
+<li><code>atlas_log</code>: logging JSON estructurado (<code>logs/*.log</code>): ts, level, source, msg, campos extra.</li>
+<li><code>atlas_monitor</code>: <code>logs/errors.jsonl</code> + <code>state/errors.db</code> (frecuencia); rate limiter de daemon.</li>
+</ul>
+</div>
+
+<h3>4.11 MCP consolidados — <code>mcp_windows/</code></h3>
+<div class="card">
+<ul>
+<li><code>mcp_windows_server.py</code> (71KB): ventanas, teclado, mouse, archivos, portapapeles, wifi, docx. Gobernado por guardian.</li>
+<li><code>mcp_corel_server.py</code> (57KB): CorelDRAW — crear documentos, shapes, curvas Bezier, booleanas, texturas, exportar PNG/JPG/PDF, macros VBA (POD Suite).</li>
+<li><code>mcp_playwright_visual_server.py</code> (23KB): Chromium real para navegación/clicks/auditoría visual determinista.</li>
+<li>Consolidados dentro del repo (antes en repo hermano <code>E:\MCP\mcp-windows-ai</code>) para portabilidad.</li>
+</ul>
+</div>
+
+<!-- ============ FLUJOS ============ -->
+<h2 id="flujos">5. Diagramas de flujo por escenario — dónde se rompe</h2>
+<div class="card">
+<p>Convención: <span class="flow-node">▣ nodo</span> · <span class="flow-ok">✅ OK</span> · <span class="flow-fail">❌ FALLA</span> · <span class="break">✖ PUNTO DE RUPTURA</span></p>
+</div>
+
+<h3>Flujo 1 — Arranque completo del sistema (dónde se rompe hoy)</h3>
+<div class="card">
+<pre><span class="ascii-title">INICIO DE SESIÓN WINDOWS</span>
+
+ [LOGON]
+    │
+    ├─▶ tarea <b>AtlasActivity</b> ─▶ start_atlas_activity.vbs ─▶ pythonw atlas_activity.py
+    │        └───────────────────────────────✅ DAEMON ARRIBA (PID 4464, heartbeat ok)
+    │
+    ├─▶ tarea <b>AtlasWeb</b> ─▶ start_atlas_web.vbs ─▶ pythonw atlas_web_server.py :4100
+    │        └───────────────────────────────✅ DASHBOARD RESPONDE (verificado)
+    │
+    ├─▶ tarea <b>AtlasBackup</b> ─▶ start_atlas_backup.vbs ─▶ backup zip
+    │        └───────────────────────────────✅ (diario)
+    │
+    ├─▶ tarea <b>AtlasSecretReminder</b> ─▶ aviso rotación secretos
+    │        └───────────────────────────────✅
+    │
+    └─▶ tarea <b>AtlasChat</b> ─▶ start_atlas_chat.vbs ─▶ pythonw atlas_chat.py
+             │
+             ├─▶ localiza opencode (find_opencode_bin: elige la versión MÁS ALTA)
+             │     ▸ ~/.opencode/bin/opencode.exe  (v? , 178MB)
+             │     ▸ npm/opencode.cmd (v1.18.18)   <span class="break">✖ shim actualizado 13/08 10:17</span>
+             │
+             ├─▶ server_up(:4096)?  ── sí ──▶ reutiliza
+             │        └─ no
+             │
+             ├─▶ stop_server(:4096)   (mata `serve --port=4096`)
+             │
+             ├─▶ start_server()  ─▶  <b>opencode serve --port=4096</b>
+             │     env OPENCODE_CONFIG_CONTENT={"model":"omniroute/auto/best-chat"}
+             │     cwd = Desktop
+             │     stdout/stderr = DEVNULL  +  CREATE_NO_WINDOW
+             │        <span class="break">✖ PUNTO DE RUPTURA: si opencode falla (shim/permisos),
+             │          stderr va a DEVNULL → NO hay log de la causa</span>
+             │
+             ├─▶ espera "server listo" (sondeo /config, timeout ~40s)
+             │        └─ NO responde ─▶ <span class="flow-fail">SystemExit("opencode serve no arranco a tiempo")</span>
+             │
+             └─▶ crea sesión + ventana pywebview(WebView2)
+                      │
+                      ├─▶ set_window_icon() → win.native.Icon  <span class="break">✖ TypeError IntPtr (cosmético, no bloquea)</span>
+                      │
+                      └─▶ ventana abierta ✅  <b>── PERO hoy NO ocurrió a las 16:52</b>
+                          <span class="break">✖ RUPTURA REAL: tarea corrió (result 0) SIN LOG en atlas_chat.log
+                             y sin server en :4096 → el script murió silenciosamente
+                             ANTES de su primer log (import o inicio de logging)</span>
+
+ <b>▸ Punto de fallo más probable:</b> la combinación pythonw + shim npm .cmd + CREATE_NO_WINDOW
+    con stderr descartado. Al fallar el spawn de opencode, no hay evidencia de la causa.
+</pre>
+</div>
+
+<h3>Flujo 2 — Petición de chat → respuesta de modelo (routing)</h3>
+<div class="card">
+<pre><span class="ascii-title">CHAT → ORQUESTADOR → PROVIDER</span>
+
+ [usuario escribe en ventana Atlas / opencode]
+    │
+    ▼
+ <b>opencode</b> (modelo config: auto/best-coding)
+    │
+    ├─▶ llama a omniroute :20128/v1   <span class="flow-ok">✅ omniroute ACTIVO (260 modelos)</span>
+    │        └─ fallo / cooldown ─▶
+    │                              ▼
+    │                    <b>atlas_orchestrator</b> (si se invoca)
+    │                       │
+    │                       ├─▶ active_providers()  (API real, caché 15s)
+    │                       │      ▸ omniroute ✅ :20128
+    │                       │      ▸ 9router   ❌ :4000  <span class="break">✖ caído (no instalado)</span>
+    │                       │      ▸ ollama    ✅ :11434 (qwen2.5:1.5b)
+    │                       │
+    │                       ├─▶ analyze(tarea) → best_model_for(tarea)
+    │                       │      mapa capacidades + heurística por nombre
+    │                       │
+    │                       └─▶ sugiere modelo / avisa si falta capacidad
+    │
+    ▼
+ [respuesta]  ◀── omniroute / ollama
+</pre>
+</div>
+
+<h3>Flujo 3 — Dashboard (loop de visibilidad)</h3>
+<div class="card">
+<pre><span class="ascii-title">DASHBOARD :4100</span>
+
+ [navegador → http://127.0.0.1:4100]
+    │
+    ▼
+ <b>atlas_web_server.py</b>
+    │
+    ├─▶ /api/overview  ──▶ memory.db (events, sessions) + daemon.heartbeat  ✅
+    ├─▶ /api/top-apps  ──▶ SQL: top 12 apps por duración 24h                ✅
+    ├─▶ /api/foco      ──▶ atlas_foco.foco_daily_summary                   ✅
+    ├─▶ /api/health    ──▶ atlas_health.health_report                      ✅
+    └─▶ /api/modelo    ──▶ lee modelo de ~/.config/opencode/opencode.jsonc ✅
+    │
+    ▼
+ [renders]  automático cada 30s + botón Actualizar ✅
+</pre>
+</div>
+
+<h3>Flujo 4 — Puerto del modelo: dónde vive cada proveedor</h3>
+<div class="card">
+<pre><span class="ascii-title">PROVEEDORES</span>
+
+ OmniRoute  ▸ node.exe omniroute.mjs serve --no-open --tray
+             ▸ escucha 0.0.0.0:20128
+             ▸ API OpenAI-compatible: http://localhost:20128/v1
+             ▸ 260 modelos (aug/…, auto/best-*, kiro, qwen, glm, gpt5…)
+             ▸ arranque: manual/OS (npm global, NO hay tarea Atlas)
+
+ 9Router    ▸ NO INSTALADO — puerto :4000 libre
+             ▸ default DE 9router ES :20128 → <span class="break">✖ CONFLICTO si se instala sin --port 4000</span>
+             ▸ requiere: npm install -g 9router  +  `9router --port 4000`
+
+ Ollama     ▸ escucha :11434 (API /api/tags, /v1 compatible)
+             ▸ activo con qwen2.5:1.5b
+             ▸ health lo detecta por API real
+
+ opencode   ▸ cliente que consume providers; chat headless en :4096 (atlas_chat)
+             ▸ config en ~/.config/opencode/opencode.jsonc
+</pre>
+</div>
+
+<!-- ============ PROVIDERS ============ -->
+<h2 id="providers">6. Proveedores de modelos y orquestador</h2>
+<div class="card">
+<h4>Prioridades y fallback chain (atlas_orchestrator.py)</h4>
+<table>
+<tr><th>Provider</th><th>Puerto</th><th>Prioridad</th><th>Estado actual</th><th>API usada</th></tr>
+<tr><td>omniroute</td><td>20128</td><td>1</td><td><span class="ok">activo ✅</span></td><td>http://localhost:20128/v1</td></tr>
+<tr><td>9router</td><td>4000</td><td>2</td><td><span class="bad">caído ❌</span></td><td>http://localhost:4000/v1</td></tr>
+<tr><td>ollama</td><td>11434</td><td>3</td><td><span class="ok">activo ✅</span></td><td>http://localhost:11434/api/tags</td></tr>
+</table>
+<p style="margin-top:10px;">Modelos curados en la configuración de opencode (omniroute): <code>best-vision</code>, <code>best-reasoning</code>, <code>best-fast</code>, <code>best-coding</code>, <code>best-chat</code> + variantes <code>auto/…</code>. El orquestador mantiene <code>state/model_capabilities.json</code> con capacidades por modelo (visión, research, coding, etc.) y la <b>regla dorada</b>: nunca sugerir un modelo sin la capacidad requerida.</p>
+</div>
+
+<!-- ============ MCP ============ -->
+<h2 id="mcp">7. Servidores MCP registrados</h2>
+<div class="card">
+<table>
+<tr><th>Nombre MCP</th><th>Script</th><th>Función</th></tr>
+<tr><td>memory</td><td><code>mcp_memory_server.py</code></td><td>Notas, sesiones, grafos, salud, eventos</td></tr>
+<tr><td>git</td><td><code>python -m mcp_server_git</code></td><td>Operaciones git</td></tr>
+<tr><td>atlas-search</td><td><code>atlas_search.py</code></td><td>web_search / web_research</td></tr>
+<tr><td>atlas-guardian</td><td><code>atlas_guardian.py</code></td><td>Niveles de riesgo y permisos</td></tr>
+<tr><td>atlas-foco</td><td><code>atlas_foco.py</code></td><td>Disciplina/anti-distracción</td></tr>
+<tr><td>atlas-health</td><td><code>atlas_health.py</code></td><td>Semáforo de salud</td></tr>
+<tr><td>atlas-orchestrator</td><td><code>atlas_orchestrator.py</code></td><td>Routing de modelos</td></tr>
+<tr><td>corel-draw</td><td><code>mcp_windows/mcp_corel_server.py</code></td><td>CorelDRAW (POD)</td></tr>
+<tr><td>windows</td><td><code>mcp_windows/mcp_windows_server.py</code></td><td>Control del PC (manos)</td></tr>
+<tr><td>playwright-visual</td><td><code>mcp_windows/mcp_playwright_visual_server.py</code></td><td>Navegador real + auditoría visual</td></tr>
+<tr><td><span class="warn">playwright</span></td><td>npx @playwright/mcp</td><td><b>deshabilitado</b> (redundante con playwright-visual)</td></tr>
+<tr><td><span class="warn">ollama</span></td><td>npx ollama-mcp-server</td><td><b>deshabilitado</b></td></tr>
+<tr><td>github</td><td>https://api.githubcopilot.com/mcp/</td><td>GitHub Copilot (HTTP)</td></tr>
+</table>
+</div>
+
+<!-- ============ TAREAS ============ -->
+<h2 id="tareas">8. Tareas programadas (auto-inicio)</h2>
+<div class="card">
+<table>
+<tr><th>Tarea</th><th>Trigger</th><th>Lanza</th><th>Estado</th></tr>
+<tr><td>AtlasActivity</td><td>ONLOGON</td><td>start_atlas_activity.vbs → daemon</td><td><span class="ok">✅ Ready (corriendo)</span></td></tr>
+<tr><td>AtlasWeb</td><td>ONLOGON</td><td>start_atlas_web.vbs → :4100</td><td><span class="ok">✅ Ready (corriendo)</span></td></tr>
+<tr><td>AtlasChat</td><td>ONLOGON</td><td>start_atlas_chat.vbs → ventana flotante</td><td><span class="bad">❌ Ready pero NO abre ventana (sin server :4096)</span></td></tr>
+<tr><td>AtlasBackup</td><td>diaria</td><td>start_atlas_backup.vbs → backup zip</td><td><span class="ok">✅ Ready</span></td></tr>
+<tr><td>AtlasSecretReminder</td><td>diaria</td><td>aviso rotación secretos (90 días)</td><td><span class="ok">✅ Ready</span></td></tr>
+<tr><td><span class="warn">(falta)</span> OmniRoute/9Router</td><td>—</td><td>no hay tarea de auto-inicio</td><td><span class="warn">⚠️ OmniRoute arranca manual/OS; 9Router por instalar</span></td></tr>
+</table>
+</div>
+
+<!-- ============ PUERTOS ============ -->
+<h2 id="puertos">9. Tabla de puertos y procesos</h2>
+<div class="card">
+<table>
+<tr><th>Puerto</th><th>Servicio</th><th>Escucha actual</th></tr>
+<tr><td><code>20128</code></td><td>OmniRoute (API OpenAI-compatible)</td><td><span class="ok">0.0.0.0 (PID 8572)</span></td></tr>
+<tr><td><code>4100</code></td><td>atlas_web_server (dashboard)</td><td><span class="ok">127.0.0.1 (PID 7980)</span></td></tr>
+<tr><td><code>11434</code></td><td>Ollama</td><td><span class="ok">127.0.0.1 (PID 9056)</span></td></tr>
+<tr><td><code>4000</code></td><td>9Router</td><td><span class="bad">libre (no instalado)</span></td></tr>
+<tr><td><code>4096</code></td><td>opencode serve (chat flotante)</td><td><span class="bad">libre (chat caído)</span></td></tr>
+<tr><td><code>4101/4102/4103</code></td><td>foco/health/orchestrator HTTP (opcional)</td><td>no levantados (el dashboard usa :4100)</td></tr>
+</table>
+</div>
+
+<!-- ============ HACE / NO HACE ============ -->
+<h2 id="hace-no">10. Qué hace y qué NO hace</h2>
+<div class="grid2">
+<div class="card">
+<h4>✅ SÍ hace</h4>
+<ul>
+<li>Ejecutar scripts y comandos con permiso del guardian (nivel por defecto <code>guard</code>: destructivo pide confirmación).</li>
+<li>Navegar la web con navegador real (Playwright) y automatizar webs (ej. configurar n8n).</li>
+<li>Diseñar en CorelDRAW (vectorial POD: shapes, curvas, texturas, exportar PNG/JPG/PDF, macros VBA).</li>
+<li>Controlar ventanas/teclado/mouse/archivos/portapapeles/docx.</li>
+<li>Recordar contexto entre sesiones (bóveda + grafos + FTS5).</li>
+<li>Medir foco diario, clasificar apps, avisar distracciones.</li>
+<li>Elegir modelo por tarea según proveedores REALMENTE activos.</li>
+<li>Reportar salud del sistema y hacer backup/restore.</li>
+</ul>
+</div>
+<div class="card">
+<h4>❌ NO hace (aún)</h4>
+<ul>
+<li><b>NO cambia el modelo en runtime por sí solo</b>: el orquestador sugiere/avisa, pero el switch requiere acción externa.</li>
+<li><b>NO inicia la ventana flotante de forma fiable</b> (AtlasChat roto en arranque).</li>
+<li><b>NO auto-inicia OmniRoute</b> como tarea; arranca por OS/manual.</li>
+<li><b>NO usa 9Router</b> (no instalado) — por tanto el fallback chain omniroute→9router→ollama está incompleto en la práctica.</li>
+<li>NO conecta el dashboard a un remote/git ni tiene origin configurado.</li>
+<li>NO tiene métricas de uso/costo por modelo.</li>
+<li>NO implementa F4 (dinero), F5 (tutor), F6 (horizonte).</li>
+<li>NO sincroniza <code>model_capabilities.json</code> automáticamente con el catálogo real (datos muertos detectados, ej. <code>best-research</code>).</li>
+</ul>
+</div>
+</div>
+
+<!-- ============ RIESGOS ============ -->
+<h2 id="riesgos">11. Riesgos, conflictos y puntos de fallo</h2>
+<div class="card">
+<table>
+<tr><th>#</th><th>Riesgo</th><th>Impacto</th><th>Mitigación</th></tr>
+<tr><td>1</td><td><b>9Router usa :20128 por defecto</b> — mismo puerto que OmniRoute</td><td><span class="bad">Alto</span> — colisión de puertos, rompe detección</td><td>Instalar/ejecutar con <code>--port 4000</code> (ya previsto en PROVIDERS del orquestador)</td></tr>
+<tr><td>2</td><td><b>AtlasChat no inicia al logon</b></td><td><span class="bad">Alto</span> — sin ventana flotante</td><td>Capturar stderr de opencode serve a un archivo; verificar shim npm; reintento con timeout mayor</td></tr>
+<tr><td>3</td><td><b>opencode.cmd shim actualizado 13/08</b> tras reboot</td><td>Medio — posible regresión en <code>serve</code></td><td>Pin de versión o preferir opencode.exe de <code>~/.opencode/bin</code></td></tr>
+<tr><td>4</td><td><b>Modelos hardcodeados</b> (<code>omniroute/auto/best-chat</code> en chat)</td><td>Medio — si el proveedor no está, falla</td><td>Variable de entorno / leer modelo del orquestador</td></tr>
+<tr><td>5</td><td><b>Sin auto-inicio de OmniRoute/9Router</b></td><td>Medio — tras reinicio pueden quedar caídos</td><td>Crear tareas ONLOGON para ambos proveedores</td></tr>
+<tr><td>6</td><td><b>Procesos duplicados</b> (misma app con .venv y con uv-python de AppData)</td><td>Bajo — consumo y confusión</td><td>Revisar qué MCP los levanta y unificar</td></tr>
+<tr><td>7</td><td><b>model_capabilities.json con datos muertos</b></td><td>Medio — sugiere modelos inexistentes</td><td>Regenerar el mapa desde el catálogo real</td></tr>
+<tr><td>8</td><td><b>Sin git remote</b> (sin origin)</td><td>Medio — pérdida de historia si el disco muere</td><td>Configurar origin + push</td></tr>
+<tr><td>9</td><td><b>stderr a DEVNULL</b> en atlas_chat (silencio de errores)</td><td><span class="bad">Alto</span> — causas invisibles</td><td>Redirigir stderr a log siempre</td></tr>
+</table>
+</div>
+
+<!-- ============ ESTADO ============ -->
+<h2 id="estado">12. Estado de fases (roadmap F1–F6)</h2>
+<div class="card">
+<table>
+<tr><th>Fase</th><th>Descripción</th><th>Estado</th></tr>
+<tr><td>F1</td><td>CORE — memoria, daemon, backups, endurecimiento</td><td><span class="tag t-green">100%</span></td></tr>
+<tr><td>F2</td><td>ACTIVIDAD — daemon de actividad + chat flotante</td><td><span class="tag t-green">100%</span> <span class="warn">(chat con bug de arranque)</span></td></tr>
+<tr><td>F3</td><td>FOCO — anti-distracción, clasificación monetizable, avisos</td><td><span class="tag t-green">100%</span></td></tr>
+<tr><td>O1</td><td>ORQUESTADOR de modelos (detección viva)</td><td><span class="tag t-green">100%</span></td></tr>
+<tr><td>S1</td><td>SEMÁFORO del sistema (salud)</td><td><span class="tag t-green">100%</span></td></tr>
+<tr><td>F4</td><td>DINERO — finanzas/mission_control (Django, 46 tests, túnel Cloudflare)</td><td><span class="tag t-red">No iniciada</span></td></tr>
+<tr><td>F5</td><td>TUTOR — aprendizaje/coaching con datos de actividad</td><td><span class="tag t-red">No iniciada</span></td></tr>
+<tr><td>F6</td><td>HORIZONTE — solo si F4/F5 demuestran procesos repetibles</td><td><span class="tag t-yellow">Sin compromiso</span></td></tr>
+</table>
+</div>
+
+<!-- ============ PORTAR ============ -->
+<h2 id="portar">13. Cómo portar a otro PC</h2>
+<div class="card">
+<ol>
+<li>Clonar/copiar el repo a la nueva máquina.</li>
+<li><code>powershell -ExecutionPolicy Bypass -File setup.ps1</code> — crea .venv, instala deps, detecta providers (omniroute/9router), sustituye rutas en opencode.jsonc y registra tareas.</li>
+<li>El repo es <b>autocontenido</b> tras consolidar <code>mcp_windows/</code> (ya no depende del repo hermano).</li>
+<li>Instalar runtime: Node (opencode, omniroute, 9router), Python .venv, WebView2, CorelDRAW (si se usará).</li>
+<li>Verificar con <code>check.ps1</code> (→ TODO OK) y el dashboard <code>:4100</code>.</li>
+</ol>
+</div>
+
+<!-- ============ PENDIENTES ============ -->
+<h2 id="pendientes">14. Pendientes / deudas técnicas</h2>
+<div class="card">
+<table>
+<tr><th>Prioridad</th><th>Pendiente</th></tr>
+<tr><td><span class="tag t-red">ALTA</span></td><td>Arreglar auto-inicio de AtlasChat (capturar stderr, validar shim, timeout)</td></tr>
+<tr><td><span class="tag t-red">ALTA</span></td><td>Instalar 9Router en <code>:4000</code> + tarea ONLOGON para OmniRoute y 9Router</td></tr>
+<tr><td><span class="tag t-red">ALTA</span></td><td>Registrar el orquestador como modelo por defecto en omniroute y 9router (config)</td></tr>
+<tr><td><span class="tag t-yellow">MEDIA</span></td><td>F4 DINERO con mission_control (Django)</td></tr>
+<tr><td><span class="tag t-yellow">MEDIA</span></td><td>Regenerar model_capabilities.json desde el catálogo real</td></tr>
+<tr><td><span class="tag t-yellow">MEDIA</span></td><td>Auto-cambio de modelo en runtime (avanzar orquestador)</td></tr>
+<tr><td><span class="tag t-yellow">MEDIA</span></td><td>Métricas de uso/costo por modelo</td></tr>
+<tr><td><span class="tag t-yellow">MEDIA</span></td><td>Configurar git remote (origin)</td></tr>
+<tr><td><span class="tag t-blue">BAJA</span></td><td>Deshabilitar MCP playwright/ollama redundantes en opencode.jsonc</td></tr>
+<tr><td><span class="tag t-blue">BAJA</span></td><td>Limpiar procesos duplicados (.venv vs uv-python)</td></tr>
+</table>
+</div>
+
+<!-- ============ LOG ============ -->
+<h2 id="log">15. Historial de commits reciente</h2>
+<div class="card">
+<pre>
+6384ed6 feat(dashboard): datos reales con un solo servidor + autostart
+3990703 refactor(portabilidad): MCP consolidados en el repo (mcp_windows/)
+35b720e fix(orchestrator): deteccion real por API, no por puerto
+822d357 feat(orchestrator-vivo): deteccion en vivo + errores persistentes
+6778268 docs(handoff): O1 orquestador + S1 semaforo completadas
+f8779df feat(orchestrator+semaphore): orquestador ligero + semaforo del sistema
+bccf3e0 feat(setup): omniroute/9router como providers opcionales
+902ee66 feat(f3): Foco — anti-distracción, clasificación monetizable y avisos
+39d9fe4 feat(f3+): búsqueda web + modo guardián — "Manos en el PC"
+646b0e0 feat(f2): icono en ventana flotante
+</pre>
+</div>
+
+<div class="meta" style="margin-top:30px;">
+<b>Generado:</b> 13/08/2026 · <b>Fuente:</b> inspección en vivo de procesos, puertos, logs, config y git del repo <code>E:\Agente_IA</code>.
+</div>
+
+</div>
+</body>
+</html>
