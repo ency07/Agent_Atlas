@@ -427,6 +427,24 @@ if (Test-Path $benchVbs) {
     Write-Host "  AVISO: start_atlas_benchmark.vbs no encontrado" -ForegroundColor DarkYellow
 }
 
+# ---------- 9g. Metricas uso/costo (MEDIA) ----------
+Write-Host "`n[9g/10] Metricas de uso/costo (semanal)..." -ForegroundColor Yellow
+$metVbs = Join-Path $ROOT "start_atlas_metrics.vbs"
+if (Test-Path $metVbs) {
+    $actionMet = New-ScheduledTaskAction -Execute 'wscript.exe' -Argument "`"$metVbs`""
+    $triggerMet = New-ScheduledTaskTrigger -Weekly -DaysOfWeek Monday -At '03:25'
+    $settingsMet = New-ScheduledTaskSettingsSet -AllowStartIfOnBatteries -DontStopIfGoingOnBatteries -ExecutionTimeLimit (New-TimeSpan -Hours 1)
+    Register-ScheduledTask -TaskName 'AtlasMetrics' -Action $actionMet -Trigger $triggerMet -Settings $settingsMet -Force | Out-Null
+    $taskMet = Get-ScheduledTask -TaskName 'AtlasMetrics' -ErrorAction SilentlyContinue
+    if ($taskMet) {
+        Write-Host "  tarea AtlasMetrics registrada (lunes 03:25, ingesta + reporte uso/costo)"
+    } else {
+        Write-Host "  AVISO: no se pudo registrar AtlasMetrics" -ForegroundColor DarkYellow
+    }
+} else {
+    Write-Host "  AVISO: start_atlas_metrics.vbs no encontrado" -ForegroundColor DarkYellow
+}
+
 # ---------- 10. Diagnostico ----------
 Write-Host "`n[10/10] Diagnostico..." -ForegroundColor Yellow
 & (Join-Path $ROOT "check.ps1")

@@ -51,6 +51,9 @@ def _save_log(data):
         print(f"  Error guardando log: {e}")
 
 
+import atlas_metrics as am
+
+
 def _measure(name, cfg, kind="models"):
     """Mide latencia de un provider. Returns (latency_ms, ok, error)"""
     url = cfg["api"] + ("/models" if kind == "models" else "/chat/completions")
@@ -69,8 +72,20 @@ def _measure(name, cfg, kind="models"):
                 method="POST",
             )
         with urllib.request.urlopen(req, timeout=TIMEOUT) as r:
-            r.read()
+            data = r.read()
             latency = (time.perf_counter() - start) * 1000
+            # Registrar metricas de uso (tokens estimados)
+            if kind == "chat":
+                try:
+                    resp = json.loads(data)
+                    tokens_in = resp.get("usage", {}).get("prompt_tokens", 10)
+                    tokens_out = resp.get("usage", {}).get("completion_tokens", 5)
+                    model_id = resp.get("model", cfg.get("model", f"{name}/auto"))
+                    am.record(model=f"{name}/{model_id}", tokens_in=tokens_in,
+                              tokens_out=tokens_out, latency_ms=round(latency, 1),
+                              source="benchmark")
+                except Exception:
+                    pass
             return latency, True, None
     except Exception as e:
         latency = (time.perf_counter() - start) * 1000
