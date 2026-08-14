@@ -409,6 +409,24 @@ if (Test-Path $syncVbs) {
     Write-Host "  AVISO: start_atlas_sync_caps.vbs no encontrado" -ForegroundColor DarkYellow
 }
 
+# ---------- 9f. Benchmark proveedores (MEDIA) ----------
+Write-Host "`n[9f/10] Benchmark de proveedores (semanal)..." -ForegroundColor Yellow
+$benchVbs = Join-Path $ROOT "start_atlas_benchmark.vbs"
+if (Test-Path $benchVbs) {
+    $actionBench = New-ScheduledTaskAction -Execute 'wscript.exe' -Argument "`"$benchVbs`""
+    $triggerBench = New-ScheduledTaskTrigger -Weekly -DaysOfWeek Monday -At '03:20'
+    $settingsBench = New-ScheduledTaskSettingsSet -AllowStartIfOnBatteries -DontStopIfGoingOnBatteries -ExecutionTimeLimit (New-TimeSpan -Hours 1)
+    Register-ScheduledTask -TaskName 'AtlasBenchmark' -Action $actionBench -Trigger $triggerBench -Settings $settingsBench -Force | Out-Null
+    $taskBench = Get-ScheduledTask -TaskName 'AtlasBenchmark' -ErrorAction SilentlyContinue
+    if ($taskBench) {
+        Write-Host "  tarea AtlasBenchmark registrada (lunes 03:20, latencia + exito en routing_log)"
+    } else {
+        Write-Host "  AVISO: no se pudo registrar AtlasBenchmark" -ForegroundColor DarkYellow
+    }
+} else {
+    Write-Host "  AVISO: start_atlas_benchmark.vbs no encontrado" -ForegroundColor DarkYellow
+}
+
 # ---------- 10. Diagnostico ----------
 Write-Host "`n[10/10] Diagnostico..." -ForegroundColor Yellow
 & (Join-Path $ROOT "check.ps1")
