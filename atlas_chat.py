@@ -196,11 +196,15 @@ class Api:
 
 OVERLAY_JS = """
 (function () {
-  // --- Drag bar ---
+  // --- Drag bar with progress ---
   var bar = document.createElement('div');
   bar.id = 'atlas-drag-bar';
   bar.innerHTML =
     '<span id="atlas-title">Atlas</span>' +
+    '<div id="atlas-progress" style="display:none;flex:1;margin:0 12px;height:4px;background:rgba(255,255,255,.1);border-radius:2px;overflow:hidden;">' +
+      '<div id="atlas-progress-fill" style="width:0%;height:100%;background:#58a6ff;transition:width .2s;"></div>' +
+    '</div>' +
+    '<span id="atlas-eta" style="display:none;margin:0 8px;font-size:11px;color:#d29922;"></span>' +
     '<button id="atlas-min" title="Minimizar">&ndash;</button>' +
     '<button id="atlas-close" title="Cerrar">&times;</button>';
   bar.style.cssText =
@@ -237,12 +241,106 @@ OVERLAY_JS = """
   };
   document.body.appendChild(bar);
 
+  // --- Progress / ETA logic ---
+  var progressFill = document.getElementById('atlas-progress-fill');
+  var progressBar = document.getElementById('atlas-progress');
+  var etaEl = document.getElementById('atlas-eta');
+  var requestStart = 0;
+  var progressTimer = null;
+  var avgResponseTime = 5000; // ms, updated after each turn
+  var turnCount = 0;
+
+  function showProgress() {
+    progressBar.style.display = 'flex';
+    etaEl.style.display = 'inline';
+    requestStart = Date.now();
+    progressFill.style.width = '5%';
+    updateETA();
+    progressTimer = setInterval(updateProgress, 500);
+  }
+
+  function hideProgress() {
+    if (progressTimer) clearInterval(progressTimer);
+    progressTimer = null;
+    progressBar.style.display = 'none';
+    etaEl.style.display = 'none';
+    progressFill.style.width = '100%';
+    setTimeout(function() { progressFill.style.width = '0%'; }, 300);
+  }
+
+  function updateProgress() {
+    var elapsed = Date.now() - requestStart;
+    var pct = Math.min(95, Math.round((elapsed / avgResponseTime) * 100));
+    progressFill.style.width = pct + '%';
+    updateETA(elapsed);
+  }
+
+  function updateETA(elapsed) {
+    elapsed = elapsed || (Date.now() - requestStart);
+    var remaining = Math.max(0, avgResponseTime - elapsed);
+    var secs = Math.ceil(remaining / 1000);
+    if (secs > 60) {
+      etaEl.textContent = '~' + Math.ceil(secs / 60) + 'm';
+    } else {
+      etaEl.textContent = secs + 's';
+    }
+    // Warning if >10s without feedback
+    if (elapsed > 10000) {
+      etaEl.style.color = '#f85149';
+      etaEl.title = 'Sin feedback >10s';
+    } else {
+      etaEl.style.color = '#d29922';
+    }
+  }
+
+  // Intercept fetch to detect requests
+  var originalFetch = window.fetch;
+  window.fetch = function(url, opts) {
+    var isChatRequest = typeof url === 'string' && (
+      url.includes('/session/') && url.includes('/message')
+    );
+    if (isChatRequest) {
+      showProgress();
+    }
+    return originalFetch.apply(this, arguments).then(function(resp) {
+      if (isChatRequest) {
+        var elapsed = Date.now() - requestStart;
+        turnCount++;
+        avgResponseTime = Math.round((avgResponseTime * (turnCount - 1) + elapsed) / turnCount);
+        hideProgress();
+      }
+      return resp;
+    }).catch(function(err) {
+      if (isChatRequest) hideProgress();
+      throw err;
+    });
+  };
+
+  // --- Drag bar buttons ---
+  bar.querySelector('#atlas-min').onmouseover = function () {
+    this.style.background = 'rgba(255,255,255,.12)';
+  };
+  bar.querySelector('#atlas-min').onmouseout = function () {
+    this.style.background = 'transparent';
+  };
+  bar.querySelector('#atlas-close').onmouseover = function () {
+    this.style.background = '#f85149';
+  };
+  bar.querySelector('#atlas-close').onmouseout = function () {
+    this.style.background = 'transparent';
+  };
+  bar.querySelector('#atlas-min').onclick = function () {
+    if (window.pywebview && pywebview.api) pywebview.api.minimize();
+  };
+  bar.querySelector('#atlas-close').onclick = function () {
+    if (window.pywebview && pywebview.api) pywebview.api.close();
+  };
+
   // --- Buscar input y hacer foco ---
   var attempts = 0;
   var maxAttempts = 30; // 30 * 500ms = 15s
   var timer = setInterval(function () {
     attempts++;
-    // Buscar textarea o input de texto (varios selectores por si cambia el UI)
     var ta = document.querySelector('textarea[placeholder*="Pregunta"]') ||
              document.querySelector('textarea[placeholder*="pregunta"]') ||
              document.querySelector('textarea') ||
@@ -254,7 +352,6 @@ OVERLAY_JS = """
       setTimeout(function () { ta.focus(); }, 300);
     } else if (attempts >= maxAttempts) {
       clearInterval(timer);
-      // no hay input: crear sesion nueva via API y navegar (evita home sin prompt)
       try {
         fetch('/session', {method:'POST', headers:{'Content-Type':'application/json'}, body:'{}'})
           .then(function(r){return r.json();})
