@@ -28,6 +28,8 @@ Componentes:
 | `atlas_web/api.js` | Wrapper fino UI↔opencode serve. |
 | `atlas_web/dashboard.html` | Dashboard base de actividad. |
 | `start_atlas_chat.vbs` | Autostart oculto del chat flotante. |
+| `atlas_controller.py` | Bucle de Cierre Forzoso (C2): contrato → verificar → cerrar/escalar. |
+| `atlas_verifier.py` | Ejecutores reales por tipo (C2-3): comando/archivo/endpoint/ui/captura/test/humano. |
 | `start_atlas_backup.vbs` | Backup diario oculto via Task Scheduler. |
 | `hooks/post-commit` | Git hook portable → inbox/. |
 | `memory_data/vault/` | Bóveda Obsidian — la memoria viaja con el repo. |
