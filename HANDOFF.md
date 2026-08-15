@@ -2,7 +2,7 @@
 
 > Documento de estado del proyecto. Léelo primero si retomas el trabajo.
 
-**Última actualización:** 12 de agosto de 2026
+**Última actualización:** 14 de agosto de 2026
 
 ---
 
@@ -30,12 +30,20 @@ Componentes:
 | `start_atlas_chat.vbs` | Autostart oculto del chat flotante. |
 | `atlas_controller.py` | Bucle de Cierre Forzoso (C2): contrato → verificar → cerrar/escalar. |
 | `atlas_verifier.py` | Ejecutores reales por tipo (C2-3): comando/archivo/endpoint/ui/captura/test/humano. |
+| `atlas_log.py` | Logs estructurados JSON (ts/level/source/extra). Usado por chat, activity, controller. |
+| `atlas_monitor.py` | Monitoreo de errores → `logs/errors.jsonl` + `state/errors.db`. |
+| `atlas_supervisor.py` | Auto-reparación: monitorea semáforo y reinicia componentes caídos (lockfile + cooldown + toast). |
+| `atlas_web_server.py` | Dashboard real :4100 (overview, top-apps, foco, health, orchestrator, modelo, informes, evals, tareas, pendientes, trust). |
+| `atlas_checkpoints.py` | Checkpoints reanudables (C13): `state/tasks/<id>.json`. |
+| `atlas_eval.py` | Batería de evals mensuales (C15) + tarea `AtlasEval`. |
+| `start_atlas_supervisor.vbs` | Autostart oculto del supervisor (Task `AtlasSupervisor`). |
 | `start_atlas_backup.vbs` | Backup diario oculto via Task Scheduler. |
 | `hooks/post-commit` | Git hook portable → inbox/. |
 | `memory_data/vault/` | Bóveda Obsidian — la memoria viaja con el repo. |
 | `memory_data/state/` | SQLite + heartbeat + flags (NO se versiona). |
 | `memory_data/backup/` | Backups zip (gitignored, retención 14 copias). |
-| `roadmap.html` | Roadmap por fases (F1–F6) y trazabilidad. |
+| `roadmap v1.5.html` | Roadmap por fases (F2.5→C1→C2→F4→F5) y trazabilidad. |
+| `SPEC_C2.html` | Contrato de implementación C2 (Bucle de Cierre Forzoso) con drop-in. |
 
 ---
 
@@ -130,6 +138,35 @@ Capa de ejecución verificada, entrega con estándar profesional y evidencia rea
 
 **Pendiente de C1 (gates manuales):** 3 entregables calificados "así sí" por el
 usuario → exemplars; 2 runbooks verificados (instalar extensión, exportar diseño).
+Registrados como DEBT-001/002/003 (fecha objetivo 2026-08-31).
+
+### C2 · BUCLE DE CIERRE FORZOSO — 🟢 COMPLETADA (14/08/2026)
+
+El agente NO cierra tareas. Cierra el controller con evidencia. Contrato (LLM
+descompone la orden) → bucle determinista (código) → verificación real por tipo →
+cierre o escalada con reporte. Es el "Hard Stop" de GOVERNANCE.md ejecutado como
+sistema. Spec: `SPEC_C2.html`.
+
+| REQ | Entrega | Evidencia |
+|---|---|---|
+| C2-1 | Contrato antes de ejecutar; sin criterios → rechazo (`crear_contrato`/`validar_contrato`) | test_c2_1 (2 PASS) |
+| C2-2 | `close()` solo en controller (cerrar() devuelve el contrato; archivado en bóveda) | test_c2_2 + `vault/global/tasks/T-*.json` |
+| C2-3 | Verificador real por tipo: comando/archivo/endpoint/ui/captura/test/humano (`atlas_verifier.py`) | verifier E2E: archivo OK/FAIL, endpoint 200, humano |
+| C2-4 | Crítico modelo aparte con JSON forzado (`critic()`; v1 simula pass si 100%) | test_c2_2 |
+| C2-5 | `/api/tareas` + `/api/pendientes` + `/api/trust` + panel dashboard | endpoints vivos en :4100 (verificado con Invoke-RestMethod + Playwright) |
+| C2-6 | Límites → escalada con reporte exacto (max_intentos, timeout, pct, fails) | test_c2_6 + escalada real visible en `/api/pendientes` |
+| C2-7 | `trust_log.jsonl` registra claim falso del agente | `/api/trust` total=1 tras prueba |
+| C2-8 | Contrato archivado en `vault/global/tasks/` al cerrar | 3 T-*.json reales en bóveda |
+| C2-9 | Criterio sin verificación ejecutable → degrada a "humano" (no bloquea) | test_c2_9 PASS |
+
+**Integración supervisor:** `controller` en COMPONENTS con `demand: True` — el
+supervisor lo reconoce y loguea su estado, pero no lo auto-reinicia (el bucle se
+lanza al crear contrato, no es daemon). DEBT-007 pagado.
+
+**Fixes aplicados sobre el diseño original:** `cerrar()` devolvía None (bug);
+`requests` → `urllib.request`; llamadas MCP directas (no subprocess) con firmas
+reales (`screen_capture`, `read_ui_state`, `ocr_screen`); `python` → `.venv`
+python; comparación de timeout con `datetime.fromisoformat` (no strings).
 
 ### F4 · DINERO — ⚪ No iniciada
 
@@ -248,7 +285,29 @@ Solo entra si F4/F5 producen procesos repetibles.
 
 ---
 
-## Endurecimiento de producción (6 puntos)
+## F2.5 · ENDURECIMIENTO — 🟢 COMPLETADA (14/08/2026)
+
+9/9 gates cerrados. Detalle y evidencia en `docs/verification/2026-08-14-cierre-f25-c1.md`.
+
+| Gate | Estado |
+|---|---|
+| Chat arranca al logon con stderr → log | ✅ 2 boots en `atlas_chat_stderr.log` (13:12, 19:40) |
+| 9Router :4000 sin colisión + ONLOGON | ✅ `Test-NetConnection 4000→True`; tareas `Atlas9Router`/`AtlasOmniRoute` |
+| Orquestador default | ✅ `opencode.jsonc` model `auto/best-coding` + routing_log |
+| Supervisor reinicia componente matado | ✅ `supervisor.log`: 5 ciclos de reinicio con timestamps (A-01) |
+| Cero procesos duplicados | ✅ mutex `Local\AtlasActivitySingleInstance` (H-006) |
+| Boot check E2E | ✅ `bootcheck.log: GREEN: Atlas OK` |
+| Rotación de logs | ✅ 6 archivos `.log` separados en `logs/` |
+| origin privado + restore probado | ✅ origin github.com/ency07/Agent_Atlas + `age_decrypt`+`extract_tarball` probado |
+| Pytest crítico + failure injection | ✅ 111/111 + test_model_switch (injection PASS) |
+
+**Auditoría externa (A-01..A-08):** resuelta con evidencia reproducible. Hallazgos
+corregidos: supervisor sin tarea programada + check lambdas rotas (`checks[]`)
+→ tarea `AtlasSupervisor` ONLOGON + parser reparado (H-004/H-005); daemon sin
+single-instance → mutex añadido (H-006). Pendiente menor: `win10toast` no
+instalado (H-007 → DEBT-006).
+
+
 
 | # | Mejora | Implementación | Estado |
 |---|---|---|---|
@@ -258,6 +317,9 @@ Solo entra si F4/F5 producen procesos repetibles.
 | 4 | Health check | `memory_health` verifica DB, daemon, inbox, errores y rotación de secretos | 🟢 |
 | 5 | Plan de rollback | Git tag `stable-f1f2` (punto estable) + backups diarios + restore (`--cli restore`). Ver abajo | 🟢 |
 | 6 | Rotación de secretos | Calendario 90 días en `state/secret_rotation.json`; visible en `memory_health`; registrar con `--cli secret_rotation --note "..."` | 🟢 |
+| 7 | Supervisor auto-reparación | `atlas_supervisor.py` + tarea `AtlasSupervisor` ONLOGON + cooldown anti-thrash | 🟢 |
+| 8 | Monitoreo daemon + mutex | `atlas_activity.py` single-instance (mutex Windows) | 🟢 |
+| 9 | Backup cifrado con age + restore probado | `age_decrypt` + `extract_tarball` verificado | 🟢 |
 
 **Plan de rollback (< 5 min):**
 1. `git stash` (o commit del trabajo en curso) para limpiar el working tree.
