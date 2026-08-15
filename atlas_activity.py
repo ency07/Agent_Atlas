@@ -72,6 +72,25 @@ _icon = None
 user32 = ctypes.windll.user32
 kernel32 = ctypes.windll.kernel32
 
+MUTEX_NAME = "Local\\AtlasActivitySingleInstance"
+
+def acquire_single_instance():
+    """Evita procesos duplicados del daemon: mutex nombrado de Windows.
+
+    Si otra instancia esta viva devolvemos None (el llamador debe salir).
+    """
+    try:
+        ERROR_ALREADY_EXISTS = 183
+        handle = kernel32.CreateMutexW(None, False, MUTEX_NAME)
+        if not handle:
+            return None
+        if ctypes.get_last_error() == ERROR_ALREADY_EXISTS:
+            kernel32.CloseHandle(ctypes.c_void_p(handle))
+            return None
+        return handle
+    except Exception:
+        return None
+
 GetForegroundWindow = user32.GetForegroundWindow
 GetForegroundWindow.restype = wintypes.HWND
 
@@ -539,6 +558,10 @@ if __name__ == "__main__":
                 interval = int(sys.argv[i + 1])
             except ValueError:
                 pass
+
+    if not acquire_single_instance():
+        log.info("otra instancia del daemon activa; saliendo")
+        sys.exit(0)
 
     log.info(f"arrancando daemon", interval=interval, tray=not no_tray and HAS_TRAY)
 

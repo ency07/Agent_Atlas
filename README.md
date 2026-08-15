@@ -214,8 +214,11 @@ Sirve desde `python atlas_foco.py --http 4101` (GET `/daily`).
 
 | ID | Deuda | Responsable | Fecha | Riesgo | Mitigación |
 |---|---|---|---|---|---|
-| DEBT-001 | 2 runbooks verificados en bóveda (instalar extensión, exportar diseño) | Usuario | 2026-08-14 | MEDIO | Verificar próximos 2 runbooks reales con skill runbooks |
-| DEBT-002 | 3 entregables calificados "profesional" → exemplars | Usuario | 2026-08-14 | MEDIO | Usuario califica entregables; se registran como exemplars |
-| DEBT-003 | Prueba de crítico con trampa (entregable sembrado) | Usuario | 2026-08-14 | MEDIO | Ejecutar skill critico sobre un entregable con error sembrado |
+| DEBT-001 | 2 runbooks verificados en bóveda (instalar extensión, exportar diseño) | Usuario | 2026-08-31 | MEDIO | Verificar próximos 2 runbooks reales con skill runbooks |
+| DEBT-002 | 3 entregables calificados "profesional" → exemplars | Usuario | 2026-08-31 | MEDIO | Usuario califica entregables; se registran como exemplars |
+| DEBT-003 | Prueba de crítico con trampa (entregable sembrado) | Usuario | 2026-08-31 | MEDIO | Ejecutar skill critico sobre un entregable con error sembrado |
+| DEBT-004 | Launcher duplicado activity (mutex añadido; verificar en producción) | Atlas (código) | 2026-08-21 | BAJO | Mutex Windows añadido; verificar estabilidad tras 2 reboots reales |
+| DEBT-005 | 3er reboot del chat para gate "3 reboots" | Entorno | 2026-08-21 | BAJO | Requerido reboot real adicional; BLOCKED_BY_ENVIRONMENT |
+| DEBT-006 | win10toast no instalado (toast notification en supervisor) | Atlas | 2026-08-31 | BAJO | `pip install win10toast` si se necesita |
 
 Gates humanos pendientes de C1 (ver `docs/verification/2026-08-14-cierre-f25-c1.md`).

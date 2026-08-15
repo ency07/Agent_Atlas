@@ -75,25 +75,42 @@ def load_health():
         logger.error(f"Error al cargar health: {e}")
         return None
 
+def health_ok(health, name):
+    """Chequea si un componente esta OK en la lista checks[] (formato REAL de atlas_health)"""
+    if not health or "checks" not in health:
+        return False
+    for c in health.get("checks", []):
+        if c.get("name") == name:
+            return bool(c.get("ok"))
+    return False
+
+def health_has_component(health, name):
+    """True si el nombre existe en checks[] (evita reiniciar componentes no reportados)"""
+    if not health or "checks" not in health:
+        return False
+    return any(c.get("name") == name for c in health.get("checks", []))
+
 # --- Componentes a supervisar ---
+# cmd[0] = python, cmd[1] = script; el check usa el nombre REAL en checks[] de atlas_health
+PYTHON = sys.executable
 COMPONENTS = {
-    "memory": {
-        "cmd": [sys.executable, "mcp_memory_server.py"],
+    "activity": {
+        "cmd": [PYTHON, "atlas_activity.py"],
         "cwd": ROOT,
-        "log": "memory.log",
-        "check": lambda h: h.get("daemon", {}).get("status") == "ok"
+        "log": "activity.log",
+        "health_name": "daemon_activity",
     },
     "web": {
-        "cmd": [sys.executable, "atlas_web_server.py"],
+        "cmd": [PYTHON, "atlas_web_server.py"],
         "cwd": ROOT,
         "log": "web.log",
-        "check": lambda h: h.get("dashboard", {}).get("status") == "ok"
+        "health_name": None,  # web server no tiene check propio en health_report
     },
     "orchestrator": {
-        "cmd": [sys.executable, "atlas_orchestrator.py"],
+        "cmd": [PYTHON, "atlas_orchestrator.py"],
         "cwd": ROOT,
         "log": "orchestrator.log",
-        "check": lambda h: h.get("orchestrator", {}).get("status") == "ok"
+        "health_name": None,
     }
 }
 
@@ -133,27 +150,39 @@ def notify(title, message):
 def restart_component(name, config):
     logger.info(f"Reiniciando {name}...")
     
-    # Matar proceso existente
+    script_name = config['cmd'][1]
+    # Matar TODAS las instancias del script (dedupe)
+    killed = 0
     for proc in psutil.process_iter(['pid', 'name', 'cmdline']):
         try:
-            if proc.info['cmdline'] and any(str(config['cmd'][0]) in str(x) for x in proc.info['cmdline']):
-                logger.info(f"Matando PID {proc.info['pid']}")
+            cmdline = proc.info['cmdline'] or []
+            cmd_joined = " ".join(cmdline)
+            if script_name in cmd_joined:
+                logger.info(f"Matando PID {proc.info['pid']} ({script_name})")
                 proc.kill()
+                killed += 1
         except Exception as e:
             logger.warning(f"Error al matar proceso: {e}")
     
     # Iniciar nuevo proceso
     try:
         log_path = LOG_DIR / config['log']
+        launcher = config['cmd'][0]
+        # preferir pythonw (sin consola) si existe junto al python usado
+        pythonw = str(Path(launcher).with_name("pythonw.exe"))
+        if os.path.exists(pythonw):
+            launch = [pythonw] + config['cmd'][1:]
+        else:
+            launch = config['cmd']
         with open(log_path, 'a', encoding='utf-8') as log_file:
             subprocess.Popen(
-                config['cmd'],
+                launch,
                 cwd=config['cwd'],
                 stdout=log_file,
                 stderr=log_file,
                 creationflags=subprocess.CREATE_NEW_PROCESS_GROUP
             )
-        logger.info(f"{name} reiniciado")
+        logger.info(f"{name} reiniciado (killed={killed})")
         return True
     except Exception as e:
         logger.error(f"Error al reiniciar {name}: {e}")
@@ -175,7 +204,17 @@ def monitor():
                 if is_on_cooldown(name):
                     continue
                 
-                if not config['check'](health):
+                if config.get("health_name") and health_has_component(health, config["health_name"]):
+                    is_ok = health_ok(health, config["health_name"])
+                else:
+                    # sin health report: verificar proceso vivo directamente
+                    script_name = config['cmd'][1]
+                    is_ok = any(
+                        script_name in " ".join((p.info['cmdline'] or []))
+                        for p in psutil.process_iter(['cmdline'])
+                    )
+                
+                if not is_ok:
                     logger.warning(f"{name} caído")
                     if restart_component(name, config):
                         set_cooldown(name)
