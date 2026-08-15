@@ -1,347 +1,66 @@
-# 📋 Gobernanza de Desarrollo (Protocolo de IA) — Atlas
-
-Este documento define las reglas de compromiso obligatorias para cualquier
-interacción con el código base o los entregables de Atlas. **Toda intervención
-debe seguir este flujo y cerrar con evidencia verificable.**
-
----
-
-## Punto de Control de Cierre (Hard Stop)
-
-No cierres la tarea. Para darla por terminada debes entregar un **Reporte de Verificación de Cierre** completo, ejecutable y verificable.
-
-Este punto de control es bloqueante. Si falta cualquiera de los elementos obligatorios, el estado de cierre debe ser:
-
-```text
-FAIL
-```
-
-o uno de los estados de bloqueo aplicables:
-
-```text
-BLOCKED_BY_ENVIRONMENT
-BLOCKED_BY_AMBIGUITY
-BLOCKED_BY_PERMISSION
-BLOCKED_BY_MISSING_DEPENDENCY
-```
-
-Nunca puede cerrarse como completado si existe evidencia parcial, ausente o no reproducible.
-
----
-
-### Contenido mínimo del Reporte de Verificación de Cierre
-
-#### 1. ARCHIVOS
-
-Lista de archivos o artefactos creados, modificados o eliminados.
-
-Debe incluir:
-
-- Ruta exacta.
-- Acción: `created`, `modified`, `deleted`, `renamed`, `config`, `doc`, `test`, `migration`, `script`, etc.
-- Componente, módulo o herramienta responsable.
-- Motivo del cambio.
-
-Formato:
-
-```markdown
-| Ruta exacta | Acción | Componente / herramienta | Motivo |
-|---|---|---|---|
-| src/auth/login.ts | modified | Módulo de autenticación | Validación de entrada y rate limit |
-| tests/auth/login.spec.ts | created | Suite de pruebas | Cobertura de caso feliz y fallo |
-| docs/traceability.md | modified | Trazabilidad | Actualización de REQ-014 |
-```
-
-Si el cambio no involucra archivos, declarar:
-
-```text
-N/A — Justificación: ...
-```
-
----
-
-#### 2. EVIDENCIA EJECUTADA
-
-Entregar salidas reales, no explicaciones.
-
-No se aceptan frases como:
-
-- "Se ejecutó correctamente."
-- "Todo quedó funcionando."
-- "Las pruebas pasaron."
-- "Parece correcto."
-
-Se aceptan comandos, salidas, logs, reportes, artefactos o evidencias reproducibles.
-
-Incluir únicamente los controles que apliquen al cambio:
-
-- Build / compilación / parse.
-- Lint / formato / validación estática.
-- Instalación o verificación de dependencias.
-- Tests unitarios.
-- Tests de integración.
-- Tests de regresión.
-- Validación de secretos.
-- Escaneo de vulnerabilidades.
-- Validación de esquema / migración.
-- Prueba de rollback.
-- Arranque del servicio.
-- Health check.
-- Readiness check.
-- Verificación de logs estructurados.
-- Verificación de rate limiting.
-- Prueba manual reproducible si no existe automatización.
-- Verificación de rendimiento si aplica.
-- Validación de UI / render / preview si aplica.
-- Validación documental si el cambio es documental.
-
-Formato:
-
-```markdown
-| Control | Comando / acción | Salida real | Resultado |
-|---|---|---|---|
-| Build | `npm run build` | `compiled successfully` | PASS |
-| Lint | `npm run lint` | `0 errors, 0 warnings` | PASS |
-| Tests | `npm test` | `18 passed, 0 failed, 0 skipped` | PASS |
-| Secret scan | `gitleaks detect` | `no leaks found` | PASS |
-| Health check | `curl localhost:3000/health/ready` | `{"status":"ok"}` | PASS |
-```
-
-Si una salida es demasiado extensa, se admite:
-
-```text
-Extracto relevante + ruta del artefacto completo
-```
-
-Ejemplo:
-
-```markdown
-Salida completa: artifacts/build/2026-06-17-build.log
-Extracto:
-BUILD SUCCESS in 42s
-```
-
-Si una salida contiene secretos, tokens, contraseñas o datos sensibles, deben redactarse antes de incluirse. Indicar:
-
-```text
-Salida redactada por seguridad.
-```
-
----
-
-#### 3. TESTS
-
-Entregar el comando exacto de pruebas y el resultado real.
-
-Formato mínimo:
-
-```markdown
-Comando:
-`...`
-
-Salida real:
-```text
-...
-```
-
-Resumen:
-- Passed: X
-- Failed: Y
-- Skipped: Z
-- Flaky: W
-```
-
-Reglas:
-
-- Si existen tests automatizados, son obligatorios.
-- Si el proyecto no tiene framework de pruebas, la primera tarea debe ser incorporar el estándar del stack.
-- Si no se puede automatizar, debe entregarse una verificación manual reproducible.
-- Un test skipped sin justificación formal se considera fallo de cierre.
-- Un test intermitente se considera fallo hasta que se estabilice o se aísle con ADR/deuda registrada.
-
----
-
-#### 4. GUARDIANES Y CLASIFICACIÓN DE RIESGO
-
-Este punto reemplaza cualquier validación informal por una verificación de controles automáticos y riesgo.
-
-Debe entregarse una tabla con:
-
-- Cambio u operación.
-- Nivel de riesgo.
-- Si requiere confirmación humana.
-- Guardián / control automático aplicado.
-- Evidencia.
-
-Formato:
-
-```markdown
-| Cambio / operación | Riesgo | Requiere confirmación | Guardián / control | Evidencia |
-|---|---:|---|---|---|
-| Cambio en validación de login | LOW | NO | Unit tests + lint + secret scan | PASS |
-| Migración de esquema | HIGH | SÍ | Migration dry-run + rollback plan | PASS |
-| Cambio en política de permisos | HIGH | SÍ | Authz tests + revisión manual | PASS |
-```
-
-Niveles de riesgo:
-
-```text
-LOW
-MEDIUM
-HIGH
-```
-
-Definición universal:
-
-| Riesgo | Definición | Confirmación |
-|---|---|---|
-| LOW | Cambio reversible, acotado, sin impacto en seguridad, datos críticos, compatibilidad o producción. | No requiere confirmación adicional si pasa controles automáticos y evidencia verificable. |
-| MEDIUM | Cambio que afecta comportamiento observable, configuración, contratos, rendimiento, datos no críticos o documentación operativa. | Requiere evidencia reforzada; puede requerir aprobación según proyecto. |
-| HIGH | Cambio destructivo, irreversible, relacionado con secretos, autorización, datos sensibles, producción, migraciones críticas o superficie pública de seguridad. | Requiere confirmación humana explícita, ADR o aprobación formal. |
-
-Prohibido clasificar como `LOW`:
-
-- Borrado o mutación irreversible de datos.
-- Cambios en autenticación o autorización.
-- Cambios en secretos, tokens, claves o credenciales.
-- Migraciones destructivas sin rollback probado.
-- Cambios en producción sin plan de reversión.
-- Cambios que rompen compatibilidad de API, esquema, contratos o configuración.
-- Cambios que afectan logging, auditoría o monitoreo de eventos críticos.
-
-Si no existe guardián automático, declarar:
-
-```text
-NO_AUTOMATED_GUARD
-```
-
-Si el cambio es `MEDIUM` o `HIGH` y no existe guardián automático, debe registrarse como deuda operativa o ADR.
-
----
-
-#### 5. TRAZABILIDAD
-
-Entregar la ruta exacta o enlace donde queda registrada la trazabilidad del cambio.
-
-Formato mínimo:
-
-```markdown
-- REQ: REQ-XXX
-- TASK: TASK-XXX
-- ADR: ADR-XXX o N/A
-- COMMIT/PR: hash, enlace o N/A si no aplica
-- TEST: TEST-XXX o ruta de tests
-- TRACE: docs/traceability.md, PR description, issue, archivo de tareas o equivalente
-```
-
-La trazabilidad debe conectar:
-
-```text
-Requisito → Decisión → Tarea → Implementación → Test → Evidencia → Auditoría → Cierre
-```
-
-Si falta trazabilidad, la tarea no puede cerrarse.
-
----
-
-#### 6. BLOQUEOS
-
-Declarar explícitamente qué no se pudo verificar y por qué.
-
-Formato:
-
-```markdown
-| Elemento | Estado | Motivo | Impacto | Acción |
-|---|---|---|---|---|
-| Test de integración con API externa | BLOCKED_BY_ENVIRONMENT | No hay credenciales de prueba | Alto | Solicitar entorno sandbox |
-| Prueba de rollback | BLOCKED_BY_PERMISSION | Sin acceso al entorno de despliegue | Crítico | Aprovisionar acceso |
-```
-
-Estados permitidos:
-
-```text
-BLOCKED_BY_ENVIRONMENT
-BLOCKED_BY_AMBIGUITY
-BLOCKED_BY_PERMISSION
-BLOCKED_BY_MISSING_DEPENDENCY
-```
-
-Reglas:
-
-- Un bloqueo crítico impide el cierre.
-- Un bloqueo no crítico puede permitir cierre solo si se registra como deuda operativa con responsable, riesgo, mitigación y fecha.
-- No se permite ocultar bloqueos bajo una declaración de éxito.
-
----
-
-### Declaración final de cierre
-
-El reporte debe terminar con un estado explícito:
-
-```text
-CIERRE: PASS
-```
-
-o
-
-```text
-CIERRE: FAIL
-```
-
-o
-
-```text
-CIERRE: BLOCKED_BY_ENVIRONMENT
-CIERRE: BLOCKED_BY_AMBIGUITY
-CIERRE: BLOCKED_BY_PERMISSION
-CIERRE: BLOCKED_BY_MISSING_DEPENDENCY
-```
-
-Prohibido cerrar con:
-
-- "Debería funcionar."
-- "Creo que está bien."
-- "Parece correcto."
-- "Probablemente esté bien."
-- "Lo probé por encima."
-- "No debería fallar."
-- "Quedó listo."
-- "Funciona en mi máquina."
-
-Solo se aceptan:
-
-```text
-Comandos.
-Salidas reales.
-Rutas exactas.
-Tests.
-Logs.
-Artefactos.
-Evidencia verificable.
-```
-
----
-
-### Regla universal de equivalencia
-
-Si el proyecto no es código, o usa una tecnología donde alguno de estos puntos no aplica directamente, se debe entregar una evidencia equivalente.
-
-Ejemplos:
-
-| Proyecto | Evidencia equivalente |
-|---|---|
-| Documento | Lint, preview, validación de enlaces, revisión de estructura. |
-| Datos | Validación de esquema, conteos, checksums, muestra anonimizada. |
-| Infraestructura | Plan dry-run, diff, validación de estado, rollback plan. |
-| Automatización | Ejecución en modo seco, logs de ejecución, salida esperada. |
-| Hardware/embedded | Simulación, build de firmware, validación de artefacto, checklist reproducible. |
-| API | Contrato, tests de endpoint, health check, logs de request. |
-| UI | Build, tests de render, captura reproducible, validación de accesibilidad si aplica. |
-
-Si no existe evidencia equivalente posible, debe declararse:
-
-```text
-BLOCKED_BY_ENVIRONMENT
-```
-
-o el bloqueo correspondiente.
+# 📋 Marco de Trabajo: Gobernanza de Desarrollo (Protocolo de IA)
+
+Este documento define las reglas de compromiso y el marco de trabajo obligatorio para cualquier interacción con cualquier base de código, **independientemente del lenguaje, framework o stack tecnológico utilizado**. **Toda intervención debe seguir estrictamente este flujo de estados.**
+
+## 1. Reglas de Compromiso (Constitution)
+- **Principio de Integridad:** Nunca asumas librerías, dependencias o funcionalidades. Si no está declarado en el manifiesto de dependencias del proyecto (`package.json`, `requirements.txt`, `go.mod`, `Cargo.toml`, `pom.xml`, `*.csproj`, etc.) o en sus archivos de configuración, verifica primero.
+- **Trazabilidad:** Toda decisión técnica relevante debe estar vinculada a un ADR (Architectural Decision Record).
+- **Calidad:** Ningún código se considera "completado" sin su correspondiente test, usando el framework de pruebas ya establecido en el proyecto (o el estándar de facto del lenguaje/stack si aún no existe uno).
+- **Estándar:** Se prioriza el rendimiento y la seguridad apropiados al stack y dominio del proyecto (p. ej. control de acceso a datos, cifrado en reposo/tránsito, validación de entradas), aplicando las mejores prácticas reconocidas para la tecnología en uso — no una stack fija.
+
+## 2. Flujo de Trabajo (Protocolo de Estados)
+Cualquier solicitud de desarrollo debe procesarse en este orden exacto:
+
+1.  **`/constitution`**: Definición de reglas y estándares base.
+2.  **`/specify`**: ¿Qué vamos a construir y por qué? (Propósito de negocio).
+3.  **`/clarify`**: Identificación de huecos, ambigüedades y dudas técnicas. *La IA debe detenerse y preguntar.*
+4.  **`/plan`**: Definición del stack, arquitectura, ADRs aplicables y estrategia de datos.
+5.  **`/tasks`**: Desglose granular en tareas pequeñas, accionables y verificables.
+6.  **`/analyze`**: Revisión de consistencia: ¿Las tareas cubren la especificación? ¿Es coherente con el stack?
+7.  **`/implement`**: Ejecución técnica. Cada implementación debe incluir un **checkpoint de validación** antes de pasar a la siguiente tarea.
+
+## 3. Principios de Implementación
+- **Micro-commits:** Cada tarea debe resultar en un estado funcional (aunque sea parcial).
+- **Verificación:** Si el framework de pruebas existente no cubre la nueva funcionalidad, la primera tarea de `/implement` es añadir dicho test.
+- **Comunicación:** La IA no debe añadir comentarios descriptivos en el código ("he cambiado esto porque..."). La traza de cambios debe estar en el historial del repositorio y en los archivos de tareas.
+
+## 4. Gestión de Deuda Técnica
+- Toda decisión técnica que se aleje de los estándares definidos debe documentarse como una **"Deuda Operativa"** en `README.md` bajo la sección correspondiente.
+
+## 5. Aplicabilidad Multi-Stack
+- Este protocolo (secciones 1-4) es el mismo para **todo proyecto**, sin importar el lenguaje, framework, runtime o proveedor de infraestructura.
+- Los detalles específicos de una tecnología concreta (comandos de test, convenciones de estilo, estructura de carpetas, herramientas de build, etc.) **no pertenecen a este documento**: deben vivir en el `README.md`, `CONTRIBUTING.md` o el archivo de configuración/instrucciones propio de cada proyecto (p. ej. `CLAUDE.md`, `AGENTS.md`).
+- Ante cualquier ambigüedad entre este documento y las convenciones locales de un proyecto, **el flujo de estados (Sección 2) y los principios (Secciones 1, 3 y 4) prevalecen**; los detalles de implementación se adaptan al stack local.
+
+
+## LOGS ESTRUCTURADOS
+console.log no es un sistema de logs.
+Necesitas logs estructurados (formato JSON) con marcas de tiempo, IDs de usuario e IDs de petición.
+Sin esto, depurar un problema en producción es como buscar una aguja en un pajar… con los ojos vendados.
+Herramientas: Winston, Pino, Datadog, Papertrail (estas son ejemplos) buscar siempre opciones opensource 100%
+
+## MONITOREO DE ERRORES
+Debes saber cuándo algo falla ANTES de que tus usuarios te lo digan.
+Configura un monitoreo de errores en tiempo real que capture stack traces, contexto del usuario y frecuencia.
+Herramientas: Sentry, Rollbar, Bugsnag (estas son ejemplos) buscar siempre opciones opensource 100%
+
+## RATE LIMITING EN TODOS LOS ENDPOINTS PÚBLICOS
+Toda ruta expuesta al público necesita rate limiting.
+Sin esto, un solo usuario malintencionado (o un bot) puede tirar todo tu sistema.
+Protege: inicio de sesión, registro, recuperación de contraseña, búsqueda y cualquier endpoint de tu API.
+
+## ENDPOINTS DE HEALTH CHECK
+Tu infraestructura necesita una forma de saber si tu aplicación sigue viva.
+Agrega una ruta /health que verifique: conexión a la base de datos, conexión al caché y dependencias críticas.
+Sin esto, tu balanceador de carga puede enviar tráfico a un servidor que ya está caído.
+
+## PLAN DE ROLLBACK
+¿Qué pasa si tu nuevo despliegue rompe todo?
+¿Sabes cómo volver a la versión anterior en menos de 5 minutos?
+Si no, estás a un mal despliegue de una noche muy larga.
+Configura: despliegues versionados, blue-green deployments o feature flags.
+
+## CALENDARIO DE ROTACIÓN DE SECRETOS
+Las claves de API y las contraseñas de bases de datos no deberían durar para siempre.
+Programa un recordatorio para rotar todas las credenciales cada 90 días.
+Y asegúrate de que esa rotación no requiera tiempo de inactividad.

@@ -1,6 +1,6 @@
 {
   "project": "agente_ia",
-  "generated": "2026-08-14T19:28:03+00:00",
+  "generated": "2026-08-15T00:31:36+00:00",
   "nodes": [
     {
       "id": "20260814-121159-20260814-tareas-alta-completadas-logrota",
@@ -29,6 +29,13 @@
       "type": "session",
       "project": "agente_ia",
       "properties": "Push a GitHub completado: https://github.com/ency07/Agent_Atlas\n\nTrabajo realizado en esta sesión (completo desde F2.5 ALTA hasta la publicación):\n\n**F2.5 ALTA (commit 6db3e2d):**\n1. Fix de chat: atlas_chat.py usaba `import datetime` + `datetime.now()` = NameError silencioso en logon. Fix con `from "
+    },
+    {
+      "id": "20260814-193136-20260814-c1-ejecucion-profesional-comple",
+      "label": "20260814-193136-20260814-c1-ejecucion-profesional-comple",
+      "type": "summary",
+      "project": "agente_ia",
+      "properties": "Fase C1 (Ejecucion Profesional, SPEC_C1.html) COMPLETADA el 14/08/2026. Commit 863f7dd, pusheado a https://github.com/ency07/Agent_Atlas.\n\n**Que se construyo (REQs C1-C16):**\n\n1. **Skills C1-C2 (6 nuevas)**: ejecucion-verificada (MASTER), informe-profesional (6 bloques), investigacion-exhaustiva (L3"
     }
   ],
   "edges": []

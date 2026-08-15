@@ -13,6 +13,7 @@
 - [[20260814-130017-20260814-tareas-media-completadas-sync-c]] · 20260814-130017-20260814-tareas-media-completadas-sync-c
 - [[20260814-134557-20260814-f2.5-alta-completadas-chat-fix-]] · 20260814-134557-20260814-f2.5-alta-completadas-chat-fix-
 - [[20260814-142802-20260814-push-github-completado-docs-clo]] · 20260814-142802-20260814-push-github-completado-docs-clo
+- [[20260814-193136-20260814-c1-ejecucion-profesional-comple]] · 20260814-193136-20260814-c1-ejecucion-profesional-comple
 
 ## Sesiones recientes
 - (sin sesiones aun)

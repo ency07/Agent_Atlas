@@ -106,6 +106,13 @@
     <thead><tr><th>App</th><th>Tiempo</th><th>%</th><th></th></tr></thead>
     <tbody id="top-apps"><tr><td colspan="4" style="color:var(--muted);">sin datos (daemon no ha corrido o sin eventos de actividad)</td></tr></tbody>
   </table>
+
+  <h2 style="font-size:1.1rem;margin-top:16px;margin-bottom:8px;">Informes · entregables (REQ-C8)</h2>
+  <div style="flex:1;min-width:300px;" class="card">
+    <h3>Informes publicados</h3>
+    <div id="informes-list" style="font-size:.82rem;color:var(--muted);">cargando...</div>
+    <div class="detail" style="margin-top:8px;">publish_report → vault/outputs/ · refresh cada 30s</div>
+  </div>
 </div>
 
 <script src="api.js"></script>
@@ -243,13 +250,35 @@ async function load() {
   }
 }
 
+async function loadInformes() {
+  const el = document.getElementById('informes-list');
+  try {
+    const r = await fetch(`${API_BASE}/api/informes`).then(r => r.json());
+    if (!r.reports || !r.reports.length) {
+      el.innerHTML = 'sin informes publicados';
+      return;
+    }
+    el.innerHTML = r.reports.slice(0, 10).map(informe => {
+      const d = new Date(informe.published);
+      const fecha = isNaN(d) ? informe.published : d.toLocaleDateString();
+      return `<div style="display:flex;justify-content:space-between;gap:8px;padding:4px 0;border-bottom:1px solid var(--border);">
+        <a href="${API_BASE}${informe.url}" target="_blank" rel="noopener" style="color:var(--accent);text-decoration:none;">${informe.title}</a>
+        <span style="color:var(--muted);white-space:nowrap;">${fecha} · ${informe.level || ''} · ${informe.version || ''}</span>
+      </div>`;
+    }).join('');
+  } catch (e) {
+    el.textContent = `error: ${e.message}`;
+  }
+}
+
 // auto-refresh cada 30s
 load();
 loadTopApps();
 loadFoco();
 loadHealth();
 loadModelo();
-setInterval(() => { load(); loadTopApps(); loadFoco(); loadHealth(); loadModelo(); }, 30000);
+loadInformes();
+setInterval(() => { load(); loadTopApps(); loadFoco(); loadHealth(); loadModelo(); loadInformes(); }, 30000);
 </script>
 </body>
 </html>

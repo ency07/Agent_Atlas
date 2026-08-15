@@ -1,6 +1,6 @@
 {
   "project": "global",
-  "generated": "2026-08-14T18:38:01+00:00",
+  "generated": "2026-08-15T01:53:07+00:00",
   "nodes": [
     {
       "id": "20260810-213157-f1-y-f2-completadas-atlas-al-100-en-core",
@@ -134,6 +134,41 @@
       "type": "fact",
       "project": "global",
       "properties": "# Guard Block Event\n**Operation**: registry_write\n**Params**: {\"key\": \"HKLM\\\\SOFTWARE\\\\Test\"}\n**Reason**: Operación 'registry_write' bloqueada en modo strict\n**Level**: strict\n**Timestamp**: 2026-08-14T18:38:01.251237+00:00\n\n"
+    },
+    {
+      "id": "20260814-192020-guard_block-registry_write",
+      "label": "20260814-192020-guard_block-registry_write",
+      "type": "fact",
+      "project": "global",
+      "properties": "# Guard Block Event\n**Operation**: registry_write\n**Params**: {\"key\": \"HKLM\\\\SOFTWARE\\\\Test\"}\n**Reason**: Operación 'registry_write' bloqueada en modo strict\n**Level**: strict\n**Timestamp**: 2026-08-15T00:20:20.877531+00:00\n\n"
+    },
+    {
+      "id": "20260814-192558-guard_block-registry_write",
+      "label": "20260814-192558-guard_block-registry_write",
+      "type": "fact",
+      "project": "global",
+      "properties": "# Guard Block Event\n**Operation**: registry_write\n**Params**: {\"key\": \"HKLM\\\\SOFTWARE\\\\Test\"}\n**Reason**: Operación 'registry_write' bloqueada en modo strict\n**Level**: strict\n**Timestamp**: 2026-08-15T00:25:58.427764+00:00\n\n"
+    },
+    {
+      "id": "20260814-192900-guard_block-registry_write",
+      "label": "20260814-192900-guard_block-registry_write",
+      "type": "fact",
+      "project": "global",
+      "properties": "# Guard Block Event\n**Operation**: registry_write\n**Params**: {\"key\": \"HKLM\\\\SOFTWARE\\\\Test\"}\n**Reason**: Operación 'registry_write' bloqueada en modo strict\n**Level**: strict\n**Timestamp**: 2026-08-15T00:29:00.181132+00:00\n\n"
+    },
+    {
+      "id": "20260814-203516-guard_block-registry_write",
+      "label": "20260814-203516-guard_block-registry_write",
+      "type": "fact",
+      "project": "global",
+      "properties": "# Guard Block Event\n**Operation**: registry_write\n**Params**: {\"key\": \"HKLM\\\\SOFTWARE\\\\Test\"}\n**Reason**: Operación 'registry_write' bloqueada en modo strict\n**Level**: strict\n**Timestamp**: 2026-08-15T01:35:16.679953+00:00\n\n"
+    },
+    {
+      "id": "20260814-205307-guard_block-registry_write",
+      "label": "20260814-205307-guard_block-registry_write",
+      "type": "fact",
+      "project": "global",
+      "properties": "# Guard Block Event\n**Operation**: registry_write\n**Params**: {\"key\": \"HKLM\\\\SOFTWARE\\\\Test\"}\n**Reason**: Operación 'registry_write' bloqueada en modo strict\n**Level**: strict\n**Timestamp**: 2026-08-15T01:53:07.238396+00:00\n\n"
     }
   ],
   "edges": []

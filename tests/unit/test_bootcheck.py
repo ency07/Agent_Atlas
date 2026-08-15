@@ -15,6 +15,10 @@ def test_check_port():
     assert bc.check_port("127.0.0.1", 9999) == False
 
 def test_check_http():
+    # Retry: el server puede estar reiniciandose durante la suite
+    for _ in range(3):
+        if bc.check_http("http://127.0.0.1:4100/api/health", timeout=5):
+            break
     assert bc.check_http("http://127.0.0.1:4100/api/health", timeout=5) == True
     assert bc.check_http("http://127.0.0.1:9999/api/health", timeout=2) == False
 
