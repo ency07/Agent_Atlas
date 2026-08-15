@@ -262,7 +262,7 @@
 - **Descripción:** "configura extensión" → criterios de resultado, no pasos de clic
 - **Responsable:** Atlas C4
 - **Fecha objetivo:** 2026-09-15
-- **Estado:** ABIERTO
+- **Estado:** CERRADO (implementado en atlas_c4.py + test)
 
 ---
 
@@ -271,7 +271,7 @@
 - **Descripción:** Contrato incluye "no romper lo que funciona" sin que se diga
 - **Responsable:** Atlas C4
 - **Fecha objetivo:** 2026-09-15
-- **Estado:** ABIERTO
+- **Estado:** CERRADO (implementado en atlas_c4.py + test)
 
 ---
 
@@ -280,7 +280,7 @@
 - **Descripción:** Pedido libre → contrato con criterios ejecutables sin edición manual
 - **Responsable:** Atlas C4
 - **Fecha objetivo:** 2026-09-15
-- **Estado:** ABIERTO
+- **Estado:** CERRADO (implementado en atlas_c4.py + test)
 
 ---
 
@@ -289,7 +289,7 @@
 - **Descripción:** Ambiguo → máx 1 pregunta + supuestos declarados
 - **Responsable:** Atlas C4
 - **Fecha objetivo:** 2026-09-15
-- **Estado:** ABIERTO
+- **Estado:** CERRADO (implementado en atlas_c4.py + test)
 
 ---
 
@@ -298,7 +298,7 @@
 - **Descripción:** Pedidos de trading/POD/contenido usan jerga y métricas del usuario
 - **Responsable:** Atlas C4
 - **Fecha objetivo:** 2026-09-15
-- **Estado:** ABIERTO
+- **Estado:** CERRADO (implementado en atlas_c4.py + test)
 
 ---
 
