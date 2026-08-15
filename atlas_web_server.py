@@ -36,6 +36,7 @@ STATE_DIR = ROOT / "memory_data" / "state"
 DB_PATH = STATE_DIR / "memory.db"
 HEARTBEAT = STATE_DIR / "daemon.heartbeat"
 DASHBOARD = WEB_DIR / "dashboard.html"
+FRICTION_LOG = STATE_DIR / "friction_log.jsonl"
 
 _prov_cache = {}
 _cache_ts = {}
@@ -198,6 +199,55 @@ def evals() -> dict:
         return {"error": str(e)}
 
 
+# --- P-2: Friction Log ---
+VALID_FRICTION_TYPES = {"correccion", "repeticion", "espera_larga", "negativa"}
+
+def friction_write(event_type: str, detail: str = "", meta: dict = None) -> dict:
+    """Escribe un evento de fricción al JSONL."""
+    if event_type not in VALID_FRICTION_TYPES:
+        return {"error": f"tipo invalido: {event_type}. Validos: {VALID_FRICTION_TYPES}"}
+    FRICTION_LOG.parent.mkdir(parents=True, exist_ok=True)
+    entry = {
+        "ts": datetime.now(timezone.utc).isoformat(timespec="seconds"),
+        "type": event_type,
+        "detail": detail,
+        "meta": meta or {},
+    }
+    with open(FRICTION_LOG, "a", encoding="utf-8") as f:
+        f.write(json.dumps(entry, ensure_ascii=False) + "\n")
+    return {"ok": True, "entry": entry}
+
+
+def friction_read(limit: int = 100) -> dict:
+    """Lee eventos de fricción (más recientes primero)."""
+    if not FRICTION_LOG.exists():
+        return {"count": 0, "items": [], "debug": "v2-friction_read"}
+    lines = FRICTION_LOG.read_text(encoding="utf-8").strip().splitlines()
+    items = [json.loads(l) for l in lines[-limit:] if l.strip()]
+    items.reverse()  # más reciente primero
+    return {"count": len(items), "items": items, "debug": "v2-friction_read"}
+
+
+def friction_weekly() -> dict:
+    """Métrica semanal de fricciones para panel P-3."""
+    if not FRICTION_LOG.exists():
+        return {"weeks": [], "total": 0}
+    from collections import Counter
+    weekly = Counter()
+    for line in FRICTION_LOG.read_text(encoding="utf-8").splitlines():
+        if not line.strip():
+            continue
+        try:
+            ev = json.loads(line)
+            ts = datetime.fromisoformat(ev["ts"].replace("Z", "+00:00"))
+            week_key = ts.strftime("%Y-W%U")
+            weekly[week_key] += 1
+        except Exception:
+            continue
+    weeks = [{"week": k, "count": v} for k, v in sorted(weekly.items())]
+    return {"weeks": weeks, "total": sum(weekly.values())}
+
+
 def _json(data: dict) -> bytes:
     return json.dumps(data, ensure_ascii=False, indent=2).encode("utf-8")
 
@@ -278,6 +328,24 @@ class _Handler(BaseHTTPRequestHandler):
     def _json_response(self, data: dict, code: int = 200):
         self._send(code, _json(data), "application/json; charset=utf-8")
 
+    def do_POST(self):
+        path = self.path.split("?")[0]
+        try:
+            if path == "/api/friction":
+                content_length = int(self.headers.get("Content-Length", 0))
+                body = self.rfile.read(content_length).decode("utf-8")
+                data = json.loads(body) if body else {}
+                event_type = data.get("type")
+                detail = data.get("detail", "")
+                meta = data.get("meta", {})
+                result = friction_write(event_type, detail, meta)
+                code = 200 if result.get("ok") else 400
+                self._json_response(result, code)
+            else:
+                self._json_response({"error": "not found"}, 404)
+        except Exception as e:
+            self._json_response({"error": str(e)}, 500)
+
     def do_OPTIONS(self):
         self.send_response(204)
         self.send_header("Access-Control-Allow-Origin", "*")
@@ -310,6 +378,11 @@ class _Handler(BaseHTTPRequestHandler):
                 self._json_response(informes())
             elif path == "/api/evals":
                 self._json_response(evals())
+            elif path == "/api/friction":
+                # GET = leer, POST = escribir (manejado en do_POST)
+                self._json_response(friction_read())
+            elif path == "/api/friction/weekly":
+                self._json_response(friction_weekly())
             elif path == "/api/tareas":
                 self._json_response(api_tareas())
             elif path == "/api/pendientes":
@@ -319,13 +392,13 @@ class _Handler(BaseHTTPRequestHandler):
             elif path.startswith("/informe/"):
                 self._serve_informe(path)
             else:
-                self._json_response({"error": "not found",
-                                     "routes": ["/", "/api/overview", "/api/top-apps",
-                                                "/api/foco", "/api/health",
-                                                "/api/orchestrator", "/api/modelo",
-                                                "/api/informes", "/api/evals",
-                                                "/api/tareas", "/api/pendientes",
-                                                "/api/trust", "/informe/<nombre>"]}, 404)
+                self._json_response({"error": "not found", "debug": "v2-else",
+                                      "routes": ["/", "/api/overview", "/api/top-apps",
+                                                 "/api/foco", "/api/health",
+                                                 "/api/orchestrator", "/api/modelo",
+                                                 "/api/informes", "/api/evals",
+                                                 "/api/tareas", "/api/pendientes",
+                                                 "/api/trust", "/informe/<nombre>"]}, 404)
         except Exception as e:
             self._json_response({"error": str(e)}, 500)
 
