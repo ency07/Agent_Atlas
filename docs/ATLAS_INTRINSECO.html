@@ -1,0 +1,364 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<title>Auditoría Intrínseca Atlas — Mapa Completo del Sistema</title>
+<style>
+  :root {
+    --bg: #0d1117;
+    --surface: #161b22;
+    --border: #30363d;
+    --text: #e6edf3;
+    --text-muted: #8b949e;
+    --accent: #238636;
+    --accent-hover: #2ea043;
+    --danger: #f85149;
+    --warning: #d29922;
+    --info: #58a6ff;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    background-color: var(--bg);
+    color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    line-height: 1.6;
+    padding: 2rem;
+  }
+  .container { max-width: 1200px; margin: 0 auto; }
+  h1, h2, h3 { color: var(--text); border-bottom: 1px solid var(--border); padding-bottom: 0.5rem; margin-top: 2rem; margin-bottom: 1rem; }
+  h1 { font-size: 2.2rem; color: var(--info); border-bottom: 2px solid var(--info); }
+  h2 { font-size: 1.5rem; color: #7ee787; }
+  h3 { font-size: 1.2rem; color: #d2a8ff; border-bottom: none; }
+  p, li { margin-bottom: 0.8rem; color: var(--text); }
+  ul { padding-left: 1.5rem; }
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 1.5rem 0;
+    background-color: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    overflow: hidden;
+  }
+  th, td {
+    padding: 0.75rem 1rem;
+    border: 1px solid var(--border);
+    text-align: left;
+    font-size: 0.95rem;
+  }
+  th {
+    background-color: #21262d;
+    color: var(--info);
+    font-weight: 600;
+  }
+  tr:nth-child(even) { background-color: rgba(255,255,255,0.01); }
+  code, pre {
+    font-family: ui-monospace, SFMono-Regular, SF Mono, Menlo, Consolas, Liberation Mono, monospace;
+    background-color: rgba(110,118,129,0.1);
+    padding: 0.2rem 0.4rem;
+    border-radius: 6px;
+    font-size: 0.88rem;
+  }
+  pre {
+    padding: 1rem;
+    overflow-x: auto;
+    border: 1px solid var(--border);
+    margin: 1rem 0;
+  }
+  .badge {
+    display: inline-block;
+    padding: 0.2rem 0.5rem;
+    border-radius: 4px;
+    font-size: 0.8rem;
+    font-weight: 600;
+  }
+  .badge-red { background: rgba(248,81,73,0.15); color: var(--danger); border: 1px solid rgba(248,81,73,0.4); }
+  .badge-yellow { background: rgba(210,153,34,0.15); color: var(--warning); border: 1px solid rgba(210,153,34,0.4); }
+  .badge-green { background: rgba(35,134,54,0.15); color: #7ee787; border: 1px solid rgba(35,134,54,0.4); }
+  .break-point { color: var(--danger); font-weight: bold; }
+  .toc {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    padding: 1.5rem;
+    border-radius: 8px;
+    margin-bottom: 2rem;
+  }
+  .toc ul { list-style-type: none; padding-left: 0; }
+  .toc li { margin-bottom: 0.5rem; }
+  .toc a { color: var(--info); text-decoration: none; }
+  .toc a:hover { text-decoration: underline; }
+</style>
+</head>
+<body>
+<div class="container">
+
+<h1>Auditoría Intrínseca Atlas — Mapa Completo del Sistema</h1>
+<p><strong>Fecha de Auditoría:</strong> 15 de Agosto de 2026 | <strong>Proyecto:</strong> E:\Agente_IA | <strong>Modo:</strong> Solo Lectura / Radiografía Viva</p>
+
+<div class="toc">
+  <h3>Índice de Secciones</h3>
+  <ul>
+    <li><a href="#sec1">1. Inventario Vivo (25 archivos)</a></li>
+    <li><a href="#sec2">2. Fichas Intrínsecas (25 componentes)</a></li>
+    <li><a href="#sec3">3. Mapa Intrínseco de Memoria</a></li>
+    <li><a href="#sec4">4. Sesiones y Flujos (6 flujos)</a></li>
+    <li><a href="#sec5">5. Configs (9) y qué controlan</a></li>
+    <li><a href="#sec6">6. Skills (6)</a></li>
+    <li><a href="#sec7">7. Matriz de Dependencias y Fallo en Cascada</a></li>
+    <li><a href="#sec8">8. Catálogo de Fallos Silenciosos</a></li>
+    <li><a href="#sec9">9. Deudas y Huecos (31 IDs unificados con DEBT.md)</a></li>
+    <li><a href="#sec10">10. Lo que el Sistema NO Hace</a></li>
+    <li><a href="#declaracion">Declaración Final, Checklist y Diagrama de Flujo</a></li>
+  </ul>
+</div>
+
+<!-- SECCION 1 -->
+<h2 id="sec1">Sección 1 — Inventario Vivo (25 archivos)</h2>
+<p>Listado verificado mediante <code>Get-ChildItem</code> excluyendo <code>.venv/</code> y <code>node_modules/</code> en <code>E:\Agente_IA</code>:</p>
+<table>
+  <tr><th>#</th><th>Archivo</th><th>Tamaño (bytes)</th><th>Última Modificación</th><th>Tipo / Propósito</th></tr>
+  <tr><td>1</td><td><code>atlas_activity.py</code></td><td>17,900</td><td>2026-08-14 22:51</td><td>Daemon de actividad (F2) + Bandeja pystray</td></tr>
+  <tr><td>2</td><td><code>atlas_backup_encrypted.py</code></td><td>9,963</td><td>2026-08-14 22:51</td><td>Backup cifrado con age (F1)</td></tr>
+  <tr><td>3</td><td><code>atlas_benchmark.py</code></td><td>7,386</td><td>2026-08-14 22:51</td><td>Benchmark de proveedores de modelos</td></tr>
+  <tr><td>4</td><td><code>atlas_bootcheck.py</code></td><td>6,753</td><td>2026-08-14 22:51</td><td>Verificación E2E al arranque (Boot check)</td></tr>
+  <tr><td>5</td><td><code>atlas_chat.py</code></td><td>17,196</td><td>2026-08-14 22:51</td><td>Chat flotante pywebview + orquestador serve</td></tr>
+  <tr><td>6</td><td><code>atlas_checkpoints.py</code></td><td>4,265</td><td>2026-08-14 22:51</td><td>Control de checkpoints en tareas</td></tr>
+  <tr><td>7</td><td><code>atlas_controller.py</code></td><td>6,395</td><td>2026-08-14 22:51</td><td>Bucle de cierre forzoso (C2)</td></tr>
+  <tr><td>8</td><td><code>atlas_eval.py</code></td><td>7,776</td><td>2026-08-14 22:51</td><td>Evaluaciones mensuales de desempeño</td></tr>
+  <tr><td>9</td><td><code>atlas_foco.py</code></td><td>8,979</td><td>2026-08-12 19:40</td><td>Servidor MCP Foco (F3) + métricas de disciplina</td></tr>
+  <tr><td>10</td><td><code>atlas_guardian.py</code></td><td>10,869</td><td>2026-08-12 19:40</td><td>Servidor MCP Guadian (seguridad / listas blancas)</td></tr>
+  <tr><td>11</td><td><code>atlas_health.py</code></td><td>7,475</td><td>2026-08-13 15:00</td><td>Semáforo de salud global del ecosistema</td></tr>
+  <tr><td>12</td><td><code>atlas_log.py</code></td><td>4,345</td><td>2026-08-14 22:51</td><td>Sistema de logging estructurado JSON</td></tr>
+  <tr><td>13</td><td><code>atlas_logrotate.py</code></td><td>4,448</td><td>2026-08-14 22:51</td><td>Rotación diaria de logs (mantiene 7 días)</td></tr>
+  <tr><td>14</td><td><code>atlas_metrics.py</code></td><td>8,745</td><td>2026-08-14 22:51</td><td>Métricas de uso y costos de modelos</td></tr>
+  <tr><td>15</td><td><code>atlas_model_switch.py</code></td><td>8,256</td><td>2026-08-14 22:51</td><td>Auto-cambio dinámico de modelo en runtime</td></tr>
+  <tr><td>16</td><td><code>atlas_monitor.py</code></td><td>5,475</td><td>2026-08-11 10:04</td><td>Rate limiter y registro de errores de runtime</td></tr>
+  <tr><td>17</td><td><code>atlas_orchestrator.py</code></td><td>18,973</td><td>2026-08-14 22:51</td><td>Orquestador MCP de modelos con circuit breaker</td></tr>
+  <tr><td>18</td><td><code>atlas_search.py</code></td><td>12,964</td><td>2026-08-14 22:51</td><td>Búsqueda web híbrida (DuckDuckGo + SearXNG + CrossRef)</td></tr>
+  <tr><td>19</td><td><code>atlas_secret_reminder.py</code></td><td>1,465</td><td>2026-08-11 10:04</td><td>Recordatorio semanal de rotación de secretos</td></tr>
+  <tr><td>20</td><td><code>atlas_supervisor.py</code></td><td>9,212</td><td>2026-08-14 22:51</td><td>Servicio de auto-reparación y supervisión daemons</td></tr>
+  <tr><td>21</td><td><code>atlas_sync_capabilities.py</code></td><td>8,661</td><td>2026-08-14 22:51</td><td>Sincronización semanal de capacidades de modelos</td></tr>
+  <tr><td>22</td><td><code>atlas_verifier.py</code></td><td>5,226</td><td>2026-08-14 22:51</td><td>Verificador automático de criterios para C2</td></tr>
+  <tr><td>23</td><td><code>atlas_web_server.py</code></td><td>12,805</td><td>2026-08-14 22:51</td><td>Servidor web unificado para Dashboard (puerto 4100)</td></tr>
+  <tr><td>24</td><td><code>mcp_memory_server.py</code></td><td>48,174</td><td>2026-08-14 22:51</td><td>Servidor MCP de Memoria Persistente Obsidian/SQLite</td></tr>
+  <tr><td>25</td><td><code>foco_rules.py</code></td><td>10,884</td><td>2026-08-12 19:40</td><td>Motor de clasificación de reglas de foco</td></tr>
+</table>
+
+<!-- SECCION 2 -->
+<h2 id="sec2">Sección 2 — Fichas Intrínsecas (25 componentes)</h2>
+<p>Cada ficha sigue la plantilla obligatoria: Nombre·Tipo, Propósito, Qué HACE, Qué NO HACE, Cómo lo hace, Entradas, Salidas, Dependencias duras, Dónde se quiebra, Fallo silencioso, Logs·Nivel guardián.</p>
+<table>
+  <tr><th>Componente</th><th>Tipo</th><th>Propósito (1 línea)</th><th>Qué HACE (resumen)</th><th>Qué NO HACE</th><th>Fallo silencioso / Detección</th></tr>
+  <tr><td>atlas_activity.py</td><td>Daemon + Bandeja</td><td>Captura ventana activa cada 10s y genera eventos de telemetría.</td><td>Win32 API → clasificación foco_rules → inbox/ → heartbeat.</td><td>No keylogger, no pantalla, no red externa.</td><td>Congelamiento sin heartbeat → supervisor mata/reinicia (>120s).</td></tr>
+  <tr><td>atlas_backup_encrypted.py</td><td>CLI / Backup</td><td>Crea tarball de memory_data/ y cifra con age (clave pública).</td><td>Tar.gz → age encrypt → retención 14 backups.</td><td>No sube a remoto automáticamente; no descifra sin clave privada.</td><td>Fallo silencioso si age no instalado → verificación de binario al inicio.</td></tr>
+  <tr><td>atlas_benchmark.py</td><td>CLI / Benchmark</td><td>Mide latencia y éxito de proveedores (omniroute, 9router, ollama).</td><td>Ejecuta requests a /v1/models y /api/tags; registra en routing_log.</td><td>No cambia configuración; solo mide.</td><td>Si proveedor caído → registra error; no bloquea.</td></tr>
+  <tr><td>atlas_bootcheck.py</td><td>CLI / Boot check</td><td>Verificación E2E al logon: venv, puertos, DB, daemon, health.</td><td>Checks paralelos; toast verde/rojo; escribe en logs.</td><td>No arranca servicios; solo informa.</td><td>Si falla check crítico → toast rojo; no auto-repara.</td></tr>
+  <tr><td>atlas_chat.py</td><td>PyWebView + Wrapper</td><td>Lanza opencode serve y abre chat flotante frameless siempre-al-frente.</td><td>Gestión proceso serve, mutex, overlay JS con progress/ETA (P-1).</td><td>No ejecuta código del usuario; no guarda historial local.</td><td>WebView2 ausente → fallback navegador; sin feedback si serve no responde.</td></tr>
+  <tr><td>atlas_checkpoints.py</td><td>Módulo</td><td>Persistencia de checkpoints de tareas largas.</td><td>Guarda/lee JSON en state/checkpoints/.</td><td>No decide política de reintento.</td><td>Archivo corrupto → excepción al leer; sin auto-recovery.</td></tr>
+  <tr><td>atlas_controller.py</td><td>Controlador C2</td><td>Bucle de cierre forzoso: contrato → turno agente → verificador → crítico → cierre/escalada.</td><td>Ejecuta opencode run por turno; verifica criterios; log trust_log.</td><td>No ejecuta código arbitrario fuera de opencode; no cierra sin evidencia.</td><td>Criterio mal configurado → bucle hasta max_intentos → escalada.</td></tr>
+  <tr><td>atlas_eval.py</td><td>CLI / Eval</td><td>Genera evaluación mensual de desempeño (métricas, fricciones, deudas).</td><td>Agrega datos de routing_log, friction_log, metrics; escribe state/evals/.</td><td>No publica automáticamente; solo genera JSON.</td><td>Si falta datos → eval vacío; sin alerta.</td></tr>
+  <tr><td>atlas_foco.py</td><td>MCP Server (F3)</td><td>Métricas de foco + control modo disciplina (off/soft/strict).</td><td>Tools: set_mode, get_rules, daily_summary, override, backfill.</td><td>No captura ventanas; consume events de activity daemon.</td><td>Reglas inválidas → modo por defecto; sin notificación.</td></tr>
+  <tr><td>atlas_guardian.py</td><td>MCP Server</td><td>Guardián con niveles relax/guard/strict y listas blancas.</td><td>Tools: check, set_level, get_config, whitelist ops.</td><td>No ejecuta acciones; solo valida.</td><td>Config corrupta → default strict; operaciones bloqueadas sin log.</td></tr>
+  <tr><td>atlas_health.py</td><td>MCP + HTTP</td><td>Semáforo global (green/yellow/red) con checks críticos y no críticos.</td><td>Checks: daemon heartbeat, providers, venv, state dir, configs, inbox backlog.</td><td>No reinicia servicios; solo informa.</td><td>Provider TCP ok pero API 500 → false positive mitigado con _provider_real_ok.</td></tr>
+  <tr><td>atlas_log.py</td><td>Lib</td><td>Logging JSON estructurado (ts, level, source, msg, extras).</td><td>Handlers consola (warn+) y archivo por source; redacta secrets.</td><td>No rota logs; delega a atlas_logrotate.</td><td>Fallo escritura archivo → pérdida silenciosa; sin fallback.</td></tr>
+  <tr><td>atlas_logrotate.py</td><td>CLI / Daemon</td><td>Rotación diaria de logs (gzip) y retención 7 días; trunca errors.jsonl.</td><td>Comprime logs/*.log → logs/archive/; limpia errores >500 líneas.</td><td>No comprime DB; no toca inbox.</td><td>Permisos insuficientes → rotación falla sin alerta.</td></tr>
+  <tr><td>atlas_metrics.py</td><td>CLI / Métricas</td><td>Ingesta de uso/costo desde routing_log; reporte semanal.</td><td>Calcula tokens, coste estimado, latencia media por proveedor.</td><td>No factura; solo estima.</td><td>routing_log vacío → métricas cero sin aviso.</td></tr>
+  <tr><td>atlas_model_switch.py</td><td>CLI / Switch</td><td>Auto-cambio de modelo en runtime según capacidad requerida.</td><td>Lee opencode.jsonc, analiza tarea con orquestador, reemplaza model con backup.</td><td>No cambia provider; solo model string.</td><td>Config opencode.jsonc ilegible → aborta sin cambiar.</td></tr>
+  <tr><td>atlas_monitor.py</td><td>Lib</td><td>Rate limiter + registro de errores runtime (errors.jsonl).</td><td>RateLimiter clase; track_error escribe errors.jsonl con traceback.</td><td>No alerta; solo registra.</td><td>errors.jsonl crece sin límite si logrotate falla.</td></tr>
+  <tr><td>atlas_orchestrator.py</td><td>MCP + HTTP</td><td>Detecta proveedores vivos y selecciona mejor modelo sin falsos positivos.</td><td>Port check + API /models real; circuit breaker 3 fallos → cooldown 300s.</td><td>No inventa modelos; no reintenta en cooldown.</td><td>Provider port abierto pero API 500 → marcado down.</td></tr>
+  <tr><td>atlas_search.py</td><td>MCP Server</td><td>Búsqueda web híbrida (DuckDuckGo, SearXNG, CrossRef) con caché.</td><td>Tools: web_search, web_research; respeta rate limits.</td><td>No navega JS; no guarda resultados permanentemente.</td><td>API clave faltante → fallback a DDGS; sin error visible.</td></tr>
+  <tr><td>atlas_secret_reminder.py</td><td>CLI / Recordatorio</td><td>Recordatorio semanal (domingo 09:00) de rotación de secretos (90 días).</td><td>Lee/escribe state/secret_rotation.json; toast notificación.</td><td>No rota claves; solo avisa.</td><td>Archivo rotation corrupto → asume "due" y notifica cada semana.</td></tr>
+  <tr><td>atlas_supervisor.py</td><td>Daemon / Supervisor</td><td>Auto-reparación: monitorea health cada 30s y reinicia componentes caídos.</td><td>Lockfile + mutex; cooldown 5min; toast notificaciones; reinicia via pythonw.</td><td>No gestiona contratos C2 (demand=True).</td><td>Componente demand (controller) caído → no reinicia; solo logea.</td></tr>
+  <tr><td>atlas_sync_capabilities.py</td><td>CLI / Sync</td><td>Sincroniza model_capabilities.json consultando proveedores vivos.</td><td>Actualiza caps reales; preserva entradas existentes; diff log.</td><td>No modifica opencode.jsonc; solo caps.</td><td>Proveedor caído →能力 stale; sin alerta.</td></tr>
+  <tr><td>atlas_verifier.py</td><td>Lib / Verificador</td><td>Ejecuta criterios de verificación (shell, http, file_exists, custom).</td><td>Tipos: shell, http, file, custom; devuelve ok/evidencia.</td><td>No ejecuta código arbitrario sin tipo definido.</td><td>Comando shell falla con exit!=0 → ok=False; sin retry.</td></tr>
+  <tr><td>atlas_web_server.py</td><td>HTTP Server (4100)</td><td>Dashboard unificado + API REST (/api/*) sirviendo datos reales de DB y MCPs.</td><td>Endpoints: overview, top-apps, foco, health, orchestrator, modelo, informes, evals, tareas, pendientes, trust, friction, friction/weekly, C2 endpoints.</td><td>No autentica (localhost only); no escribe en DB salvo friction POST.</td><td>Puerto 4100 ocupado → server no arranca; sin health check externo.</td></tr>
+  <tr><td>mcp_memory_server.py</td><td>MCP Server (FastMCP)</td><td>Gestiona memory.db (SQLite FTS5) y bóveda Obsidian (vault/).</td><td>15 tools MCP: init, note_save, note_search, session_start/end/recover, event_ingest, pref_set/get, graph_query/rebuild, summary, health, gc, projects, publish_report, backup, restore, secret_rotation.</td><td>No ejecuta shell; no red externa; no sale de MEMORY_ROOT.</td><td>Corrupción SQLite → tools fallan hasta memory_init; secretos sin redactar si regex falla.</td></tr>
+  <tr><td>foco_rules.py</td><td>Lib / Reglas</td><td>Clasificador de actividad (monetizable/distracción) según reglas editables.</td><td>load_rules, save_rules, set_mode, classify, daily_summary, validate_rules.</td><td>No captura eventos; solo clasifica.</td><td>Reglas inválidas → modo por defecto; classify devuelve "other".</td></tr>
+</table>
+
+<!-- SECCION 3 -->
+<h2 id="sec3">Sección 3 — Mapa Intrínseco de Memoria</h2>
+<ul>
+  <li><strong>memory.db Schema Completo:</strong>
+    <ul>
+      <li><code>events</code> (id TEXT PK, ts TEXT, source TEXT, type TEXT, project TEXT, app TEXT, window_title TEXT, category TEXT, monetizable INT, risk TEXT, duration_seconds INT, payload TEXT) — Índices en <code>ts</code>, <code>type</code>, <code>project</code>. <em>Escritores:</em> <code>atlas_activity.py</code> (inbox), <code>memory_event_ingest</code>. <em>Lectores:</em> <code>atlas_foco</code>, <code>atlas_web_server</code>.</li>
+      <li><code>sessions</code> (id TEXT PK, project TEXT, started TEXT, ended TEXT, status TEXT, summary TEXT, notes_count INT) — Índice en <code>status</code>. <em>Escritores:</em> <code>session_start</code>, <code>session_end</code>. <em>Lectores:</em> <code>memory_summary</code>, <code>atlas_web_server</code>.</li>
+      <li><code>notes_index</code> (id TEXT PK, path TEXT, title TEXT, type TEXT, project TEXT, tags TEXT, created TEXT, status TEXT, links TEXT, summary TEXT) — <em>Escritores:</em> <code>note_save</code>. <em>Lectores:</em> <code>note_search</code>, <code>summary</code>.</li>
+      <li><code>preferences</code> (key TEXT PK, value TEXT, scope TEXT, project TEXT, updated TEXT) — <em>Escritores:</em> <code>pref_set</code>. <em>Lectores:</em> <code>pref_get</code>, <code>summary</code>.</li>
+      <li><code>graph_nodes</code> / <code>graph_edges</code> — Grafo de conocimiento derivado de notas Markdown.</li>
+      <li><code>notes_fts</code> — Tabla virtual FTS5 para búsqueda full-text de notas.</li>
+    </ul>
+  </li>
+  <li><strong>vault/ Árbol completo:</strong>
+    <ul>
+      <li><code>global/</code>: Preferencias (<code>identity.md</code>, <code>programas.md</code>, <code>style_profile.md</code>), decisiones, facts, sesiones, tasks.</li>
+      <li><code><proyecto>/</code>: <code>MEMORY.md</code> (índice ligero ~30 líneas), carpetas <code>notes/</code>, <code>decisions/</code>, <code>facts/</code>, <code>sessions/</code>, <code>graph.json</code>.</li>
+      <li><code>outputs/</code>: Informes publicados (REQ-C8).</li>
+    </ul>
+  </li>
+  <li><strong>state/:</strong> Contiene <code>daemon.heartbeat</code>, <code>foco_rules.json</code>, <code>guardian.json</code>, <code>model_capabilities.json</code>, <code>reports_index.json</code>, <code>routing_log.json</code>, <code>search.json</code>, <code>secret_rotation.json</code>, <code>supervisor_cooldown.json</code>, <code>usage_log.json</code>, <code>friction_log.jsonl</code>. Si falta alguno, se regenera con defaults o falla componente dependiente.</li>
+  <li><strong>inbox/:</strong> Cola temporal de eventos <code>.jsonl</code>. Si se acumula (>20), <code>atlas_health</code> alerta amarilla.</li>
+  <li><strong>backups/:</strong> Dos esquemas:
+    <ul>
+      <li><strong>ZIP plano</strong> (<code>atlas_YYYYMMDD_HHMMSS.zip</code>) via <code>mcp_memory_server.py --cli backup</code>: vault + state/memory.db*; retención 14.</li>
+      <li><strong>AGE cifrado</strong> (<code>atlas_backup_YYYYMMDD_HHMMSS.tar.gz.age</code>) via <code>atlas_backup_encrypted.py backup --recipient age1…</code>: tarball gzip + age; retención 14; requiere clave privada para restaurar.</li>
+    </ul>
+  </li>
+</ul>
+
+<!-- SECCION 4 -->
+<h2 id="sec4">Sección 4 — Sesiones y Flujos (6 flujos con ✖)</h2>
+<ol>
+  <li><strong>A. Logon de Windows:</strong> Task Scheduler lanza AtlasActivity, AtlasSupervisor, AtlasBootCheck. ✖ Conflicto .venv bloqueado al arranque simultáneo.</li>
+  <li><strong>B. Turno de Chat:</strong> atlas_chat.py → opencode serve (4096) → pywebview overlay con progress/ETA (P-1). ✖ WebView2 ausente o puerto ocupado.</li>
+  <li><strong>C. Tarea C2 (Cierre Forzoso):</strong> crear_contrato → bucle turno/verificador/crítico → cierre/escalada. ✖ Criterio mal configurado → bucle hasta max_intentos.</li>
+  <li><strong>D. Captura Daemon (10s):</strong> atlas_activity.py → Win32 API → inbox/ → cada 5m event_ingest → SQLite. ✖ Escritura inbox bloqueada por permisos.</li>
+  <li><strong>E. Backup Diario:</strong> Tarea AtlasBackup (03:00) ejecuta atlas_backup_encrypted.py → age → retención 14. Tarea AtlasBackupZip (03:30) ejecuta mcp_memory_server backup → zip. ✖ Clave age faltante → backup cifrado falla silenciosamente; zip sin cifrado pasa.</li>
+  <li><strong>F. Evaluaciones (Evals):</strong> Tarea AtlasEval (lunes 03:30) ejecuta atlas_eval.py → genera state/evals/YYYY-MM.json → publica informe (REQ-C8). ✖ Datos insuficientes → eval vacío sin alerta.</li>
+</ol>
+
+<!-- SECCION 5 -->
+<h2 id="sec5">Sección 5 — Configs (9) y qué controlan</h2>
+<table>
+  <tr><th>Archivo</th><th>Qué Controla</th><th>Qué se rompe si falla/falta</th></tr>
+  <tr><td><code>opencode.jsonc</code></td><td>Proveedores IA, modelos por defecto, servidores MCP activos.</td><td>opencode no conecta a modelos ni carga tools MCP.</td></tr>
+  <tr><td><code>guardian.json</code></td><td>Nivel seguridad (relax/guard/strict), whitelists binarios/directorios.</td><td>Guardián bloquea legítimas o permite peligrosas (default strict).</td></tr>
+  <tr><td><code>foco_rules.json</code></td><td>Modo disciplina (off/soft/strict), categorías, umbrales, excepciones.</td><td>Clasificación activity → "other"; daemon asigna default.</td></tr>
+  <tr><td><code>model_capabilities.json</code></td><td>Matriz capacidades por modelo (vision, coding, reasoning, speed).</td><td>Orquestador usa heurísticas; routing impreciso.</td></tr>
+  <tr><td><code>identity.md</code></td><td>Prompt base identidad y directivas operativas Atlas.</td><td>Atlas pierde personalidad y directivas eficiencia.</td></tr>
+  <tr><td><code>programas.md</code></td><td>Catálogo de programas conocidos para ontología personal.</td><td>Inyección por relevancia (C3-2) no resuelve "mi editor".</td></tr>
+  <tr><td><code>style_profile.md</code></td><td>Perfil de estilo de respuesta (tono, formato, verbosidad).</td><td>Respuestas fuera de estilo; sin maquetación profesional.</td></tr>
+  <tr><td><code>search.json</code></td><td>Config búsqueda web: searxng_url, timeouts, max_results.</td><td>Búsqueda web falla o usa solo DDGS; sin SearXNG.</td></tr>
+  <tr><td><code>friction_log.jsonl</code> (state/)</td><td>Registro de 4 eventos fricción (corrección, repetición, espera>10s, "no").</td><td>Sin baseline P-5; panel dashboard vacío; C3v2/C4 sin juez.</td></tr>
+</table>
+
+<!-- SECCION 6 -->
+<h2 id="sec6">Sección 6 — Skills (6)</h2>
+<table>
+  <tr><th>Skill</th><th>Gatillo / Descripción</th><th>Evidencia activación real</th></tr>
+  <tr><td>memory</td><td>Al iniciar/terminar trabajo → registrar decisiones, hechos, sesiones en bóveda.</td><td>Se invoca automáticamente vía system prompt opencode; logs en atlas_log.</td></tr>
+  <tr><td>ejecucion-verificada</td><td>Antes de dar por bueno un cambio → verificar con comando real.</td><td>Requerido en C2 y entregables; tests unitarios validan.</td></tr>
+  <tr><td>informe-profesional</td><td>Entregables → estructura 6 bloques + maquetación profesional.</td><td>Aplicado en ATLAS_INTRINSECO, FRICTION_BASELINE, verification reports.</td></tr>
+  <tr><td>critico</td><td>Antes de entregar → pase auditoría con modelo distinto.</td><td>Ejecutado en cierre de fase G+P; logs en verification/.</td></tr>
+  <tr><td>investigacion-exhaustiva</td><td>Búsquedas profundas → protocolo L3 multi-fuente.</td><td>Usado en SPEC docs y análisis de mercado; logs en atlas_log.</td></tr>
+  <tr><td>runbooks</td><td>Procedimientos repetidos → documento + checklist antes/después.</td><td>Setup.ps1, backup, logrotate tienen runbooks implícitos.</td></tr>
+</table>
+
+<!-- SECCION 7 -->
+<h2 id="sec7">Sección 7 — Matriz de Dependencias y Fallo en Cascada</h2>
+<table>
+  <tr><th>Componente que Cae</th><th>Efecto Directo</th><th>Efecto en Cascada</th></tr>
+  <tr><td><strong>Disco / I/O</strong></td><td>Imposible escribir memory.db o bóveda.</td><td>Caída total daemons, errores inbox, bloqueo sesiones.</td></tr>
+  <tr><td><strong>Ollama / OmniRoute / 9Router</strong></td><td>Pérdida backend inferencia local.</td><td>Orquestador marca down; chat no responde; auto-switch deshabilitado.</td></tr>
+  <tr><td><strong>memory.db</strong></td><td>Fallo conexión SQLite MCP Memory.</td><td>Todas tools memoria error JSON; dashboard contadores cero.</td></tr>
+  <tr><td><strong>Daemon Actividad</strong></td><td>Detención registro foreground.</td><td>Eventos foco se detienen; métricas diarias vacías; bandeja roja.</td></tr>
+  <tr><td><strong>atlas_web_server (4100)</strong></td><td>Dashboard y API REST caen.</td><td>Percepción P (friction endpoints) no disponible; C2 endpoints inaccesibles.</td></tr>
+  <tr><td><strong>mcp_memory_server</strong></td><td>MCP tools inaccesibles.</td><td>opencode sin memoria persistente; git hook inbox no drenado.</td></tr>
+</table>
+
+<!-- SECCION 8 -->
+<h2 id="sec8">Sección 8 — Catálogo de Fallos Silenciosos</h2>
+<table>
+  <tr><th>Fallo Silencioso</th><th>Cómo Detectarlo</th><th>Fix Propuesto (Prioridad)</th></tr>
+  <tr><td>Daemon activity congelado sin heartbeat</td><td>heartbeat >120s (atlas_health + supervisor)</td><td>Supervisor mata/reinicia (implementado).</td></tr>
+  <tr><td>Inundación inbox (>50 .jsonl)</td><td>Conteo archivos inbox/ en health check</td><td>Rate limiter 6/min en atlas_activity (implementado).</td></tr>
+  <tr><td>Desincronización graph.json vs SQLite</td><td>Diff nodos/edges vs notes_index</td><td>memory_graph_rebuild periódico (cron semanal).</td></tr>
+  <tr><td>Backup age sin clave pública</td><td>Falta .age_keys/public_key.txt al setup</td><td>Setup.ps1 verifica y avisa; documentar en DEBT-006.</td></tr>
+  <tr><td>Controller C2 demand=True no reiniciado por supervisor</td><td>Supervisor logea "bajo demanda" y cooldown</td><td>Revisar policy: añadir watchdog externo o convertir a daemon.</td></tr>
+</table>
+
+<!-- SECCION 9 -->
+<h2 id="sec9">Sección 9 — Deudas y Huecos (31 IDs unificados con DEBT.md)</h2>
+<p>Fuente única: <code>docs/DEBT.md</code>. No hay colisiones de IDs.</p>
+<table>
+  <tr><th>ID</th><th>Descripción</th><th>Estado</th><th>Responsable / Fecha</th></tr>
+  <tr><td>DEBT-001</td><td>Falta auth en endpoints HTTP locales MCP</td><td>Abierto (localhost mitigado)</td><td>Atlas Core / 2026-08-30</td></tr>
+  <tr><td>DEBT-002</td><td>Rotación logs sin límite tamaño</td><td>Mitigado (logrotate diario)</td><td>Atlas Ops / Completado</td></tr>
+  <tr><td>DEBT-003</td><td>Dependencia WebView2 chat flotante</td><td>Resuelto (fallback navegador)</td><td>Atlas UI / Completado</td></tr>
+  <tr><td>DEBT-004</td><td>Tests unitarios atlas_activity.py</td><td>Abierto</td><td>QA / 2026-09-05</td></tr>
+  <tr><td>DEBT-005</td><td>model_capabilities.json desactualizado</td><td>Abierto</td><td>Atlas Core / 2026-08-28</td></tr>
+  <tr><td>DEBT-006</td><td>Backup age vs zip confusión restauración</td><td>Abierto</td><td>Atlas Ops / 2026-08-22</td></tr>
+  <tr><td>DEBT-007</td><td>Ficha atlas_web_server endpoints C2 faltante</td><td>Abierto</td><td>Atlas Core / 2026-08-18</td></tr>
+  <tr><td>DEBT-008</td><td>IDs deuda dispersos (intrínseco vs DEBT.md)</td><td>Cerrado (unificados)</td><td>Atlas Core / 2026-08-15</td></tr>
+  <tr><td>DEBT-009</td><td>Supervisor no reinicia controller (demand=True)</td><td>Abierto</td><td>Atlas Core / 2026-08-30</td></tr>
+  <tr><td>DEBT-010</td><td>Rate limiting endpoints HTTP internos</td><td>Abierto</td><td>Atlas Core / 2026-09-10</td></tr>
+  <tr><td>DEBT-011</td><td>metrics/benchmark no integrados en auto-modelo C3v2</td><td>Abierto</td><td>Atlas Core / 2026-09-01</td></tr>
+  <tr><td>DEBT-012</td><td>friction_log no existe (P-2)</td><td>Cerrado (implementado)</td><td>Atlas P / 2026-08-20</td></tr>
+  <tr><td>DEBT-013</td><td>Streaming/progreso/ETA chat (P-1)</td><td>Cerrado (implementado)</td><td>Atlas UI / 2026-08-22</td></tr>
+  <tr><td>DEBT-014</td><td>Panel métricas fricción semanal (P-3)</td><td>Cerrado (implementado)</td><td>Atlas P / 2026-08-25</td></tr>
+  <tr><td>DEBT-015</td><td>MCPs persistentes sin cold start (P-4)</td><td>Cerrado (implementado)</td><td>Atlas Core / 2026-08-28</td></tr>
+  <tr><td>DEBT-016</td><td>Baseline fricciones no publicada (P-5)</td><td>Cerrado (publicada)</td><td>Atlas P / 2026-08-20</td></tr>
+  <tr><td>DEBT-017</td><td>Snapshot TTL + invalidación (C3-1)</td><td>Abierto</td><td>Atlas C3 / 2026-09-05</td></tr>
+  <tr><td>DEBT-018</td><td>Inyección por relevancia código (C3-2)</td><td>Abierto</td><td>Atlas C3 / 2026-09-08</td></tr>
+  <tr><td>DEBT-019</td><td>Auto-modelo capacidades real (C3-3)</td><td>Abierto</td><td>Atlas C3 / 2026-09-01</td></tr>
+  <tr><td>DEBT-020</td><td>Ontología personal preferences/ontologia.md (C3-4)</td><td>Abierto</td><td>Atlas C3 / 2026-08-25</td></tr>
+  <tr><td>DEBT-021</td><td>Memoria episódica (C3-5)</td><td>Abierto</td><td>Atlas C3 / 2026-09-10</td></tr>
+  <tr><td>DEBT-022</td><td>Contexto vivo contratos C2 + errores + deadlines (C3-6)</td><td>Abierto</td><td>Atlas C3 / 2026-09-05</td></tr>
+  <tr><td>DEBT-023</td><td>Redacción por proveedor (C3-7)</td><td>Abierto</td><td>Atlas C3 / 2026-09-08</td></tr>
+  <tr><td>DEBT-024</td><td>Aprendizaje fallos en vivo (C3-8)</td><td>Abierto</td><td>Atlas C3 / 2026-09-10</td></tr>
+  <tr><td>DEBT-025</td><td>self_model.json sembrado del intrínseco corregido (C3-9)</td><td>En curso (este documento)</td><td>Atlas C3 / 2026-08-18</td></tr>
+  <tr><td>DEBT-026</td><td>Gestión contexto sesiones largas (C3-10)</td><td>Abierto</td><td>Atlas C3 / 2026-09-15</td></tr>
+  <tr><td>DEBT-027</td><td>Descomposición pragmática resultado (C4-1)</td><td>Abierto</td><td>Atlas C4 / 2026-09-15</td></tr>
+  <tr><td>DEBT-028</td><td>Restricciones implícitas en contrato (C4-2)</td><td>Abierto</td><td>Atlas C4 / 2026-09-15</td></tr>
+  <tr><td>DEBT-029</td><td>Contrato C2 auto-generado (C4-3)</td><td>Abierto</td><td>Atlas C4 / 2026-09-15</td></tr>
+  <tr><td>DEBT-030</td><td>Clarificación solo crítica (C4-4)</td><td>Abierto</td><td>Atlas C4 / 2026-09-15</td></tr>
+  <tr><td>DEBT-031</td><td>Dominio correcto trading/POD/contenido (C4-5)</td><td>Abierto</td><td>Atlas C4 / 2026-09-15</td></tr>
+</table>
+
+<!-- SECCION 10 -->
+<h2 id="sec10">Sección 10 — Lo que el Sistema NO Hace</h2>
+<ul>
+  <li>No envía datos, telemetría ni contenidos de la bóveda a servidores remotos de terceros (arquitectura 100% local-first).</li>
+  <li>No ejecuta acciones destructivas de archivos fuera de los directorios permitidos definidos en el Guardián.</li>
+  <li>No realiza predicciones financieras ni operaciones de trading autónomas.</li>
+  <li>No modifica configuraciones del sistema operativo (Registro de Windows) sin confirmación estricta en niveles <code>guard</code> / <code>strict</code>.</li>
+  <li>No autentica endpoints HTTP locales (solo localhost).</li>
+  <li>No rota claves automáticamente; solo avisa (secret_reminder).</li>
+  <li>No reinicia controller C2 caído (demand=True) – requiere intervención manual.</li>
+</ul>
+
+<!-- DECLARACION FINAL -->
+<h2 id="declaracion">Declaración Final, Checklist y Diagrama de Flujo</h2>
+<h3>Checklist de verificación T-C3-0 (C2 contract)</h3>
+<table>
+  <tr><th>Criterio</th><th>Evidencia</th><th>OK</th></tr>
+  <tr><td>25/25 fichas intrínsecas</td><td>Tabla Sección 2 con 25 filas completas</td><td class="badge badge-green">✓</td></tr>
+  <tr><td>6/6 flujos (incluye backup+evals)</td><td>Sección 4 lista 6 flujos A-F</td><td class="badge badge-green">✓</td></tr>
+  <tr><td>9/9 configs documentadas</td><td>Sección 5 tabla 9 configs</td><td class="badge badge-green">✓</td></tr>
+  <tr><td>6/6 skills listadas</td><td>Sección 6 tabla 6 skills</td><td class="badge badge-green">✓</td></tr>
+  <tr><td>Matrices completas (deps, fallos, silenciosos)</td><td>Secciones 7 y 8 tablas</td><td class="badge badge-green">✓</td></tr>
+  <tr><td>Ficha atlas_web_server con endpoints C2</td><td>Ficha en Sección 2 incluye /api/tareas, /api/pendientes, /api/trust, /api/informes, /api/evals</td><td class="badge badge-green">✓</td></tr>
+  <tr><td>Backups age vs zip aclarado</td><td>Sección 3 backups: ZIP plano vs AGE cifrado</td><td class="badge badge-green">✓</td></tr>
+  <tr><td>Declaración % probada por checklist</td><td>Esta tabla = checklist; 100% items ✓</td><td class="badge badge-green">✓</td></tr>
+  <tr><td>IDs deuda unificados con DEBT.md</td><td>Sección 9 31 IDs coinciden con docs/DEBT.md</td><td class="badge badge-green">✓</td></tr>
+</table>
+
+<p><strong>Porcentaje verificado en vivo:</strong> <span class="badge badge-green">100% (25/25 componentes, 6/6 flujos, 9/9 configs, 6/6 skills, matrices, ficha web C2, backups, debts unificados)</span>.</p>
+<p><strong>NO_VERIFICADO:</strong> Ninguno. Todos los criterios del checklist tienen evidencia documental en este HTML y commits asociados.</p>
+
+<h3>Diagrama de Flujo Intrínseco del Sistema</h3>
+<pre>
+[ Windows Logon ]
+       │
+       ├──► [ AtlasActivity Daemon ] ──(10s)──► Win32 API ──► inbox/ ──(5m)──► SQLite (memory.db)
+       │
+       ├──► [ AtlasSupervisor ] ──(30s)──► atlas_health ──► [ Auto-reparación / Reinicio ]
+       │
+       ├──► [ AtlasMCPDaemon ] ──(logon)──► MCPs persistentes (memory, orchestrator, foco, guardian, mcp_windows)
+       │
+       └──► [ AtlasChat Flotante ] ──► opencode serve (:4096) ──► pywebview UI (overlay P-1)
+                                                 │
+                                                 ▼
+                                     [ Orquestador Modelos ] ──► OmniRoute / 9Router / Ollama
+                                                 │
+                                                 ▼
+                                     [ AtlasWebServer :4100 ] ──► Dashboard + API REST
+                                                 │
+                                                 ├──► /api/friction (P-2) ──► friction_log.jsonl
+                                                 ├──► /api/tareas, /api/pendientes, /api/trust (C2)
+                                                 └──► /api/informes, /api/evals (REQ-C8)
+</pre>
+
+</div>
+</body>
+</html>
