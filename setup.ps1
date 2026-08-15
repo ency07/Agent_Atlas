@@ -474,6 +474,24 @@ if (Test-Path $metVbs) {
     Write-Host "  AVISO: start_atlas_metrics.vbs no encontrado" -ForegroundColor DarkYellow
 }
 
+# ---------- 9h. MCP Daemon persistente (P-4) ----------
+Write-Host "`n[9h/10] MCP Daemon persistente (sin cold start)..." -ForegroundColor Yellow
+$mcpVbs = Join-Path $ROOT "start_atlas_mcp_daemon.vbs"
+if (Test-Path $mcpVbs) {
+    $actionMcp = New-ScheduledTaskAction -Execute 'wscript.exe' -Argument "`"$mcpVbs`""
+    $triggerMcp = New-ScheduledTaskTrigger -AtLogOn
+    $settingsMcp = New-ScheduledTaskSettingsSet -AllowStartIfOnBatteries -DontStopIfGoingOnBatteries -ExecutionTimeLimit (New-TimeSpan -Hours 0) -RestartCount 3 -RestartInterval (New-TimeSpan -Minutes 1)
+    Register-ScheduledTask -TaskName 'AtlasMCPDaemon' -Action $actionMcp -Trigger $triggerMcp -Settings $settingsMcp -Force | Out-Null
+    $taskMcp = Get-ScheduledTask -TaskName 'AtlasMCPDaemon' -ErrorAction SilentlyContinue
+    if ($taskMcp) {
+        Write-Host "  tarea AtlasMCPDaemon registrada (autostart al iniciar sesion, MCPs calientes)"
+    } else {
+        Write-Host "  AVISO: no se pudo registrar AtlasMCPDaemon" -ForegroundColor DarkYellow
+    }
+} else {
+    Write-Host "  AVISO: start_atlas_mcp_daemon.vbs no encontrado" -ForegroundColor DarkYellow
+}
+
 # ---------- 10. Diagnostico ----------
 Write-Host "`n[10/10] Diagnostico..." -ForegroundColor Yellow
 & (Join-Path $ROOT "check.ps1")
