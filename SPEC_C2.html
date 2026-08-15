@@ -1,0 +1,261 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<title>Atlas — SPEC C2 · Bucle de Cierre Forzoso</title>
+<style>
+body{background:#101820;color:#e6e6e6;font-family:'Segoe UI',system-ui,sans-serif;margin:2rem auto;max-width:1100px;line-height:1.45}
+h1{font-size:1.6rem}h2{font-size:1.15rem;margin-top:2rem;border-bottom:1px solid #333;padding-bottom:4px}
+.sub{color:#9ab}code{background:#0d141b;padding:1px 5px;border-radius:4px;color:#8cf}pre{background:#0d141b;padding:10px;border-radius:8px;overflow-x:auto;font-size:.8rem}
+table{border-collapse:collapse;width:100%;font-size:.86rem}td,th{border:1px solid #333;padding:6px;text-align:left}
+details{margin:8px 0;background:#18222c;border-radius:8px;padding:8px 12px;border-left:4px solid #c62828}
+summary{cursor:pointer;color:#8cf;font-weight:600}ul{margin:6px 0 6px 18px}
+</style>
+</head>
+<body>
+<h1>Atlas — SPEC C2 · Bucle de Cierre Forzoso</h1>
+<p class="sub">Contrato de implementación · v1.0 · 14/08/2026 · Regla de lectura: cada REQ bloqueante; evidencia obligatoria.<br>
+<b>Lema:</b> el agente NO cierra tareas. Cierra el código.</p>
+
+<h2>01 · Propósito</h2>
+<p>Convertir el cierre de tareas de <b>promesa</b> (skills, prompts) a <b>ley</b> (código determinista). Un controlador externo corre el bucle agente→verificador y no sale hasta 100% de criterios + calidad, o escala al humano con reporte exacto. Es el "Hard Stop" de GOVERNANCE.md ejecutado como sistema, no como texto.</p>
+
+<h2>02 · Diagnóstico (por qué queda a medias hoy)</h2>
+<ul>
+<li><b>Skills son texto:</b> el LLM las ignora bajo contexto largo o cortes. Nada lo obliga.</li>
+<li><b>Sin re-inyección:</b> opencode ejecuta un turno y termina; lo pendiente muere ahí.</li>
+<li><b>Auto-evaluación sesgada:</b> preguntar al agente "¿terminaste?" = el alumno se califica solo.</li>
+<li><b>Progreso invisible:</b> sin criterios ni %, "a medias" no se ve.</li>
+<li>Evidencia del reporte 13/08: chat hardcodeado, sin switch runtime, tareas que mueren silenciosas (stderr DEVNULL).</li>
+</ul>
+
+<h2>03 · Arquitectura</h2>
+<pre>
+TÚ → orden
+      ↓
+CONTRATO (criterios verificables; sección=criterio; %=cumplidos/total)
+      ↓
+┌────────────── BUCLE · atlas_controller.py (código, no LLM) ──────────────┐
+│ 1. turno_agente(): opencode run con SOLO pendientes inyectados            │
+│ 2. verificar(): EJECUTA evidencia real por criterio (nunca pregunta)      │
+│ 3. progreso % + pendientes → dashboard /api/tareas + chat                 │
+│ 4. &lt;100% → re-inyecta (intento n/max)                                     │
+│ 5. =100% → critic(): modelo APARTE, JSON forzado (calidad)                │
+│    calidad NO → re-inyecta huecos                                         │
+│ 6. max intentos / timeout / costo → ESCALADA con reporte (nunca silencio) │
+└───────────────────────────────────────────────────────────────────────────┘
+      ↓
+CIERRE: contrato+evidencias → vault/&lt;proj&gt;/tasks/ + dashboard + runbook si aplica
+</pre>
+
+<h2>04 · Contrato de tarea (schema)</h2>
+<pre>
+{
+ "task_id": "T-20260814-001",
+ "orden_literal": "&lt;palabras exactas del usuario&gt;",
+ "estado": "EN_CURSO | TERMINADA | ESCALADA",
+ "criterios": [
+   {"id":"CR-1","descripcion":"...","tipo":"comando|archivo|endpoint|ui|captura|test|humano",
+    "verificacion":{"cmd|ruta|url|contiene|k":"...","esperado":"..."},
+    "estado":"PENDIENTE|OK|FAIL","evidencia":"..."}
+ ],
+ "progreso_pct": 40,
+ "intentos": 2, "max_intentos": 5,
+ "timeout": "ISO", "costo_max": ...,
+ "trust_log": [], "evidencias": []
+}
+</pre>
+<ul>
+<li>Genera el contrato un LLM (descompone la orden) pero el <b>controlador valida</b>: criterio sin verificación ejecutable → <b>degradado a tipo "humano"</b> (no bloquea el bucle; pasa a tu lista de pendientes, coherente con DEBT-001/002/003).</li>
+<li>Contrato persiste en <code>state/tasks/&lt;id&gt;.json</code> (reusa checkpoints C13) + copia en bóveda al cerrar.</li>
+</ul>
+
+<h2>05 · Controlador (esqueleto drop-in)</h2>
+<pre>
+# atlas_controller.py
+import json, subprocess, time, urllib.request, urllib.error
+from pathlib import Path
+from datetime import datetime, timedelta
+STATE = Path("memory_data/state/tasks"); STATE.mkdir(parents=True, exist_ok=True)
+
+def guardar(c):
+    (STATE/f"{c['task_id']}.json").write_text(json.dumps(c, ensure_ascii=False, indent=2), encoding="utf-8")
+
+def notificar(c):
+    msg = f"{c['task_id']}: {c['progreso_pct']}% · intento {c['intentos']}/{c['max_intentos']}"
+    pendientes = [x["id"] for x in c["criterios"] if x["estado"]=="FAIL"]
+    if pendientes: msg += f" · falta {pendientes}"
+    print(f"[controller] {msg}")
+
+def cerrar(c):
+    c["estado"]="TERMINADA"; c["evidencias"].append({"cierre": datetime.now().isoformat()})
+    guardar(c); notificar(c)
+    # copiar contrato a bóveda
+    vault = Path("memory_data/vault/agente_ia/tasks"); vault.mkdir(parents=True, exist_ok=True)
+    (vault/f"{c['task_id']}.json").write_text(json.dumps(c, ensure_ascii=False, indent=2), encoding="utf-8")
+    return c
+
+def escalar(c):
+    c["estado"]="ESCALADA"; guardar(c)
+    notificar(c)
+    return c
+
+def registrar_claim(c):
+    """Registra si el agente declaró 'listo' pero el verificador no está en 100%"""
+    if c.get("_agent_claimed_done") and c["progreso_pct"] < 100:
+        c.setdefault("trust_log", []).append({"ts": datetime.now().isoformat(), "pct": c["progreso_pct"], "claim": True})
+
+EXEC = {
+    "comando":  lambda v: _exec_cmd(v),
+    "archivo":  lambda v: _exec_file(v),
+    "endpoint": lambda v: _exec_endpoint(v),
+    "test":     lambda v: _exec_test(v),
+}
+
+def _exec_cmd(v):
+    try:
+        r = subprocess.run(v["cmd"], shell=True, capture_output=True, text=True, timeout=30)
+        ok = (r.returncode == 0) and (v.get("esperado","") in (r.stdout + r.stderr))
+        return ok, r.stdout[:500]
+    except Exception as e:
+        return False, str(e)
+
+def _exec_file(v):
+    p = Path(v["ruta"])
+    if not p.exists(): return False, "no existe"
+    if "contiene" in v:
+        return v["contiene"] in p.read_text(encoding="utf-8"), "contiene check"
+    return True, "existe"
+
+def _exec_endpoint(v):
+    try:
+        req = urllib.request.Request(v["url"], method="GET")
+        with urllib.request.urlopen(req, timeout=10) as r:
+            body = r.read().decode("utf-8", errors="replace")
+            ok = (r.status == 200) and (v.get("esperado","") in body)
+            return ok, f"status={r.status}"
+    except Exception as e:
+        return False, str(e)
+
+def _exec_test(v):
+    try:
+        r = subprocess.run([".venv\\Scripts\\python.exe", "-m", "pytest", "-q", v.get("path","tests/unit/")], capture_output=True, text=True, timeout=120, cwd=str(Path(__file__).parent))
+        ok = "failed" not in r.stdout.lower() and r.returncode == 0
+        return ok, r.stdout[-500:]
+    except Exception as e:
+        return False, str(e)
+
+def correr(task_id):
+    c = json.loads((STATE/f"{task_id}.json").read_text(encoding="utf-8"))
+    while c["estado"]=="EN_CURSO":
+        timeout_dt = datetime.fromisoformat(c["timeout"])
+        if c["intentos"]>=c["max_intentos"] or datetime.now() > timeout_dt:
+            return escalar(c)
+        pendientes=[x for x in c["criterios"] if x["estado"] not in ("OK",) and x["tipo"]!="humano"]
+        if not pendientes:
+            ok_n=sum(1 for x in c["criterios"] if x["estado"]=="OK" or x["tipo"]=="humano")
+            c["progreso_pct"]=round(100*ok_n/len(c["criterios"]))
+            if c["progreso_pct"]==100:
+                q = critic(c)
+                if q["pass"]: return cerrar(c)
+                c["evidencias"].append({"huecos_calidad": q["huecos"]})
+            guardar(c); notificar(c); break
+        turno_agente(c, pendientes)
+        c["intentos"]+=1
+        verificar(c)
+        registrar_claim(c)
+        if c["progreso_pct"]==100:
+            q = critic(c)
+            if q["pass"]: return cerrar(c)
+            c["evidencias"].append({"huecos_calidad": q["huecos"]})
+        guardar(c); notificar(c)
+        time.sleep(2)
+
+def turno_agente(c, pendientes):
+    prompt=(f"CONTRATO {c['task_id']}. Orden: {c['orden_literal']}. "
+            f"Pendientes: {[(p['id'],p['descripcion']) for p in pendientes]}. "
+            f"Evidencia previa: {c['evidencias'][-3:]}. Intento {c['intentos']+1}/{c['max_intentos']}. "
+            "Resuelve SOLO los pendientes. No declares éxito: el verificador lo comprobará.")
+    subprocess.run(["opencode","run",prompt], timeout=600)
+
+def verificar(c):
+    for cr in c["criterios"]:
+        if cr["estado"]=="OK" or cr["tipo"]=="humano": continue
+        ok, ev = EXEC[cr["tipo"]](cr["verificacion"])
+        cr["estado"], cr["evidencia"] = ("OK" if ok else "FAIL"), ev
+    ok_n=sum(1 for x in c["criterios"] if x["estado"]=="OK" or x["tipo"]=="humano")
+    c["progreso_pct"]=round(100*ok_n/len(c["criterios"]))
+</pre>
+
+<h2>06 · Verificador (ejecutores por tipo)</h2>
+<table>
+<tr><th>tipo</th><th>Ejecutor real</th><th>Ejemplo</th></tr>
+<tr><td>comando</td><td>subprocess (guardian) + exit code + <code>esperado</code> en salida</td><td><code>schtasks /query | findstr AtlasChat</code></td></tr>
+<tr><td>archivo</td><td>existe + contiene</td><td>extensión en prefs del navegador</td></tr>
+<tr><td>endpoint</td><td>GET status + contiene</td><td><code>/api/informes</code> → 200 + título</td></tr>
+<tr><td>ui</td><td><code>read_ui_state</code> (UIA) contiene elemento/estado</td><td>toggle de extensión activo</td></tr>
+<tr><td>captura</td><td><code>screen_capture</code> + <code>ocr_screen</code> contiene texto</td><td>valor en options</td></tr>
+<tr><td>test</td><td><code>pytest -q -k</code> sin "failed"</td><td>suite crítica</td></tr>
+<tr><td>humano</td><td>NO bloquea; pendiente del usuario en dashboard</td><td>calificación "profesional"</td></tr>
+</table>
+<p>El "listo/terminado" del agente <b>no vale nada</b>: solo el ejecutor cierra el criterio.</p>
+
+<h2>07 · Crítico (calidad)</h2>
+<ul>
+<li>Modelo <b>distinto</b> al generador (orquestador elige otro provider si existe).</li>
+<li>Salida JSON forzada con schema <code>{"pass":bool,"huecos":[...]}</code>; parse inválido → 1 retry → ESCALADA.</li>
+<li>Checklist: orden cubierta punto por punto · estándar C1 si es entregable · sin placeholders · evidencia presente.</li>
+</ul>
+
+<h2>08 · Progreso visible</h2>
+<pre>
+# atlas_web_server.py
+def api_tareas():
+    items=[json.loads(p.read_text()) for p in STATE.glob("*.json")]
+    return {"items":[{ "id":t["task_id"], "pct":t["progreso_pct"], "estado":t["estado"],
+      "intentos":f"{t['intentos']}/{t['max_intentos']}",
+      "criterios":[(x["id"],x["estado"]) for x in t["criterios"]] } for t in items]}
+# ruta: /api/tareas  ·  panel en dashboard.html (mismo patrón que informes) + loadTareas() en refresh 30s
+</pre>
+<p>Aviso en chat en cada cambio de estado: "60% · 3/5 criterios · falta CR-4 (config aplicada) · intento 2/5".</p>
+
+<h2>09 · Límites y escalada</h2>
+<ul>
+<li><code>max_intentos</code> default 5 · <code>timeout</code> por nivel (L1 10min, L2 20, L3 40) · <code>costo_max</code> estimado vía routing_log.</li>
+<li>Escalada = toast + chat + nota en bóveda con: % real, criterios FAIL, evidencias de intentos, siguiente acción sugerida. <b>Nunca silencio.</b></li>
+</ul>
+
+<h2>10 · Métrica de confianza</h2>
+<p>Agente dice "listo" y verificador &lt;100% → entrada en <code>trust_log</code>. Patrón ≥3 en 7 días → acción automática sugerida en dashboard: cambiar modelo para ese tipo de tarea / ajustar style_profile. Se registra, no se castiga a ciegas.</p>
+
+<h2>11 · REQs C2 (bloqueantes)</h2>
+<table>
+<tr><th>REQ</th><th>Requisito</th><th>Aceptación / evidencia</th></tr>
+<tr><td>C2-1</td><td>Contrato antes de ejecutar; tarea no trivial sin contrato → rechazo</td><td>Test: run sin contrato → rechazado</td></tr>
+<tr><td>C2-2</td><td>Controlador determinista cierra; agente no puede marcar TERMINADA</td><td>close() solo en controller; test</td></tr>
+<tr><td>C2-3</td><td>Verificador ejecuta evidencia real por tipo</td><td>Unit por tipo + E2E tarea real</td></tr>
+<tr><td>C2-4</td><td>Crítico modelo aparte, JSON forzado, retry→escalada</td><td>Test JSON inválido → ESCALADA</td></tr>
+<tr><td>C2-5</td><td>/api/tareas + panel + aviso en chat con % y criterios</td><td>GET + captura dashboard</td></tr>
+<tr><td>C2-6</td><td>Límites + escalada con reporte, nunca silencio</td><td>Test tarea que siempre falla → ESCALADA con pendientes exactos</td></tr>
+<tr><td>C2-7</td><td>trust_log + patrón → acción sugerida</td><td>Test claim falso ×3 → sugerencia visible</td></tr>
+<tr><td>C2-8</td><td>Contrato+evidencias → vault/&lt;proj&gt;/tasks/ al cerrar</td><td>Archivos presentes post-cierre</td></tr>
+<tr><td>C2-9</td><td>Criterio sin ejecutable → degradado a "humano" (no bloquea bucle)</td><td>Test criterio vago → aparece en pendientes del usuario</td></tr>
+</table>
+
+<h2>12 · E2E de referencia</h2>
+<details><summary>Caso: configurar extensión en el navegador del usuario</summary>
+<ol>
+<li>Contrato: CR-1 aparece en lista (ui) · CR-2 toggle activo (ui) · CR-3 config aplicada (captura+OCR) · CR-4 navegador funcional (open_app+captura).</li>
+<li>Intento 1: agente opera; verificador ve CR-1/CR-2 OK, CR-3 FAIL → 50% → re-inyecta "falta CR-3, evidencia: captura X".</li>
+<li>Intento 2: CR-3 OK → 100% → crítico juzga calidad del proceso → CIERRE → contrato en bóveda + runbook candidato.</li>
+</ol></details>
+
+<h2>13 · Definición de terminado C2</h2>
+<ul>
+<li>atlas_controller.py corriendo bajo atlas_supervisor (el supervisor vigila al controller).</li>
+<li>9 REQs con evidencia · panel /api/tareas vivo · 1 tarea real cerrada por el bucle · 1 escalada simulada con reporte.</li>
+<li>Integrado con guardian (acciones del controller bajo niveles de riesgo) y atlas_log (JSON estructurado).</li>
+</ul>
+<p class="sub">SPEC C2 v1.0 · E:\Agente_IA\SPEC_C2.html · Complementa roadmap v1.5</p>
+</body>
+</html>

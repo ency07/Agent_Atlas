@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<title>Atlas — Roadmap v1.5</title>
+<style>
+body{background:#101820;color:#e6e6e6;font-family:'Segoe UI',system-ui,sans-serif;margin:2rem auto;max-width:1100px;line-height:1.45}
+h1{font-size:1.6rem}h2{font-size:1.15rem;margin-top:2rem;border-bottom:1px solid #333;padding-bottom:4px}
+.sub{color:#9ab}.card{border-radius:10px;padding:12px 14px;margin:12px 0;border-left:6px solid;background:#18222c}
+.g{border-color:#2e7d32}.y{border-color:#f9a825}.r{border-color:#c62828}.x{border-color:#546e7a}.b{border-color:#1976d2}
+.chip{display:inline-block;padding:2px 8px;border-radius:10px;font-size:.75rem;margin-left:8px}
+.cg{background:#2e7d32}.cy{background:#f9a825;color:#000}.cr{background:#c62828}.cx{background:#546e7a}.cb{background:#1976d2}
+code{background:#0d141b;padding:1px 5px;border-radius:4px;color:#8cf}
+table{border-collapse:collapse;width:100%;font-size:.88rem}td,th{border:1px solid #333;padding:6px;text-align:left}
+details{margin:6px 0}summary{cursor:pointer;color:#8cf}ul{margin:6px 0 6px 18px}
+</style>
+</head>
+<body>
+<h1>Atlas — Roadmap v1.5</h1>
+<p class="sub">14/08/2026 · Orden: F2.5 → C1 → <b>C2</b> → F4 → F5 · C2 detalle en <code>SPEC_C2.html</code></p>
+
+<h2>01 · Estado actual</h2>
+<div class="card g"><b>F1–F3, O1, S1 · 100%</b> · <b>F2.5+C1 · CERRADAS</b> con gates humanos pendientes: DEBT-001/002/003 (fecha 2026-08-31) · DEBT-004/005/006 técnicos menores (fecha 2026-08-31) · Auditoría A-01..A-08 resueltas con evidencia (<code>docs/verification/2026-08-14-cierre-f25-c1.md</code>)<span class="chip cg">✔</span></div>
+
+<h2>02 · Orden de ejecución</h2>
+<table>
+<tr><th>#</th><th>Fase</th><th>Por qué aquí</th></tr>
+<tr><td>1</td><td>C2 Bucle de Cierre Forzoso</td><td>Sin cierre forzado, F4 produciría pipelines de dinero a medias. C2 es el jefe que obliga.</td></tr>
+<tr><td>2</td><td>F4 Dinero (Corel POD + contabilidad + panel financiero)</td><td>Se ejecuta DENTRO de contratos C2: cada pipeline = contrato con criterios.</td></tr>
+<tr><td>3</td><td>F5 Tutor</td><td>Analiza y explica con informes C1 bajo contratos C2.</td></tr>
+<tr><td>—</td><td>F6 horizonte · 🔵 continua (orquestador aprende, memoria profunda, UX/voz)</td><td>No bloquea.</td></tr>
+</table>
+
+<h2>03 · Fases</h2>
+<div class="card r"><b>C2 · BUCLE DE CIERRE FORZOSO</b> <small>(SPEC_C2.html)</small><span class="chip cr">🔴 Ahora</span>
+<ul>
+<li>atlas_controller.py (loop determinista) · contratos en state/tasks/ · verificador con ejecutores reales (comando/archivo/endpoint/ui/captura/test/humano) · crítico modelo aparte JSON forzado · /api/tareas + panel + avisos · límites y escalada · trust_log · vault/&lt;proj&gt;/tasks/</li>
+<li><b>Gates:</b> 9 REQs C2 con evidencia · 1 tarea real cerrada por el bucle · 1 escalada simulada con reporte · controller vigilado por atlas_supervisor</li>
+</ul></div>
+
+<div class="card r"><b>F4 · DINERO</b><span class="chip cr">🔴</span>
+<ul><li>Piloto Corel POD + mission_control CSV + costo/modelo + panel financiero HUD. <b>Cada pipeline corre como contrato C2</b> (criterios: diseño exportado, subida validada, costo visible).</li></ul></div>
+
+<div class="card r"><b>F5 · TUTOR</b><span class="chip cr">🔴</span>
+<ul><li>Journal demo + checklist + adaptador CSV TradingView + tutor con informes profesionales. Nunca dinero real.</li></ul></div>
+
+<div class="card x"><b>F6 · HORIZONTE</b><span class="chip cx">⚪</span> Solo si F4/F5 repiten.</div>
+
+<h2>04 · Trazabilidad</h2>
+<table>
+<tr><th>De → A</th><th>Qué traspasa</th><th>Estado</th></tr>
+<tr><td>C1 → C2</td><td>Tools C10 = ojos del verificador · checkpoints = contratos · crítico skill → crítico del bucle</td><td>🟢 bloqueante</td></tr>
+<tr><td>C2 → F4</td><td>Pipelines de dinero con cierre forzado y evidencia</td><td>🟢 bloqueante</td></tr>
+<tr><td>C2 → F5</td><td>Análisis de trades bajo contratos verificables</td><td>🟢</td></tr>
+<tr><td>F2.5 → C2</td><td>Supervisor vigila al controller · logs · boot check</td><td>🟢 (A-01 pendiente)</td></tr>
+<tr><td>Heredadas v1.4</td><td>F1→todos · Corel→F4 · costo→F4 · F3→F4 · F2→F5</td><td>🟢</td></tr>
+</table>
+
+<h2>05 · Puntos donde puede romperse</h2>
+<details><summary>🔴 Controller como nuevo punto único de fallo</summary>atlas_supervisor vigila al controller (y Task Scheduler vigila al supervisor).</details>
+<details><summary>🟡 Bucle infinito / costo</summary>max_intentos + timeout + costo_max por nivel; escalada con reporte, nunca silencio.</details>
+<details><summary>🟡 Generador de contratos emite criterios inverificables</summary>Controlador los degrada a tipo "humano" (C2-9); no bloquean el bucle.</details>
+<details><summary>🟡 opencode run inestable para turnos del bucle</summary>Wrapper api.py con reintento; turno con timeout 600s; fallo de turno = intento consumido con evidencia.</details>
+<details><summary>🔴 Heredados</summary>A-01 supervisor kill test (bloqueante), TradingView frágil, ingresos manuales — mitigaciones en v1.3/v1.4.</details>
+
+<h2>06 · Reglas</h2>
+<ul>
+<li><b>Nueva:</b> el agente no cierra tareas; cierra el controller con evidencia.</li>
+<li><b>Nueva:</b> criterio sin ejecutable = gate humano visible, nunca bucle infinito.</li>
+<li><b>Nueva:</b> escalada siempre con reporte de pendientes exactos.</li>
+<li>Heredadas: F1 inmutable · adaptadores reemplazables · bóveda = verdad · entregables sin pase crítico no se muestran.</li>
+</ul>
+
+<h2>07 · Checklist de salida C2</h2>
+<ul>
+<li>Controller corre bajo supervisor; heartbeat propio en health.</li>
+<li>Contrato rechazado sin criterios (C2-1) · close() solo en controller (C2-2).</li>
+<li>Ejecutores por tipo probados (unit + E2E real).</li>
+<li>/api/tareas vivo en dashboard con % y criterios ✅❌.</li>
+<li>Escalada simulada → toast+chat+bóveda con pendientes exactos.</li>
+<li>trust_log captura claim falso (test).</li>
+<li>1 tarea real cerrada por el bucle con contrato archivado en bóveda.</li>
+</ul>
+
+<p class="sub">Atlas · Roadmap v1.5 · E:\Agente_IA\roadmap.html · Ejecutar C2 antes de F4</p>
+</body>
+</html>
