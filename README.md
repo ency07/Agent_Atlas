@@ -209,3 +209,13 @@ Sirve desde `python atlas_foco.py --http 4101` (GET `/daily`).
 - El server **redacta** secretos al escribir notas (`sk-...`, `token=`, etc.).
 - `%APPDATA%\omniroute\.env` (si usas omniroute) vive **fuera** del repo.
 - `memory.db` es derivado del vault: no se versiona, se regenera solo.
+
+## Deuda registrada (DEBT)
+
+| ID | Deuda | Responsable | Fecha | Riesgo | Mitigación |
+|---|---|---|---|---|---|
+| DEBT-001 | 2 runbooks verificados en bóveda (instalar extensión, exportar diseño) | Usuario | 2026-08-14 | MEDIO | Verificar próximos 2 runbooks reales con skill runbooks |
+| DEBT-002 | 3 entregables calificados "profesional" → exemplars | Usuario | 2026-08-14 | MEDIO | Usuario califica entregables; se registran como exemplars |
+| DEBT-003 | Prueba de crítico con trampa (entregable sembrado) | Usuario | 2026-08-14 | MEDIO | Ejecutar skill critico sobre un entregable con error sembrado |
+
+Gates humanos pendientes de C1 (ver `docs/verification/2026-08-14-cierre-f25-c1.md`).
