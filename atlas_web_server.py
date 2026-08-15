@@ -202,6 +202,70 @@ def _json(data: dict) -> bytes:
     return json.dumps(data, ensure_ascii=False, indent=2).encode("utf-8")
 
 
+# --- C2: TAREAS + PENDIENTES + TRUST ---
+C2_STATE = STATE_DIR / "tasks"
+C2_TRUST = STATE_DIR / "trust_log.jsonl"
+
+
+def api_tareas():
+    if not C2_STATE.exists():
+        return {"items": []}
+    items = []
+    for p in sorted(C2_STATE.glob("*.json"), key=lambda x: x.stat().st_mtime, reverse=True):
+        try:
+            c = json.loads(p.read_text(encoding="utf-8"))
+            items.append({
+                "id": c["task_id"],
+                "orden": c.get("orden_literal", "")[:80],
+                "estado": c["estado"],
+                "pct": c["progreso_pct"],
+                "intentos": f"{c['intentos']}/{c['max_intentos']}",
+                "criterios": [(x["id"], x["estado"]) for x in c["criterios"]],
+                "timeout": c.get("timeout"),
+            })
+        except Exception:
+            continue
+    return {"items": items}
+
+
+def api_pendientes():
+    """Escaladas + criterios humanos + DEBT activos."""
+    items = []
+    if C2_STATE.exists():
+        for p in C2_STATE.glob("*.json"):
+            try:
+                c = json.loads(p.read_text(encoding="utf-8"))
+                if c["estado"] == "ESCALADA":
+                    fails = [x["id"] for x in c["criterios"] if x["estado"] == "FAIL"]
+                    items.append({
+                        "tipo": "escalada",
+                        "task_id": c["task_id"],
+                        "detalle": f"{c['progreso_pct']}% · faltan {fails}",
+                        "fecha": c.get("cerrado_en") or c.get("creado_en"),
+                    })
+                humanos = [x for x in c["criterios"] if x["estado"] == "HUMANO"]
+                if humanos and c["estado"] != "TERMINADA":
+                    items.append({
+                        "tipo": "gate_humano",
+                        "task_id": c["task_id"],
+                        "detalle": f"{len(humanos)} criterios requieren tu acción",
+                        "fecha": c.get("creado_en"),
+                    })
+            except Exception:
+                continue
+    items.sort(key=lambda x: x.get("fecha") or "", reverse=True)
+    return {"items": items}
+
+
+def api_trust():
+    """Claims falsos del agente."""
+    if not C2_TRUST.exists():
+        return {"items": [], "total": 0}
+    lines = C2_TRUST.read_text(encoding="utf-8").strip().splitlines()[-50:]
+    items = [json.loads(l) for l in lines if l.strip()]
+    return {"items": items, "total": len(items)}
+
+
 class _Handler(BaseHTTPRequestHandler):
     def _send(self, code: int, body: bytes, ctype: str):
         self.send_response(code)
@@ -246,6 +310,12 @@ class _Handler(BaseHTTPRequestHandler):
                 self._json_response(informes())
             elif path == "/api/evals":
                 self._json_response(evals())
+            elif path == "/api/tareas":
+                self._json_response(api_tareas())
+            elif path == "/api/pendientes":
+                self._json_response(api_pendientes())
+            elif path == "/api/trust":
+                self._json_response(api_trust())
             elif path.startswith("/informe/"):
                 self._serve_informe(path)
             else:
@@ -253,7 +323,9 @@ class _Handler(BaseHTTPRequestHandler):
                                      "routes": ["/", "/api/overview", "/api/top-apps",
                                                 "/api/foco", "/api/health",
                                                 "/api/orchestrator", "/api/modelo",
-                                                "/api/informes", "/informe/<nombre>"]}, 404)
+                                                "/api/informes", "/api/evals",
+                                                "/api/tareas", "/api/pendientes",
+                                                "/api/trust", "/informe/<nombre>"]}, 404)
         except Exception as e:
             self._json_response({"error": str(e)}, 500)
 

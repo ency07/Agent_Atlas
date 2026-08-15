@@ -1,0 +1,21 @@
+{
+  "task_id": "T-20260814-224628",
+  "orden_literal": "tarea con gate humano",
+  "estado": "TERMINADA",
+  "criterios": [
+    {
+      "id": "CR-1",
+      "descripcion": "requiere tu decision",
+      "tipo": "humano",
+      "estado": "HUMANO",
+      "evidencia": "pendiente de usuario"
+    }
+  ],
+  "progreso_pct": 100,
+  "intentos": 1,
+  "max_intentos": 1,
+  "timeout": "2026-08-14T22:51:28.085906",
+  "evidencias": [],
+  "creado_en": "2026-08-14T22:46:28.085906",
+  "cerrado_en": "2026-08-14T22:46:28.097903"
+}

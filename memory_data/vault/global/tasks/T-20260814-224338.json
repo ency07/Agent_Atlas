@@ -1,0 +1,25 @@
+{
+  "task_id": "T-20260814-224338",
+  "orden_literal": "crear archivo de prueba",
+  "estado": "TERMINADA",
+  "criterios": [
+    {
+      "id": "CR-1",
+      "descripcion": "archivo existe",
+      "tipo": "archivo",
+      "verificacion": {
+        "ruta": "test_c2.txt",
+        "contiene": "hello"
+      },
+      "estado": "OK",
+      "evidencia": "contiene=True"
+    }
+  ],
+  "progreso_pct": 100,
+  "intentos": 1,
+  "max_intentos": 2,
+  "timeout": "2026-08-14T23:03:38.353565",
+  "evidencias": [],
+  "creado_en": "2026-08-14T22:43:38.353565",
+  "cerrado_en": "2026-08-14T22:43:38.374550"
+}

@@ -113,6 +113,18 @@
     <div id="informes-list" style="font-size:.82rem;color:var(--muted);">cargando...</div>
     <div class="detail" style="margin-top:8px;">publish_report → vault/outputs/ · refresh cada 30s</div>
   </div>
+
+  <h2 style="font-size:1.1rem;margin-top:16px;margin-bottom:8px;">Tareas en curso (C2)</h2>
+  <div style="flex:1;min-width:300px;" class="card">
+    <h3>Bucle de cierre forzoso</h3>
+    <div id="tareas-list" style="font-size:.82rem;color:var(--muted);">cargando...</div>
+  </div>
+
+  <h2 style="font-size:1.1rem;margin-top:16px;margin-bottom:8px;">Pendiente de ti</h2>
+  <div style="flex:1;min-width:300px;" class="card">
+    <h3>Gates humanos + escaladas</h3>
+    <div id="pendientes-list" style="font-size:.82rem;color:var(--muted);">cargando...</div>
+  </div>
 </div>
 
 <script src="api.js"></script>
@@ -271,6 +283,43 @@ async function loadInformes() {
   }
 }
 
+async function loadTareas() {
+  const el = document.getElementById('tareas-list');
+  try {
+    const r = await fetch(`${API_BASE}/api/tareas`).then(r => r.json());
+    if (!r.items || !r.items.length) { el.innerHTML = 'sin tareas en curso'; return; }
+    el.innerHTML = r.items.map(t => {
+      const color = t.estado === 'TERMINADA' ? '#3fb950' : t.estado === 'ESCALADA' ? '#f85149' : '#d29922';
+      const crits = t.criterios.map(([id, st]) => {
+        const c = st === 'OK' ? '#3fb950' : st === 'HUMANO' ? '#58a6ff' : '#f85149';
+        return `<span style="color:${c};">${id}</span>`;
+      }).join(' ');
+      return `<div style="padding:6px 0;border-bottom:1px solid var(--border);border-left:4px solid ${color};padding-left:8px;">
+        <div style="display:flex;justify-content:space-between;gap:8px;">
+          <b>${t.id}</b><span style="color:var(--muted);">${t.estado} · ${t.pct}% · ${t.intentos}</span>
+        </div>
+        <div style="color:var(--muted);margin-top:2px;">${t.orden}</div>
+        <div style="font-family:monospace;font-size:.75rem;margin-top:2px;">${crits}</div>
+      </div>`;
+    }).join('');
+  } catch (e) { el.textContent = `error: ${e.message}`; }
+}
+
+async function loadPendientes() {
+  const el = document.getElementById('pendientes-list');
+  try {
+    const r = await fetch(`${API_BASE}/api/pendientes`).then(r => r.json());
+    if (!r.items || !r.items.length) { el.innerHTML = 'nada pendiente de ti'; return; }
+    el.innerHTML = r.items.map(p => `
+      <div style="padding:6px 0;border-bottom:1px solid var(--border);border-left:4px solid ${p.tipo === 'gate_humano' ? '#58a6ff' : p.tipo === 'debt' ? '#d29922' : '#f85149'};padding-left:8px;">
+        <div style="display:flex;justify-content:space-between;gap:8px;">
+          <b>${p.task_id}</b><span style="color:var(--muted);">${p.tipo}</span>
+        </div>
+        <div style="color:var(--muted);margin-top:2px;">${p.detalle}</div>
+      </div>`).join('');
+  } catch (e) { el.textContent = `error: ${e.message}`; }
+}
+
 // auto-refresh cada 30s
 load();
 loadTopApps();
@@ -278,7 +327,9 @@ loadFoco();
 loadHealth();
 loadModelo();
 loadInformes();
-setInterval(() => { load(); loadTopApps(); loadFoco(); loadHealth(); loadModelo(); loadInformes(); }, 30000);
+loadTareas();
+loadPendientes();
+setInterval(() => { load(); loadTopApps(); loadFoco(); loadHealth(); loadModelo(); loadInformes(); loadTareas(); loadPendientes(); }, 30000);
 </script>
 </body>
 </html>

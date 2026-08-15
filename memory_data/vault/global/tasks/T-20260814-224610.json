@@ -1,0 +1,24 @@
+{
+  "task_id": "T-20260814-224610",
+  "orden_literal": "tarea imposible",
+  "estado": "ESCALADA",
+  "criterios": [
+    {
+      "id": "CR-1",
+      "descripcion": "x",
+      "tipo": "archivo",
+      "verificacion": {
+        "ruta": "nope-xyz",
+        "contiene": "z"
+      },
+      "estado": "FAIL",
+      "evidencia": "no existe nope-xyz"
+    }
+  ],
+  "progreso_pct": 0,
+  "intentos": 1,
+  "max_intentos": 1,
+  "timeout": "2026-08-14T22:47:10.468624",
+  "evidencias": [],
+  "creado_en": "2026-08-14T22:46:10.468624"
+}
