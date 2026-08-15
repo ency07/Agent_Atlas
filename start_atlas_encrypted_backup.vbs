@@ -2,10 +2,10 @@ Set WshShell = WScript.CreateObject("WScript.Shell")
 Set fso = CreateObject("Scripting.FileSystemObject")
 
 ' --- Config ---
-ROOT = "E:\Agente_IA"
+ROOT = fso.GetParentFolderName(WScript.ScriptFullName)
 PYTHON = ROOT & "\.venv\Scripts\python.exe"
 SCRIPT = ROOT & "\atlas_backup_encrypted.py"
-LOG = ROOT & "\logs\encrypted_backup_launcher.log"
+LOG_FILE = ROOT & "\logs\encrypted_backup_launcher.log"
 
 ' --- Clave pública (configurable) ---
 ' Si existe backups_encrypted_recipient.txt la lee; si no, intenta leerla de .age_keys/public_key.txt
@@ -21,9 +21,9 @@ Else
 End If
 
 ' --- Log ---
-Sub Log(message)
+Sub WriteLog(message)
     Dim logFile
-    Set logFile = fso.OpenTextFile(LOG, 8, True)
+    Set logFile = fso.OpenTextFile(LOG_FILE, 8, True)
     logFile.WriteLine "[" & Now & "] " & message
     logFile.Close
 End Sub
@@ -31,15 +31,15 @@ End Sub
 ' --- Ejecutar ---
 On Error Resume Next
 If PUB_KEY = "" Then
-    Log "ERROR: no hay clave pública. Genera primero: python atlas_backup_encrypted.py generate"
+    WriteLog "ERROR: no hay clave pública. Genera primero: python atlas_backup_encrypted.py generate"
     WScript.Quit 1
 End If
 
-Log "Iniciando backup cifrado..."
+WriteLog "Iniciando backup cifrado..."
 WshShell.Run """" & PYTHON & """ """ & SCRIPT & """ backup --recipient """ & PUB_KEY & """ --out-dir backups_encrypted --keep 14", 0, False
 If Err.Number <> 0 Then
-    Log "ERROR: " & Err.Description
+    WriteLog "ERROR: " & Err.Description
 Else
-    Log "Backup cifrado iniciado"
+    WriteLog "Backup cifrado iniciado"
 End If
 On Error GoTo 0

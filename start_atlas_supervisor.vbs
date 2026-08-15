@@ -2,27 +2,27 @@ Set WshShell = WScript.CreateObject("WScript.Shell")
 Set fso = CreateObject("Scripting.FileSystemObject")
 
 ' --- Config ---
-ROOT = "E:\Agente_IA"
+ROOT = fso.GetParentFolderName(WScript.ScriptFullName)
 PYTHON = ROOT & "\.venv\Scripts\python.exe"
 SCRIPT = ROOT & "\atlas_supervisor.py"
-LOG = ROOT & "\logs\supervisor_launcher.log"
+LOG_FILE = ROOT & "\logs\supervisor_launcher.log"
 
 ' --- Log ---
-Sub Log(message)
+Sub WriteLog(message)
     Dim logFile
-    Set logFile = fso.OpenTextFile(LOG, 8, True)
+    Set logFile = fso.OpenTextFile(LOG_FILE, 8, True)
     logFile.WriteLine "[" & Now & "] " & message
     logFile.Close
 End Sub
 
 ' --- Ejecutar ---
 On Error Resume Next
-Log "Iniciando supervisor..."
+WriteLog "Iniciando supervisor..."
 WshShell.Run """" & PYTHON & """ """ & SCRIPT & """", 0, False
 If Err.Number <> 0 Then
-    Log "ERROR: " & Err.Description
+    WriteLog "ERROR: " & Err.Description
     WScript.Echo "Error al iniciar supervisor: " & Err.Description
 Else
-    Log "Supervisor iniciado"
+    WriteLog "Supervisor iniciado"
 End If
 On Error GoTo 0
