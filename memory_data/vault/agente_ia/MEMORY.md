@@ -12,6 +12,7 @@
 - [[20260814-121159-20260814-tareas-alta-completadas-logrota]] · 20260814-121159-20260814-tareas-alta-completadas-logrota
 - [[20260814-130017-20260814-tareas-media-completadas-sync-c]] · 20260814-130017-20260814-tareas-media-completadas-sync-c
 - [[20260814-134557-20260814-f2.5-alta-completadas-chat-fix-]] · 20260814-134557-20260814-f2.5-alta-completadas-chat-fix-
+- [[20260814-142802-20260814-push-github-completado-docs-clo]] · 20260814-142802-20260814-push-github-completado-docs-clo
 
 ## Sesiones recientes
 - (sin sesiones aun)

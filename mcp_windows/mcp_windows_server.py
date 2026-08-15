@@ -1880,6 +1880,251 @@ def type_in_program(program_title: str, text: str, delay: float = 1.0) -> str:
 
 
 # ═════════════════════════════════════════════════════════════════════════════
+# C10 · CAPA DE EJECUCION PROFESIONAL (SPEC C1)
+# screen_capture · read_ui_state · ocr_screen · open_app
+# ═════════════════════════════════════════════════════════════════════════════
+
+def _c10_capture_region(left=0, top=0, width=None, height=None):
+    """Captura la pantalla o una region. Returns (PIL.Image, path)."""
+    from PIL import ImageGrab
+    if width and height:
+        img = ImageGrab.grab(bbox=(left, top, left + width, top + height))
+    else:
+        img = ImageGrab.grab()
+    return img
+
+
+@mcp.tool()
+def screen_capture(region: str = "full", filename: str = "") -> str:
+    """
+    Captura la pantalla (o una region) como PNG. C10 de ejecucion verificada.
+
+    Args:
+        region: "full" (toda la pantalla) o "X,Y,W,H" (left,top,width,height)
+        filename: nombre opcional para el archivo (default: screen_YYYYMMDD_HHMMSS.png)
+
+    Returns:
+        Ruta del archivo PNG
+    """
+    try:
+        from PIL import ImageGrab
+        if region == "full":
+            img = ImageGrab.grab()
+        else:
+            try:
+                parts = [int(x) for x in region.split(",")]
+                if len(parts) != 4:
+                    return json.dumps({"error": "region debe ser 'full' o 'left,top,width,height'"})
+                l, t, w, h = parts
+                img = ImageGrab.grab(bbox=(l, t, l + w, t + h))
+            except Exception as e:
+                return json.dumps({"error": f"region invalida: {e}"})
+
+        out_dir = Path.home() / "atlas_shots"
+        out_dir.mkdir(exist_ok=True)
+        fname = filename or f"screen_{datetime.now().strftime('%Y%m%d_%H%M%S')}.png"
+        filepath = str(out_dir / fname)
+        img.save(filepath)
+        return json.dumps({"success": True, "path": filepath, "size": img.size},
+                          ensure_ascii=False)
+    except Exception as e:
+        return json.dumps({"error": str(e)})
+
+
+@mcp.tool()
+def read_ui_state(window_title: str = "", max_depth: int = 4) -> str:
+    """
+    Lee el arbol UIA (UI Automation) de la ventana activa o la indicada,
+    devolviendo JSON con los controles visibles (type, name, automation_id, bounds).
+
+    Args:
+        window_title: titulo (o parte) de la ventana; vacio = ventana activa
+        max_depth: profundidad maxima del arbol (default 4)
+
+    Returns:
+        JSON con el arbol de controles
+    """
+    try:
+        import uiautomation as uia
+    except Exception as e:
+        return json.dumps({"error": f"UIA no disponible: {e}"})
+
+    try:
+        win = None
+        if window_title:
+            win = uia.WindowControl(searchDepth=1, SubName=window_title)
+            if not win.Exists(0.5, 0.1):
+                return json.dumps({"error": f"ventana '{window_title}' no encontrada",
+                                   "window": window_title})
+        else:
+            win = uia.GetForegroundControl()
+
+        def walk(control, depth):
+            if depth > max_depth:
+                return None
+            node = {}
+            try:
+                node["type"] = control.ControlTypeName
+            except Exception:
+                node["type"] = "?"
+            try:
+                node["name"] = control.Name
+            except Exception:
+                node["name"] = ""
+            try:
+                node["automation_id"] = control.AutomationId
+            except Exception:
+                node["automation_id"] = ""
+            try:
+                r = control.BoundingRectangle
+                node["bounds"] = [int(r.left), int(r.top),
+                                  int(r.right - r.left), int(r.bottom - r.top)]
+            except Exception:
+                node["bounds"] = None
+            children = []
+            try:
+                for c in control.GetChildren():
+                    ch = walk(c, depth + 1)
+                    if ch:
+                        children.append(ch)
+            except Exception:
+                pass
+            if children:
+                node["children"] = children[:20]
+            return node
+
+        root = walk(win, 0)
+        return json.dumps({"success": True, "window": window_title or "active", "tree": root},
+                          ensure_ascii=False, default=str)
+    except Exception as e:
+        return json.dumps({"error": f"fallo UIA: {e}"})
+
+
+@mcp.tool()
+def ocr_screen(region: str = "full", language: str = "es") -> str:
+    """
+    Extrae texto de la pantalla (o region) usando OCR nativo de Windows (WinRT).
+
+    Args:
+        region: "full" o "left,top,width,height"
+        language: idioma del OCR (default "es"; usar "en" si falla)
+
+    Returns:
+        JSON con el texto extraido y su distribucion por bloques
+    """
+    try:
+        from PIL import ImageGrab
+        import winsdk.windows.media.ocr as ocr_ws
+        import winsdk.windows.globalization as glob_ws
+        import winsdk.windows.graphics.imaging as imaging_ws
+        import winsdk.windows.storage.streams as streams_ws
+    except Exception as e:
+        return json.dumps({"error": f"WinRT OCR no disponible: {e}"})
+
+    try:
+        if region == "full":
+            img = ImageGrab.grab()
+        else:
+            parts = [int(x) for x in region.split(",")]
+            l, t, w, h = parts
+            img = ImageGrab.grab(bbox=(l, t, l + w, t + h))
+
+        import io
+        buf = io.BytesIO()
+        img.save(buf, format="PNG")
+        data = buf.getvalue()
+
+        import winsdk.windows.storage.streams as streams
+        import winsdk.windows.storage as storage
+        import winsdk.windows.foundation as foundation
+
+        # Escribir temporal para WinRT
+        tmp = Path.home() / "atlas_shots"
+        tmp.mkdir(exist_ok=True)
+        tmp_file = tmp / "ocr_input.png"
+        tmp_file.write_bytes(data)
+
+        import asyncio
+
+        async def _run_ocr():
+            file = await storage.StorageFile.get_file_from_path_async(str(tmp_file))
+            stream = await file.open_async(storage.FileAccessMode.READ)
+            decoder = await imaging_ws.BitmapDecoder.create_async(stream)
+            bitmap = await decoder.get_software_bitmap_async()
+            engine = ocr_ws.OcrEngine.try_create_from_language(
+                glob_ws.Language(language))
+            if engine is None:
+                engine = ocr_ws.OcrEngine.try_create_from_user_profile_languages()
+            result = await engine.recognize_async(bitmap)
+            lines = []
+            for line in result.lines:
+                lines.append({
+                    "text": line.text,
+                    "words": [w.text for w in line.words],
+                })
+            return lines
+
+        try:
+            lines = asyncio.run(_run_ocr())
+        except RuntimeError:
+            # loop ya existente
+            loop = asyncio.get_event_loop()
+            future = asyncio.ensure_future(_run_ocr())
+            lines = loop.run_until_complete(future)
+
+        return json.dumps({"success": True, "lines": lines,
+                           "text": "\n".join(l["text"] for l in lines)},
+                          ensure_ascii=False)
+    except Exception as e:
+        return json.dumps({"error": f"fallo OCR: {e}"})
+
+
+@mcp.tool()
+def open_app(program: str, args: str = "", path: str = "") -> str:
+    """
+    Abre un programa registrado con la validacion del guardian.
+
+    Args:
+        program: nombre o ruta del programa (ej: "chrome", "vscode", "notepad")
+        args: argumentos adicionales
+        path: ruta exacta del ejecutable (opcional; usa registro si no)
+
+    Returns:
+        Confirmacion con PID del proceso
+    """
+    block = _guardian_gate("process_start", {"command": program, "args": args})
+    if block:
+        return block
+    try:
+        import subprocess
+        if path:
+            cmd = f'"{path}" {args}'.strip()
+        else:
+            # buscar en registro si open_program lo conoce
+            known = {
+                "chrome": r"C:\Program Files\Google\Chrome\Application\chrome.exe",
+                "edge": r"C:\Program Files (x86)\Microsoft\Edge\Application\msedge.exe",
+                "notepad": "notepad.exe",
+                "vscode": r"C:\Users\Administrator\AppData\Local\Programs\Microsoft VS Code\Code.exe",
+                "cmd": "cmd.exe",
+                "powershell": "powershell.exe",
+                "explorer": "explorer.exe",
+                "paint": "mspaint.exe",
+                "calc": "calc.exe",
+                "word": r"C:\Program Files\Microsoft Office\root\Office16\WINWORD.EXE",
+                "excel": r"C:\Program Files\Microsoft Office\root\Office16\EXCEL.EXE",
+                "corel": r"C:\Program Files\Corel\CorelDRAW Graphics Suite\Programs\CorelDRAW.exe",
+            }
+            exe = known.get(program.lower(), program)
+            cmd = f'"{exe}" {args}'.strip() if (" " in exe) else f"{exe} {args}".strip()
+        proc = subprocess.Popen(cmd, shell=False)
+        return json.dumps({"success": True, "program": program, "pid": proc.pid},
+                          ensure_ascii=False)
+    except Exception as e:
+        return json.dumps({"error": str(e)})
+
+
+# ═════════════════════════════════════════════════════════════════════════════
 # PUNTO DE ENTRADA
 # ═════════════════════════════════════════════════════════════════════════════
 
@@ -1902,6 +2147,7 @@ if __name__ == "__main__":
     print("  [D] Documentos:   docx_create, xlsx_create, pptx_create, pdf_create")
     print("  [A] Apps:         open_program, list_installed_programs, type_in_program")
     print("  [S] Scripts:      run_script")
+    print("  [C10] C1:         screen_capture, read_ui_state, ocr_screen, open_app")
     print("")
     
     mcp.run(transport="stdio")

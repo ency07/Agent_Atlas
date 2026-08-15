@@ -388,11 +388,13 @@ def tool_note_search(query: str, project: str = "", limit: int = 8, scope: str =
         if scope in ("project", "both"):
             proj = _detect_project(project)
             rows += [dict(r) for r in conn.execute(
-                "SELECT id,title,type,project,summary FROM notes_fts JOIN notes_index USING(id) WHERE notes_fts MATCH ? AND project=? LIMIT ?",
+                "SELECT notes_index.id,notes_index.title,notes_index.type,notes_index.project,notes_index.summary "
+                "FROM notes_fts JOIN notes_index USING(id) WHERE notes_fts MATCH ? AND notes_index.project=? LIMIT ?",
                 (query, proj, limit))]
         if scope in ("global", "both") and not rows:
             rows += [dict(r) for r in conn.execute(
-                "SELECT id,title,type,project,summary FROM notes_fts JOIN notes_index USING(id) WHERE notes_fts MATCH ? AND project='global' LIMIT ?",
+                "SELECT notes_index.id,notes_index.title,notes_index.type,notes_index.project,notes_index.summary "
+                "FROM notes_fts JOIN notes_index USING(id) WHERE notes_fts MATCH ? AND notes_index.project='global' LIMIT ?",
                 (query, limit))]
     finally:
         conn.close()
@@ -762,6 +764,68 @@ def tool_projects(limit: int = 20):
     projects.sort(key=lambda p: p.get("last_session", ""), reverse=True)
     return json.dumps({"count": len(projects), "projects": projects[:limit]}, ensure_ascii=False, indent=2)
 
+def tool_publish_report(html_path, title="", level="L2", note_body=""):
+    """Publica un informe (REQ-C8): copia HTML a vault/outputs/, indexa en
+    state/reports_index.json y crea nota MD de respaldo."""
+    try:
+        from pathlib import Path as _Path
+        import shutil as _shutil
+
+        outputs = _Path(VAULT_ROOT) / "outputs"
+        outputs.mkdir(parents=True, exist_ok=True)
+
+        html = _Path(html_path)
+        if not html.exists():
+            return json.dumps({"error": f"archivo no existe: {html_path}"}, ensure_ascii=False)
+
+        safe_title = re.sub(r"[^A-Za-z0-9 _-]", "", title or html.stem).strip().replace(" ", "_")
+        if not safe_title:
+            safe_title = "informe"
+        version = "v1"
+        dest = outputs / f"{safe_title}-{version}.html"
+        n = 1
+        while dest.exists():
+            n += 1
+            version = f"v{n}"
+            dest = outputs / f"{safe_title}-{version}.html"
+
+        _shutil.copy2(str(html), str(dest))
+
+        now = datetime.now()
+        entry = {
+            "id": f"{now.strftime('%Y%m%d_%H%M%S')}-{safe_title}",
+            "title": title or html.stem,
+            "level": level,
+            "path": str(dest),
+            "url": f"/informe/{dest.name}",
+            "published": now.isoformat(),
+            "version": version,
+        }
+        index_file = STATE_DIR / "reports_index.json"
+        index = []
+        if index_file.exists():
+            try:
+                index = json.loads(index_file.read_text(encoding="utf-8"))
+            except Exception:
+                index = []
+        index.append(entry)
+        index_file.parent.mkdir(parents=True, exist_ok=True)
+        index_file.write_text(json.dumps(index, ensure_ascii=False, indent=2), encoding="utf-8")
+
+        note_file = _Path(VAULT_ROOT) / "global" / "notes" / f"{now.strftime('%Y%m%d-%H%M%S')}-{safe_title}.md"
+        note_file.parent.mkdir(parents=True, exist_ok=True)
+        note_file.write_text(
+            f"---\ntype: delivery\ntitle: {title or html.stem}\nlevel: {level}\n"
+            f"path: {dest}\ndate: {now.isoformat()}\n---\n\n"
+            f"{note_body or 'Informe publicado en outputs/'}\n\nFuente: [[{dest.name}]]\n",
+            encoding="utf-8",
+        )
+
+        return json.dumps({"success": True, "path": str(dest), "id": entry["id"],
+                           "url": entry["url"]}, ensure_ascii=False)
+    except Exception as e:
+        return json.dumps({"error": str(e)}, ensure_ascii=False)
+
 def tool_backup(keep: int = 14):
     """Crea un zip de vault+DB y deja solo los `keep` mas recientes."""
     BACKUP_DIR = MEMORY_ROOT / "backup"
@@ -981,6 +1045,24 @@ def main():
     def memory_projects(limit: int = 20) -> str:
         """Resumen de TODOS los proyectos con memoria (usar cuando se abre Atlas fuera de un proyecto, ej. escritorio)."""
         return tool_projects(limit)
+
+    @mcp.tool()
+    def memory_publish_report(html_path: str, title: str = "", level: str = "L2", note_body: str = "") -> str:
+        """
+        Publica un informe/entregable (REQ-C8): copia el HTML a vault/outputs/,
+        registra un index en state/reports_index.json (para el dashboard) y
+        crea una nota MD de respaldo en la boveda del proyecto.
+
+        Args:
+            html_path: ruta del HTML generado (se copia a vault/outputs/)
+            title: titulo del informe
+            level: nivel L0-L3
+            note_body: contenido MD adicional para la nota de respaldo
+
+        Returns:
+            JSON con la ruta publicada y el id del informe
+        """
+        return tool_publish_report(html_path, title, level, note_body)
 
     mcp.run()
 

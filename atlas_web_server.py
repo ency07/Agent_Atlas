@@ -171,6 +171,33 @@ def activo_modelo() -> dict:
     return {"model": model}
 
 
+def informes() -> dict:
+    """Lista de informes publicados (REQ-C8) desde state/reports_index.json."""
+    idx = STATE_DIR / "reports_index.json"
+    if not idx.exists():
+        return {"count": 0, "reports": []}
+    try:
+        data = json.loads(idx.read_text(encoding="utf-8"))
+        reports = sorted(data, key=lambda r: r.get("published", ""), reverse=True)
+        return {"count": len(reports), "reports": reports}
+    except Exception as e:
+        return {"count": 0, "reports": [], "error": str(e)}
+
+
+def evals() -> dict:
+    """Ultima evaluacion mensual (REQ-C15) desde state/evals/<mes>.json."""
+    evals_dir = STATE_DIR / "evals"
+    if not evals_dir.exists():
+        return {"error": "sin evals todavia"}
+    files = sorted(evals_dir.glob("*.json"))
+    if not files:
+        return {"error": "sin evals todavia"}
+    try:
+        return json.loads(files[-1].read_text(encoding="utf-8"))
+    except Exception as e:
+        return {"error": str(e)}
+
+
 def _json(data: dict) -> bytes:
     return json.dumps(data, ensure_ascii=False, indent=2).encode("utf-8")
 
@@ -215,13 +242,34 @@ class _Handler(BaseHTTPRequestHandler):
                 self._json_response({"providers": orchestrator()})
             elif path == "/api/modelo":
                 self._json_response(activo_modelo())
+            elif path == "/api/informes":
+                self._json_response(informes())
+            elif path == "/api/evals":
+                self._json_response(evals())
+            elif path.startswith("/informe/"):
+                self._serve_informe(path)
             else:
                 self._json_response({"error": "not found",
                                      "routes": ["/", "/api/overview", "/api/top-apps",
                                                 "/api/foco", "/api/health",
-                                                "/api/orchestrator", "/api/modelo"]}, 404)
+                                                "/api/orchestrator", "/api/modelo",
+                                                "/api/informes", "/informe/<nombre>"]}, 404)
         except Exception as e:
             self._json_response({"error": str(e)}, 500)
+
+    def _serve_informe(self, path: str):
+        """Sirve un informe HTML publicado en vault/outputs/."""
+        name = path.split("/")[-1]
+        if not name or ".." in name:
+            self._json_response({"error": "nombre invalido"}, 400)
+            return
+        base = Path(os.environ.get("MEMORY_ROOT", ROOT / "memory_data")) / "vault" / "outputs"
+        f = base / name
+        if not f.exists() or not f.is_file():
+            self._json_response({"error": f"informe no encontrado: {name}"}, 404)
+            return
+        body = f.read_bytes()
+        self._send(200, body, "text/html; charset=utf-8")
 
     def log_message(self, *args):
         pass

@@ -203,6 +203,28 @@ New-Item -ItemType Directory -Path $orchSkill -Force | Out-Null
 Copy-Item (Join-Path $ROOT "templates\skills\atlas_orchestrator\SKILL.md") (Join-Path $orchSkill "SKILL.md") -Force
 Write-Host "  skill orquestador -> $orchSkill\SKILL.md"
 
+# ---------- 5a2. Skills C1 (6 ejecucion profesional) ----------
+Write-Host "`n[5a2] Instalando skills C1 (ejecucion profesional)..." -ForegroundColor Yellow
+$c1Skills = @(
+    "ejecucion-verificada",
+    "informe-profesional",
+    "investigacion-exhaustiva",
+    "runbooks",
+    "critico",
+    "entrega"
+)
+foreach ($skill in $c1Skills) {
+    $src = Join-Path $ROOT "templates\skills\$skill\SKILL.md"
+    if (Test-Path $src) {
+        $dstDir = Join-Path $cfgDir "skills\$skill"
+        New-Item -ItemType Directory -Path $dstDir -Force | Out-Null
+        Copy-Item $src (Join-Path $dstDir "SKILL.md") -Force
+        Write-Host "  skill $skill -> $dstDir\SKILL.md"
+    } else {
+        Write-Host "  AVISO: skill $skill no existe en templates" -ForegroundColor DarkYellow
+    }
+}
+
 # mapa de capacidades de modelos (orquestador)
 $capsFile = Join-Path $stateDir "model_capabilities.json"
 if (Test-Path (Join-Path $ROOT "templates\model_capabilities.json.example")) {

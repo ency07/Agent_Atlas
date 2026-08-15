@@ -28,5 +28,11 @@ pywin32>=306
 Pillow>=10.0.0
 requests>=2.31.0
 
+# --- C1 · Ejecucion profesional (C10: UIA + OCR + captura) ---
+uiautomation>=2.0.29
+winsdk>=1.0.0b10
+comtypes>=1.4.16
+mss>=10.2.0
+
 # --- Búsqueda web (F3+) ---
 ddgs>=9.14.4

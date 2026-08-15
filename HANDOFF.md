@@ -109,6 +109,26 @@ Estado global del ecosistema en bandeja + dashboard.
 | Dashboard | ✅ tarjeta semáforo + tabla componentes + modelo activo (colores green/yellow/red) |
 | Setup/check | ✅ setup.ps1 registra MCP + skill; check.ps1 valida |
 
+### C1 · EJECUCIÓN PROFESIONAL — 🟢 COMPLETADA (14/08/2026)
+
+Capa de ejecución verificada, entrega con estándar profesional y evidencia real.
+
+| REQ | Entrega | Evidencia |
+|---|---|---|
+| C1/C2 · 6 skills + preferencias | `templates/skills/{ejecucion-verificada,informe-profesional,investigacion-exhaustiva,runbooks,critico,entrega}` + `preferences/style_profile.md` + `programas.md` | test_c1_skills (7 PASS) |
+| C6 · Estándar 6 bloques | `templates/informe_6_bloques.html` + skill informe-profesional | test_c1_skills |
+| C7 · Crítico | skill critico (modelo distinto) + checklist | skill |
+| C8 · Persistencia/publicación | `tool_publish_report` + `vault/outputs/` + `/api/informes` + `/informe/<nombre>` | test_c1_publish_report (3 PASS) |
+| C9 · Investigación académica | `web_research_academic` (CrossRef + arXiv) | test_c1_academic (2 PASS) |
+| C10 · Tools ejecución verificada | `screen_capture`, `read_ui_state` (UIA), `ocr_screen` (WinRT), `open_app` (guardian) | test_c1_c10 (5 PASS) |
+| C13 · Checkpoints | `atlas_checkpoints.py` (`state/tasks/<id>.json`) | test_c1_checkpoints (4 PASS) |
+| C14 · Redacción sensibles | `redact()` (SECRET_PATTERNS) | test_c1_redact (4 PASS) |
+| C15 · Evals mensuales | `atlas_eval.py` (batería 5 casos) + tarea `AtlasEval` (Lun 03:30) + `/api/evals` | batería 100% (10/10) |
+| Fix deuda técnica | bug SQL `ambiguous column name: title` en `tool_note_search` (columnas calificadas) | 103/103 tests PASS |
+
+**Pendiente de C1 (gates manuales):** 3 entregables calificados "así sí" por el
+usuario → exemplars; 2 runbooks verificados (instalar extensión, exportar diseño).
+
 ### F4 · DINERO — ⚪ No iniciada
 
 Money + Content Engines: radar de oportunidades, métricas $, motor de contenido.

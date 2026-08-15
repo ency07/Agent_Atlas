@@ -281,6 +281,94 @@ def web_research(topic: str, depth: int = 1) -> Dict:
     }
 
 
+@mcp.tool()
+def web_research_academic(query: str, max_results: int = 10, databases: str = "crossref,arxiv") -> Dict:
+    """Busqueda academica en CrossRef (DOI/papers) y arXiv (preprints). REQ-C9/C16.
+
+    Args:
+        query: Termino de busqueda academica (ej: "retrieval augmented generation")
+        max_results: Maximo de resultados por base (default 10)
+        databases: Bases a consultar separadas por coma (crossref, arxiv)
+
+    Returns:
+        {
+            "results": [
+                {"title", "authors", "year", "doi", "url", "source", "abstract"}
+            ]
+        }
+    """
+    import urllib.parse
+
+    results = []
+    db_list = [d.strip().lower() for d in databases.split(",") if d.strip()]
+
+    if "crossref" in db_list:
+        try:
+            import requests
+            url = ("https://api.crossref.org/works?rows=%d&query=%s&select=title,author,"
+                   "published-print,published-online,DOI,URL,abstract&sort=relevance"
+                   % (max_results, urllib.parse.quote(query)))
+            resp = requests.get(url, timeout=20, headers={
+                "User-Agent": "AtlasResearch/1.0 (mailto:atlas@example.com)"})
+            resp.raise_for_status()
+            for item in resp.json().get("message", {}).get("items", []):
+                authors = []
+                for a in item.get("author", [])[:6]:
+                    name = " ".join(filter(None, [a.get("given", ""), a.get("family", "")]))
+                    if name:
+                        authors.append(name)
+                year = ""
+                for k in ("published-print", "published-online"):
+                    if item.get(k, {}).get("date-parts"):
+                        year = item[k]["date-parts"][0][0]
+                        break
+                abstract = (item.get("abstract", "") or "").replace(
+                    "<jats:p>", "").replace("</jats:p>", "")[:400]
+                results.append({
+                    "title": item.get("title", [""])[0] if item.get("title") else "",
+                    "authors": authors,
+                    "year": year,
+                    "doi": item.get("DOI", ""),
+                    "url": item.get("URL", ""),
+                    "source": "crossref",
+                    "abstract": abstract,
+                })
+        except Exception as e:
+            log.warning(f"crossref fallo: {e}")
+
+    if "arxiv" in db_list:
+        try:
+            import requests
+            url = ("http://export.arxiv.org/api/query?search_query=all:%s&"
+                   "start=0&max_results=%d" % (urllib.parse.quote(query), max_results))
+            resp = requests.get(url, timeout=20)
+            resp.raise_for_status()
+            import xml.etree.ElementTree as ET
+            ns = {"a": "http://www.w3.org/2005/Atom"}
+            root = ET.fromstring(resp.text)
+            for entry in root.findall("a:entry", ns):
+                title = (entry.findtext("a:title", "", ns) or "").strip().replace("\n", " ")
+                authors = [au.findtext("a:name", "", ns) for au in entry.findall("a:author", ns)]
+                published = (entry.findtext("a:published", "", ns) or "")[:4]
+                abstract = (entry.findtext("a:summary", "", ns) or "").strip()[:400]
+                results.append({
+                    "title": title,
+                    "authors": authors,
+                    "year": published,
+                    "doi": "",
+                    "url": entry.findtext("a:id", "", ns),
+                    "source": "arxiv",
+                    "abstract": abstract,
+                })
+        except Exception as e:
+            log.warning(f"arxiv fallo: {e}")
+
+    if not results:
+        return {"results": [], "note": "sin resultados academicos para: " + query}
+
+    return {"results": results, "total": len(results)}
+
+
 # --- Main ---
 if __name__ == "__main__":
     mcp.run(transport="stdio")

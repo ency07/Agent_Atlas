@@ -27,18 +27,16 @@ def test_save_and_search_note():
     save_result = parse_result(mcp_mem.tool_note_save("Test Note", "Contenido de prueba", "fact", project="test"))
     assert save_result["success"] == True
     assert "id" in save_result
-    
-    # Buscar nota - puede fallar por bug de SQL (ambiguous column)
-    # Solo verificamos que no lanza excepción
-    try:
-        results = mcp_mem.tool_note_search("prueba", project="test")
-        # Si llega aquí, parsear
-        if isinstance(results, str):
-            results = json.loads(results)
-        assert isinstance(results, list)
-    except Exception as e:
-        # Bug conocido: ambiguous column name 'title'
-        assert "ambiguous column" in str(e).lower()
+
+    # Buscar nota — bug de SQL "ambiguous column name: title" FIX (calificado
+    # las columnas). Ahora devuelve {"count", "results"} correctamente.
+    results = mcp_mem.tool_note_search("prueba", project="test")
+    if isinstance(results, str):
+        results = json.loads(results)
+    assert isinstance(results, dict)
+    assert "count" in results
+    assert "results" in results
+    assert results["count"] >= 1
 
 def test_session_lifecycle():
     # Iniciar sesión
