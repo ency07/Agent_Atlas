@@ -220,5 +220,6 @@ Sirve desde `python atlas_foco.py --http 4101` (GET `/daily`).
 | DEBT-004 | Launcher duplicado activity (mutex añadido; verificar en producción) | Atlas (código) | 2026-08-21 | BAJO | Mutex Windows añadido; verificar estabilidad tras 2 reboots reales |
 | DEBT-005 | 3er reboot del chat para gate "3 reboots" | Entorno | 2026-08-21 | BAJO | Requerido reboot real adicional; BLOCKED_BY_ENVIRONMENT |
 | DEBT-006 | win10toast no instalado (toast notification en supervisor) | Atlas | 2026-08-31 | BAJO | `pip install win10toast` si se necesita |
+| DEBT-007 | Integrar controller C2 en supervisor COMPONENTS | Atlas (código) | 2026-08-14 | BAJO | ✅ **PAGADO**: entrada `controller` con `demand: True` (bajo demanda, no auto-reinicia, cooldown anti-spam) |
 
 Gates humanos pendientes de C1 (ver `docs/verification/2026-08-14-cierre-f25-c1.md`).

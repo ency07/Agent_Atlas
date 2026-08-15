@@ -111,6 +111,13 @@ COMPONENTS = {
         "cwd": ROOT,
         "log": "orchestrator.log",
         "health_name": None,
+    },
+    "controller": {
+        "cmd": [PYTHON, "atlas_controller.py"],
+        "cwd": ROOT,
+        "log": "controller.log",
+        "health_name": None,
+        "demand": True,  # bucle bajo demanda: se lanza al crear contrato; no auto-reiniciar
     }
 }
 
@@ -215,6 +222,14 @@ def monitor():
                     )
                 
                 if not is_ok:
+                    if config.get("demand"):
+                        # componente bajo demanda: se lanza al crear trabajo (contrato),
+                        # el supervisor no lo auto-reinicia; solo loguea su estado
+                        # con cooldown para evitar spam (controller no es daemon)
+                        if not is_on_cooldown(name):
+                            logger.info(f"{name}: bajo demanda (sin contrato activo); no auto-reiniciar")
+                            set_cooldown(name)
+                        continue
                     logger.warning(f"{name} caído")
                     if restart_component(name, config):
                         set_cooldown(name)
