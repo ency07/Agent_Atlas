@@ -25,7 +25,13 @@ Cualquier solicitud de desarrollo debe procesarse en este orden exacto:
 - **Comunicación:** La IA no debe añadir comentarios descriptivos en el código ("he cambiado esto porque..."). La traza de cambios debe estar en el historial del repositorio y en los archivos de tareas.
 
 ## 4. Gestión de Deuda Técnica
-- Toda decisión técnica que se aleje de los estándares definidos debe documentarse como una **"Deuda Operativa"** en `README.md` bajo la sección correspondiente.
+- Toda decisión técnica que se aleje de los estándares definidos debe documentarse como una **"Deuda Operativa"** en `docs/DEBT.md` (fuente única) con ID único, responsable y fecha objetivo. Colisión de IDs = fallo bloqueante.
+
+## 5. Auditorías bajo Contrato C2 (G-2)
+- Toda auditoría/cierre de fase requiere contrato C2 con criterios verificables.
+- El % de completitud se **prueba por checklist**, nunca se declara (lección I-01).
+- Evidencia obligatoria: comando + salida real + commit. Lo no verificable → BLOCKED_BY_ENVIRONMENT.
+- Reporte de verificación en `docs/verification/` por fase (GOVERNANCE §16).
 
 ## 5. Aplicabilidad Multi-Stack
 - Este protocolo (secciones 1-4) es el mismo para **todo proyecto**, sin importar el lenguaje, framework, runtime o proveedor de infraestructura.
