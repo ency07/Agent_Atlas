@@ -120,6 +120,13 @@
     <div id="tareas-list" style="font-size:.82rem;color:var(--muted);">cargando...</div>
   </div>
 
+  <h2 style="font-size:1.1rem;margin-top:16px;margin-bottom:8px;">Fricción · tendencia semanal (P-3)</h2>
+  <div style="flex:1;min-width:300px;" class="card">
+    <h3>Eventos de fricción por semana</h3>
+    <div id="friction-weekly" style="font-size:.82rem;color:var(--muted);">cargando...</div>
+    <div class="detail" style="margin-top:8px;">GET /api/friction/weekly · baseline P-5</div>
+  </div>
+
   <h2 style="font-size:1.1rem;margin-top:16px;margin-bottom:8px;">Pendiente de ti</h2>
   <div style="flex:1;min-width:300px;" class="card">
     <h3>Gates humanos + escaladas</h3>
@@ -320,6 +327,28 @@ async function loadPendientes() {
   } catch (e) { el.textContent = `error: ${e.message}`; }
 }
 
+async function loadFrictionWeekly() {
+  const el = document.getElementById('friction-weekly');
+  try {
+    const r = await fetch(`${API_BASE}/api/friction/weekly`).then(r => r.json());
+    if (!r.weeks || !r.weeks.length) {
+      el.innerHTML = 'sin datos de fricción aún (ejecuta: python tests/unit/test_p_friction.py)';
+      return;
+    }
+    el.innerHTML = r.weeks.map(w => `
+      <div style="display:flex;justify-content:space-between;padding:4px 0;border-bottom:1px solid var(--border);">
+        <span>${w.week}</span>
+        <span style="color:${w.count > 3 ? '#f85149' : w.count > 1 ? '#d29922' : '#3fb950'};font-weight:600;">${w.count} eventos</span>
+      </div>`).join('');
+    const totalEl = document.createElement('div');
+    totalEl.style.cssText = 'margin-top:8px;padding-top:8px;border-top:1px solid var(--border);font-weight:600;color:var(--accent);';
+    totalEl.textContent = 'Total: ' + r.total + ' eventos (baseline P-5)';
+    el.appendChild(totalEl);
+  } catch (e) {
+    el.textContent = `error: ${e.message}`;
+  }
+}
+
 // auto-refresh cada 30s
 load();
 loadTopApps();
@@ -329,7 +358,8 @@ loadModelo();
 loadInformes();
 loadTareas();
 loadPendientes();
-setInterval(() => { load(); loadTopApps(); loadFoco(); loadHealth(); loadModelo(); loadInformes(); loadTareas(); loadPendientes(); }, 30000);
+loadFrictionWeekly();
+setInterval(() => { load(); loadTopApps(); loadFoco(); loadHealth(); loadModelo(); loadInformes(); loadTareas(); loadPendientes(); loadFrictionWeekly(); }, 30000);
 </script>
 </body>
 </html>
