@@ -1,6 +1,8 @@
 """
 Atlas Verifier — Ejecutores reales por tipo (C2-3)
 El "listo" del agente no vale. Solo el ejecutor cierra el criterio.
+
+Liviano + Honesto: cierre sin evidencia → exito_falso (registrado y bloqueado).
 """
 import json
 import subprocess
@@ -15,6 +17,9 @@ PROJECT_ROOT = Path(__file__).resolve().parent
 PYTHON = PROJECT_ROOT / ".venv" / "Scripts" / "python.exe"
 if not PYTHON.exists():
     PYTHON = Path(sys.executable)
+
+# friction_log path
+FRICTION_LOG = PROJECT_ROOT / "memory_data" / "state" / "friction_log.jsonl"
 
 
 @dataclass
@@ -116,3 +121,46 @@ class Verifier:
             return VerificationResult(ok, out[-400:])
         except subprocess.TimeoutExpired:
             return VerificationResult(False, "timeout 120s")
+
+    def verificar_cierre_sin_evidencia(self, contract: dict) -> dict:
+        """Liviano + Honesto: detecta cierre sin evidencia → exito_falso.
+
+        Returns dict con exito_falso (bool), motivo (str), registrado (bool).
+        """
+        criterios = contract.get("criterios", [])
+        nivel = contract.get("nivel", "L2")
+
+        # Solo aplica a L0/L1 (L2 tiene contrato formal)
+        if nivel not in ("L0", "L1"):
+            return {"exito_falso": False, "motivo": "L2 con contrato formal", "registrado": False}
+
+        # Buscar criterios cerrados sin evidencia real
+        sin_evidencia = []
+        for cr in criterios:
+            if cr.get("estado") in ("OK", "HUMANO"):
+                continue
+            evidencia = cr.get("evidencia", "")
+            if not evidencia or evidencia in ("", "pendiente de usuario", "humano (skip)"):
+                sin_evidencia.append(cr["id"])
+
+        if not sin_evidencia:
+            return {"exito_falso": False, "motivo": "evidencia presente", "registrado": False}
+
+        # Registrar exito_falso en friction_log
+        motivo = f"cierre sin evidencia: {', '.join(sin_evidencia)}"
+        registrado = False
+        try:
+            FRICTION_LOG.parent.mkdir(parents=True, exist_ok=True)
+            entry = {
+                "ts": __import__("datetime").datetime.now(__import__("datetime").timezone.utc).isoformat(timespec="seconds"),
+                "type": "exito_falso",
+                "detail": motivo,
+                "meta": {"nivel": nivel, "criterios_sin_evidencia": sin_evidencia},
+            }
+            with open(FRICTION_LOG, "a", encoding="utf-8") as f:
+                f.write(json.dumps(entry, ensure_ascii=False) + "\n")
+            registrado = True
+        except Exception:
+            pass
+
+        return {"exito_falso": True, "motivo": motivo, "registrado": registrado}

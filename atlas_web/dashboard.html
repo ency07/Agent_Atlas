@@ -126,6 +126,10 @@
     <div id="friction-weekly" style="font-size:.82rem;color:var(--muted);">cargando...</div>
     <div class="detail" style="margin-top:8px;">GET /api/friction/weekly · baseline P-5</div>
   </div>
+  <div id="exito-falso-alert" style="display:none;background:rgba(248,81,73,.15);border:1px solid var(--red);border-radius:8px;padding:12px;margin-top:8px;">
+    <div style="color:var(--red);font-weight:600;">ALERTA: Éxito falso detectado</div>
+    <div id="exito-falso-detail" style="font-size:.82rem;color:var(--muted);margin-top:4px;"></div>
+  </div>
 
   <h2 style="font-size:1.1rem;margin-top:16px;margin-bottom:8px;">Pendiente de ti</h2>
   <div style="flex:1;min-width:300px;" class="card">
@@ -349,17 +353,36 @@ async function loadFrictionWeekly() {
   }
 }
 
+async function loadExitoFalso() {
+  const alertEl = document.getElementById('exito-falso-alert');
+  const detailEl = document.getElementById('exito-falso-detail');
+  try {
+    const r = await fetch(`${API_BASE}/api/friction?limit=50`).then(r => r.json());
+    const falsos = (r.items || []).filter(i => i.type === 'exito_falso');
+    if (falsos.length > 0) {
+      alertEl.style.display = 'block';
+      detailEl.textContent = falsos.length + ' cierre(s) sin evidencia reciente(s): ' +
+        falsos.slice(0, 3).map(f => f.detail).join('; ');
+    } else {
+      alertEl.style.display = 'none';
+    }
+  } catch (e) {
+    alertEl.style.display = 'none';
+  }
+}
+
 // auto-refresh cada 30s
 load();
 loadTopApps();
 loadFoco();
 loadHealth();
 loadModelo();
+loadExitoFalso();
 loadInformes();
 loadTareas();
 loadPendientes();
 loadFrictionWeekly();
-setInterval(() => { load(); loadTopApps(); loadFoco(); loadHealth(); loadModelo(); loadInformes(); loadTareas(); loadPendientes(); loadFrictionWeekly(); }, 30000);
+setInterval(() => { load(); loadTopApps(); loadFoco(); loadHealth(); loadModelo(); loadExitoFalso(); loadInformes(); loadTareas(); loadPendientes(); loadFrictionWeekly(); }, 30000);
 </script>
 </body>
 </html>

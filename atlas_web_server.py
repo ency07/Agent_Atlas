@@ -200,7 +200,7 @@ def evals() -> dict:
 
 
 # --- P-2: Friction Log ---
-VALID_FRICTION_TYPES = {"correccion", "repeticion", "espera_larga", "negativa"}
+VALID_FRICTION_TYPES = {"correccion", "repeticion", "espera_larga", "negativa", "exito_falso"}
 
 def friction_write(event_type: str, detail: str = "", meta: dict = None) -> dict:
     """Escribe un evento de fricción al JSONL."""

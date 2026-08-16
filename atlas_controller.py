@@ -10,6 +10,7 @@ from pathlib import Path
 from typing import List
 
 from atlas_verifier import Verifier
+import atlas_verifier
 from atlas_log import get_logger
 
 logger = get_logger("controller")
@@ -152,3 +153,39 @@ def crear_contrato(orden: str, criterios: list,
 def validar_contrato(c: dict) -> bool:
     """C2-1: contrato sin criterios → rechazo."""
     return bool(c.get("criterios"))
+
+
+# --- Liviano: fast-path L0/L1 (sin contrato, sin crítico) ---
+def es_liviano(contract: dict) -> bool:
+    """True si el contrato es L0 o L1 (no requiere contrato formal)."""
+    return contract.get("nivel") in ("L0", "L1")
+
+
+def ejecutar_liviano(contract: dict, verifier=None) -> dict:
+    """Fast-path para L0/L1: ejecuta directo sin contrato ni crítico.
+
+    Returns dict con nivel, resultado, evidencia, exito_falso.
+    """
+    from datetime import datetime
+    nivel = contract.get("nivel", "L1")
+    criterios = contract.get("criterios", [])
+
+    # Verificación barata L0: check de 1 línea
+    evidencias = []
+    for cr in criterios:
+        if cr["tipo"] == "humano":
+            evidencias.append({"id": cr["id"], "ok": True, "evidencia": "humano (skip)"})
+            continue
+        if verifier is None:
+            verifier = atlas_verifier.Verifier()
+        r = verifier.ejecutar(cr)
+        evidencias.append({"id": cr["id"], "ok": r.ok, "evidencia": r.evidencia})
+
+    all_ok = all(e["ok"] for e in evidencias) if evidencias else True
+    return {
+        "nivel": nivel,
+        "resultado": "OK" if all_ok else "FAIL",
+        "evidencias": evidencias,
+        "exito_falso": False,
+        "ts": datetime.now().isoformat(),
+    }
