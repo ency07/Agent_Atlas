@@ -70,7 +70,9 @@ _icon = None
 
 # --- Windows API ---
 user32 = ctypes.windll.user32
-kernel32 = ctypes.windll.kernel32
+# use_last_error=True: necesario para que CreateMutexW ERROR_ALREADY_EXISTS
+# sea visible via ctypes.get_last_error() (single instance real).
+kernel32 = ctypes.WinDLL("kernel32", use_last_error=True)
 
 MUTEX_NAME = "Local\\AtlasActivitySingleInstance"
 
@@ -81,7 +83,9 @@ def acquire_single_instance():
     """
     try:
         ERROR_ALREADY_EXISTS = 183
-        handle = kernel32.CreateMutexW(None, False, MUTEX_NAME)
+        CreateMutexW = kernel32.CreateMutexW
+        CreateMutexW.restype = ctypes.c_void_p
+        handle = CreateMutexW(None, False, MUTEX_NAME)
         if not handle:
             return None
         if ctypes.get_last_error() == ERROR_ALREADY_EXISTS:
@@ -452,10 +456,15 @@ def on_pause(icon, item):
 
 
 
-def on_open_chat(icon, item):
+def _open_chat() -> None:
+    """Lanza la ventana flotante del chat (reutiliza el server 4096 si esta vivo)."""
     vbs = PROJECT_ROOT / "start_atlas_chat.vbs"
     if vbs.exists():
         subprocess.Popen(["wscript.exe", str(vbs)], creationflags=0x08000000)  # CREATE_NO_WINDOW
+
+
+def on_open_chat(icon, item):
+    _open_chat()
 
 
 
@@ -484,6 +493,100 @@ def _port_open(port: int, timeout: float = 0.6) -> bool:
         return True
     except OSError:
         return False
+
+
+
+# --- Hotkey global: Ctrl+Alt+A reabre/trae al frente el chat flotante ---
+# Se integra en el daemon (ya corre 24/7 via tarea programada AtlasActivity):
+# sin proceso extra ni software de terceros. RegisterHotKey con hWnd=NULL
+# postea WM_HOTKEY a la cola de mensajes del thread que lo registra.
+HOTKEY_ID = 0x4154  # 'AT' arbitrario, unico para este proceso
+HOTKEY_MOD = 0x1 | 0x2 | 0x4000  # MOD_ALT | MOD_CONTROL | MOD_NOREPEAT
+HOTKEY_VK = 0x41                  # 'A'
+WM_HOTKEY = 0x0312
+PM_NOREMOVE = 0x0000
+SW_RESTORE = 9
+
+RegisterHotKey = user32.RegisterHotKey
+RegisterHotKey.argtypes = [wintypes.HWND, ctypes.c_int, wintypes.UINT, wintypes.UINT]
+RegisterHotKey.restype = wintypes.BOOL
+
+UnregisterHotKey = user32.UnregisterHotKey
+UnregisterHotKey.argtypes = [wintypes.HWND, ctypes.c_int]
+UnregisterHotKey.restype = wintypes.BOOL
+
+FindWindowW = user32.FindWindowW
+FindWindowW.argtypes = [wintypes.LPCWSTR, wintypes.LPCWSTR]
+FindWindowW.restype = wintypes.HWND
+
+ShowWindow = user32.ShowWindow
+ShowWindow.argtypes = [wintypes.HWND, ctypes.c_int]
+ShowWindow.restype = wintypes.BOOL
+
+SetForegroundWindow = user32.SetForegroundWindow
+SetForegroundWindow.argtypes = [wintypes.HWND]
+SetForegroundWindow.restype = wintypes.BOOL
+
+PeekMessageW = user32.PeekMessageW
+PeekMessageW.argtypes = [ctypes.POINTER(wintypes.MSG), wintypes.HWND,
+                         wintypes.UINT, wintypes.UINT, wintypes.UINT]
+PeekMessageW.restype = wintypes.BOOL
+
+GetMessageW = user32.GetMessageW
+GetMessageW.argtypes = [ctypes.POINTER(wintypes.MSG), wintypes.HWND,
+                        wintypes.UINT, wintypes.UINT]
+GetMessageW.restype = ctypes.c_int
+
+TranslateMessage = user32.TranslateMessage
+TranslateMessage.argtypes = [ctypes.POINTER(wintypes.MSG)]
+TranslateMessage.restype = wintypes.BOOL
+
+DispatchMessageW = user32.DispatchMessageW
+DispatchMessageW.argtypes = [ctypes.POINTER(wintypes.MSG)]
+DispatchMessageW.restype = wintypes.LPARAM
+
+
+def _focus_or_open_chat() -> None:
+    """Hotkey: si la ventana flotante existe (aunque minimizada/detras)
+    la trae al frente; si esta cerrada la reabre."""
+    hwnd = FindWindowW(None, "Atlas")
+    if hwnd:
+        ShowWindow(hwnd, SW_RESTORE)
+        try:
+            SetForegroundWindow(hwnd)
+        except Exception:
+            pass
+        log.info("hotkey: ventana Atlas traida al frente")
+        return
+    log.info("hotkey: ventana Atlas cerrada; reabriendo")
+    _open_chat()
+
+
+def _hotkey_loop() -> None:
+    """Pump de mensajes del thread: registra Ctrl+Alt+A y reacciona a WM_HOTKEY."""
+    msg = wintypes.MSG()
+    # crea la cola de mensajes del thread antes de RegisterHotKey(hWnd=NULL)
+    PeekMessageW(ctypes.byref(msg), None, 0, 0, PM_NOREMOVE)
+    if not RegisterHotKey(None, HOTKEY_ID, HOTKEY_MOD, HOTKEY_VK):
+        log.warning("hotkey Ctrl+Alt+A NO registrado (combinacion tomada por otra app)")
+        return
+    log.info("hotkey Ctrl+Alt+A registrado: reabre/trae al frente el chat Atlas")
+    try:
+        while _running:
+            r = GetMessageW(ctypes.byref(msg), None, 0, 0)
+            if r <= 0:
+                break
+            if msg.message == WM_HOTKEY:
+                _focus_or_open_chat()
+            TranslateMessage(ctypes.byref(msg))
+            DispatchMessageW(ctypes.byref(msg))
+    finally:
+        UnregisterHotKey(None, HOTKEY_ID)
+
+
+def _start_hotkey() -> None:
+    """Arranca el thread del hotkey global (daemon)."""
+    threading.Thread(target=_hotkey_loop, daemon=True).start()
 
 
 
@@ -571,6 +674,8 @@ if __name__ == "__main__":
         _running = False
     signal.signal(signal.SIGINT, _sig)
     signal.signal(signal.SIGTERM, _sig)
+
+    _start_hotkey()
 
     if no_tray or not HAS_TRAY:
         daemon_loop(interval)

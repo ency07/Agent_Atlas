@@ -99,6 +99,11 @@ powershell -ExecutionPolicy Bypass -File setup.ps1 -InstallF2
 schtasks /Delete /TN "AtlasChat" /F   # desinstalar autostart
 ```
 
+Reabrir la ventana si la cerraste sin querer: pulsa **`Ctrl + Alt + A`**.
+El atajo lo registra el daemon `atlas_activity.py` (tarea `AtlasActivity`): si la
+ventana sigue abierta (aunque minimizada) la trae al frente; si está cerrada la
+reabre reutilizando el server 4096.
+
 El server vive en `127.0.0.1:4096`; log en `atlas_chat.log`. Detalle en
 [`docs/PUESTA_EN_MARCHA.md`](docs/PUESTA_EN_MARCHA.md).
 
