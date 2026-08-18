@@ -29,6 +29,7 @@ import sys
 import tempfile
 import time
 import urllib.error
+import urllib.parse
 import urllib.request
 import xml.etree.ElementTree as ET
 from collections import Counter
@@ -55,6 +56,33 @@ for d in (ORDERS_DIR, HB_TASK_DIR, CONFIRM_DIR):
 
 _prov_cache = {}
 _cache_ts = {}
+
+# === B1: Caché background para endpoints pesados ===
+_BG_CACHE = {"health": None, "orchestrator": None}
+_BG_CACHE_TS = {"health": 0, "orchestrator": 0}
+_BG_CACHE_TTL = 60  # segundos
+
+
+def _bg_refresh():
+    """Thread background: refresca health y orchestrator cada 60s."""
+    import threading
+    def _loop():
+        while True:
+            try:
+                _BG_CACHE["health"] = _call_attr("atlas_health", "health_report")
+                _BG_CACHE_TS["health"] = time.time()
+            except Exception:
+                _BG_CACHE["health"] = {"status": "unknown", "checks": []}
+                _BG_CACHE_TS["health"] = time.time()
+            try:
+                _BG_CACHE["orchestrator"] = _call_attr("atlas_orchestrator", "report")
+                _BG_CACHE_TS["orchestrator"] = time.time()
+            except Exception:
+                _BG_CACHE["orchestrator"] = []
+                _BG_CACHE_TS["orchestrator"] = time.time()
+            time.sleep(_BG_CACHE_TTL)
+    t = threading.Thread(target=_loop, daemon=True, name="bg-cache")
+    t.start()
 
 
 def _cache_ok(key: str, ttl: float) -> bool:
@@ -352,13 +380,9 @@ def _adaptador_stale(key: str, fetch_fn, ttl_s: int = 900):
 
 # --- DASH v3: /api/live ---
 def api_live() -> dict:
-    """Heartbeat + tasks + pasos/ETA + última acción."""
+    """Heartbeat + tasks + pasos/ETA + última acción. SOLO lectura archivos → <50ms."""
     hb = heartbeat()
-    health_r = {}
-    try:
-        health_r = _call_attr("atlas_health", "health_report")
-    except Exception:
-        pass
+    health_r = _BG_CACHE.get("health") or {}
     daemon_age = None
     if hb:
         try:
@@ -683,6 +707,95 @@ def api_ui_config_write(data: dict) -> dict:
     return {"ok": True, "config": current}
 
 
+def api_preferences_get() -> dict:
+    """Lee preferences (nombre/ciudad/usuario) desde memory.db."""
+    conn = _db()
+    try:
+        rows = [dict(r) for r in conn.execute(
+            "SELECT key,value,scope,project FROM preferences ORDER BY scope,project,key")]
+    finally:
+        conn.close()
+    prefs = {r["key"]: r["value"] for r in rows}
+    return {
+        "ok": True,
+        "preferences": prefs,
+        "user_name": prefs.get("user_name", ""),
+        "usuario": prefs.get("user_name", prefs.get("nombre", "")),
+        "ciudad": prefs.get("ciudad", prefs.get("city", "")),
+        "onboarding_done": bool(prefs.get("user_name")),
+    }
+
+
+def api_preferences_set(data: dict) -> dict:
+    """Guarda preferences (user_name, ciudad) en memory.db + vault MD."""
+    conn = _db()
+    try:
+        now = datetime.now(timezone.utc).isoformat(timespec="seconds")
+        saved = []
+        for key in ("user_name", "ciudad"):
+            val = str(data.get(key, "")).strip()
+            if not val:
+                continue
+            conn.execute(
+                "INSERT OR REPLACE INTO preferences (key,value,scope,project,updated) "
+                "VALUES (?,?,?,?,?)",
+                (key, val, "global", "global", now),
+            )
+            saved.append(key)
+        conn.commit()
+    finally:
+        conn.close()
+    # espejo en vault/global/preferences
+    try:
+        pref_dir = ROOT / "memory_data" / "vault" / "global" / "preferences"
+        pref_dir.mkdir(parents=True, exist_ok=True)
+        for key in saved:
+            val = data.get(key, "").strip()
+            (pref_dir / f"{key}.md").write_text(
+                f"---\ntype: preference\nproject: global\nupdated: {now}\n---\n\n# {key}\n\n{val}\n",
+                encoding="utf-8",
+            )
+    except Exception:
+        pass
+    return {"ok": True, "saved": saved, "onboarding_done": True}
+
+
+def api_memory(query: str = "", limit: int = 5) -> dict:
+    """Recuerdos relevantes FTS5 (para gadget MEMORY)."""
+    conn = _db()
+    try:
+        if query:
+            q = query.replace("'", "''")
+            rows = [dict(r) for r in conn.execute(
+                "SELECT id,title,type,project,summary FROM notes_fts "
+                "JOIN notes_index USING(id) WHERE notes_fts MATCH ? LIMIT ?",
+                (q, min(int(limit), 10)))]
+        else:
+            rows = [dict(r) for r in conn.execute(
+                "SELECT id,title,type,project,summary FROM notes_index "
+                "ORDER BY id DESC LIMIT ?", (min(int(limit), 10),))]
+    except Exception:
+        rows = []
+    finally:
+        conn.close()
+    return {"ok": True, "count": len(rows), "items": rows}
+
+
+def api_guardian() -> dict:
+    """Eventos guardian recientes desde notes_index (tag=guardian,audit,blocked)."""
+    conn = _db()
+    try:
+        rows = [dict(r) for r in conn.execute(
+            "SELECT id,title,summary,type FROM notes_index "
+            "WHERE title LIKE '%guard_block%' OR title LIKE '%guardian%' "
+            "ORDER BY id DESC LIMIT 8")]
+    except Exception:
+        rows = []
+    finally:
+        conn.close()
+    return {"ok": True, "count": len(rows), "events": rows}
+
+
 class _Handler(BaseHTTPRequestHandler):
     def _send(self, code: int, body: bytes, ctype: str):
         self.send_response(code)
@@ -718,6 +831,9 @@ class _Handler(BaseHTTPRequestHandler):
                 detail = data.get("detail", "")
                 order_id = data.get("order_id", "")
                 result = api_confirm_create(task_id, detail, order_id)
+                self._json_response(result, 200 if result.get("ok") else 400)
+            elif path == "/api/preferences":
+                result = api_preferences_set(data)
                 self._json_response(result, 200 if result.get("ok") else 400)
             elif path.startswith("/api/confirmaciones/"):
                 perm_id = path.split("/")[-1]
@@ -772,9 +888,10 @@ class _Handler(BaseHTTPRequestHandler):
             elif path == "/api/foco":
                 self._json_response(foco_daily())
             elif path == "/api/health":
-                self._json_response(health())
+                self._json_response(_BG_CACHE.get("health") or health())
             elif path == "/api/orchestrator":
-                self._json_response({"providers": orchestrator()})
+                cached = _BG_CACHE.get("orchestrator")
+                self._json_response({"providers": cached if cached is not None else orchestrator()})
             elif path == "/api/modelo":
                 self._json_response(activo_modelo())
             elif path == "/api/informes":
@@ -793,6 +910,21 @@ class _Handler(BaseHTTPRequestHandler):
                 self._json_response(api_trust())
             elif path == "/api/live":
                 self._json_response(api_live())
+            elif path == "/api/preferences":
+                self._json_response(api_preferences_get())
+            elif path == "/api/notas":
+                query = ""
+                limit = 5
+                if "?" in self.path:
+                    qs = self.path.split("?", 1)[1]
+                    for p in qs.split("&"):
+                        if p.startswith("q="):
+                            query = urllib.parse.unquote(p[2:])
+                        elif p.startswith("limit="):
+                            limit = int(p[6:])
+                self._json_response(api_memory(query, limit))
+            elif path == "/api/guardian":
+                self._json_response(api_guardian())
             elif path == "/api/mercado":
                 data, stale = _adaptador_stale("mercado", _fetch_mercado, ttl_s=900)
                 out = dict(data or {})
@@ -871,6 +1003,7 @@ def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--port", type=int, default=4100)
     args = ap.parse_args()
+    _bg_refresh()  # B1: iniciar caché background health/orchestrator
     srv = ThreadingHTTPServer(("127.0.0.1", args.port), _Handler)
     print(f"atlas_web_server en http://127.0.0.1:{args.port}  (dashboard + /api/*)")
     try:

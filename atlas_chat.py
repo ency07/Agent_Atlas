@@ -40,11 +40,42 @@ MUTEX_NAME = "Local\\AtlasChatSingleInstance"
 STARTUP_TIMEOUT = int(os.environ.get("ATLAS_CHAT_TIMEOUT", "90"))
 LOG_DIR = Path(__file__).resolve().parent / "logs"
 STDERR_LOG = LOG_DIR / "atlas_chat_stderr.log"
+_STATE_DIR = Path(__file__).resolve().parent / "memory_data" / "state"
+_COOLDOWN_FILE = _STATE_DIR / "atlas_chat_cooldown.json"
 
 from atlas_log import get_logger
 from atlas_monitor import track_error
 
 log = get_logger("atlas_chat")
+
+
+def _check_cooldown():
+    """Verifica cooldown de 5 min para chat (evita reinicios ciclicos)."""
+    try:
+        if _COOLDOWN_FILE.exists():
+            import json
+            data = json.loads(_COOLDOWN_FILE.read_text(encoding='utf-8'))
+            until = data.get("until")
+            if until:
+                from datetime import datetime, timezone
+                if datetime.now(timezone.utc) < datetime.fromisoformat(until):
+                    remaining = (datetime.fromisoformat(until) - datetime.now(timezone.utc)).seconds
+                    log.warning(f"chat en cooldown; {remaining}s restantes (A3-fix)")
+                    return True
+    except Exception:
+        pass
+    return False
+
+
+def _set_cooldown(minutes=5):
+    """Activa cooldown tras reinicio exitoso."""
+    try:
+        _STATE_DIR.mkdir(parents=True, exist_ok=True)
+        from datetime import datetime, timezone, timedelta
+        data = {"until": (datetime.now(timezone.utc) + timedelta(minutes=minutes)).isoformat()}
+        _COOLDOWN_FILE.write_text(json.dumps(data), encoding='utf-8')
+    except Exception:
+        pass
 
 
 def _bin_version(bin_path: str):
@@ -196,11 +227,12 @@ class Api:
 
 OVERLAY_JS = """
 (function () {
-  // --- Drag bar with progress ---
+  // --- Drag bar with progress + semáforo ---
   var bar = document.createElement('div');
   bar.id = 'atlas-drag-bar';
   bar.innerHTML =
     '<span id="atlas-title">Atlas</span>' +
+    '<span id="atlas-semaforo" title="Salud del sistema" style="width:8px;height:8px;border-radius:50%;background:#6e7681;display:inline-block;margin:0 6px;flex-shrink:0;"></span>' +
     '<div id="atlas-progress" style="display:none;flex:1;margin:0 12px;height:4px;background:rgba(255,255,255,.1);border-radius:2px;overflow:hidden;">' +
       '<div id="atlas-progress-fill" style="width:0%;height:100%;background:#58a6ff;transition:width .2s;"></div>' +
     '</div>' +
@@ -365,6 +397,23 @@ OVERLAY_JS = """
       } catch (e) { location.reload(); }
     }
   }, 500);
+
+  // --- Semaforo: poll /api/health cada 30s y actualizar el dot ---
+  var sem = document.getElementById('atlas-semaforo');
+  var STATUS_COLORS = {green:'#3fb950', yellow:'#d29922', red:'#f85149'};
+  var HEALTH_URL = 'http://127.0.0.1:4100/api/health';
+  function updateSemaforo() {
+    fetch(HEALTH_URL).then(function(r){return r.json();}).then(function(d){
+      if (sem) {
+        sem.style.background = STATUS_COLORS[d.status] || '#6e7681';
+        sem.title = 'Salud: ' + (d.status || '?') + ' (' + (d.checks||[]).length + ' componentes)';
+      }
+    }).catch(function(){
+      if (sem) sem.style.background = '#6e7681';
+    });
+  }
+  updateSemaforo();
+  setInterval(updateSemaforo, 30000);
 })();
 """
 
@@ -436,6 +485,11 @@ def main():
         log.error("no se encontro opencode CLI (npm install -g opencode-ai)")
         raise SystemExit("No se encontro opencode CLI. Ejecuta: npm install -g opencode-ai")
 
+    # A3: cooldown anti-loop (5 min entre reinicios)
+    if _check_cooldown():
+        log.warning("chat en cooldown; saliendo sin reintentar (A3-fix)")
+        return
+
     # 1) server ya corriendo?
     if server_up(port):
         cur = get_server_model(port)
@@ -463,6 +517,7 @@ def main():
                 log.error(f"ERROR: el server no respondio en {HOST}:{port}")
                 raise SystemExit("opencode serve no arranco a tiempo (ver atlas_chat.log y atlas_chat_stderr.log)")
         log.info("server listo")
+    _set_cooldown(minutes=5)
 
     url = f"http://{HOST}:{port}/"
     if server_only:
@@ -504,8 +559,7 @@ def main():
         webview.start()
     except Exception as exc:  # noqa: BLE001
         track_error("atlas_chat", "webview_start", exc=exc)
-        log.error(f"pywebview fallo ({exc}); abriendo en navegador", error=str(exc))
-        webbrowser.open(chat_url)
+        log.error(f"pywebview fallo ({exc}); NAVEGADOR NO ABIERTO (A2-fix)", error=str(exc))
 
 
 ICON_PATH = Path(__file__).resolve().parent / "artificialintelligence.ico"

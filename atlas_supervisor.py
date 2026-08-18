@@ -104,7 +104,7 @@ COMPONENTS = {
         "cmd": [PYTHON, "atlas_web_server.py"],
         "cwd": ROOT,
         "log": "web.log",
-        "health_name": None,  # web server no tiene check propio en health_report
+        "health_name": None,
     },
     "orchestrator": {
         "cmd": [PYTHON, "atlas_orchestrator.py"],
@@ -117,8 +117,29 @@ COMPONENTS = {
         "cwd": ROOT,
         "log": "controller.log",
         "health_name": None,
-        "demand": True,  # bucle bajo demanda: se lanza al crear contrato; no auto-reiniciar
-    }
+        "demand": True,
+    },
+    "overlay": {
+        "cmd": [PYTHON, "atlas_overlay.py"],
+        "cwd": ROOT,
+        "log": "overlay.log",
+        "health_name": "overlay",
+        "onlogon": True,
+    },
+    "orders": {
+        "cmd": [PYTHON, "atlas_orders.py"],
+        "cwd": ROOT,
+        "log": "orders.log",
+        "health_name": "orders_drainger",
+        "onlogon": True,
+    },
+    "ui_manager": {
+        "cmd": [PYTHON, "atlas_ui_manager.py"],
+        "cwd": ROOT,
+        "log": "ui_manager.log",
+        "health_name": "ui_manager",
+        "onlogon": True,
+    },
 }
 
 # --- Cooldown ---
@@ -143,6 +164,22 @@ def set_cooldown(component, minutes=5):
             pass
     cooldowns[component] = (datetime.now() + timedelta(minutes=minutes)).isoformat()
     COOLDOWN_FILE.write_text(json.dumps(cooldowns))
+
+def _count_restarts_in_hour(component):
+    """Cuenta reinicios de un componente en la última hora (máx 3)."""
+    try:
+        log_file = LOG_DIR / f"atlas_{component.replace('atlas_','')}.log"
+        if not log_file.exists():
+            return 0
+        from datetime import timedelta
+        one_hour_ago = datetime.now() - timedelta(hours=1)
+        count = 0
+        for line in log_file.read_text(encoding='utf-8').splitlines()[-200:]:
+            if 'Reiniciando' in line and component in line:
+                count += 1
+        return count
+    except Exception:
+        return 0
 
 # --- Notificaciones ---
 def notify(title, message):
@@ -230,9 +267,15 @@ def monitor():
                             logger.info(f"{name}: bajo demanda (sin contrato activo); no auto-reiniciar")
                             set_cooldown(name)
                         continue
-                    logger.warning(f"{name} caído")
+                    # Max 3 reinicios/hora por componente (backoff exponencial)
+                    restart_count = _count_restarts_in_hour(name)
+                    if restart_count >= 3:
+                        logger.warning(f"{name}: max reinicios/hora alcanzado ({restart_count}); backoff 10 min")
+                        set_cooldown(name, minutes=10)
+                        continue
+                    logger.warning(f"{name} caído (reinicios/hora: {restart_count})")
                     if restart_component(name, config):
-                        set_cooldown(name)
+                        set_cooldown(name, minutes=max(2, restart_count * 2))
                         notify("Atlas Supervisor", f"{name} reiniciado")
                     else:
                         set_cooldown(name, minutes=10)
