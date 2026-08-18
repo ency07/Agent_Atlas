@@ -1,0 +1,800 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Atlas — Holo-Glass</title>
+<style>
+:root{
+  --bg:linear-gradient(#060b16,#0a1424);
+  --glass:rgba(140,190,255,.07);
+  --line:rgba(140,200,255,.22);
+  --neon:#59c8ff;
+  --cyan:#5ad7ff;
+  --txt:#eaf6ff;
+  --dim:#8fb3cc;
+  --warn:#ffc857;
+  --fail:#ff5d5d;
+  --ok:#5cf0c8;
+  --r:16px;
+  --glow:0 0 24px rgba(90,180,255,.10),inset 0 1px 0 rgba(255,255,255,.06);
+}
+*{margin:0;padding:0;box-sizing:border-box}
+html,body{height:100%;overflow:hidden;font-family:'Segoe UI',system-ui,sans-serif;color:var(--txt);font-size:13px}
+body{background:var(--bg);position:relative}
+body::before{content:'';position:fixed;inset:0;background:
+  radial-gradient(ellipse 60% 40% at 30% 20%,rgba(90,180,255,.06),transparent),
+  radial-gradient(ellipse 50% 50% at 75% 70%,rgba(140,100,255,.05),transparent);
+  z-index:-1}
+#app{display:grid;height:100vh;width:100vw;
+  grid-template-columns:1fr 2fr 1fr;
+  grid-template-rows:48px 1fr 110px;
+  grid-template-areas:
+    "top top top"
+    "izq centro der"
+    "bottom bottom bottom";
+  gap:6px;padding:6px;align-items:stretch}
+#top{z-index:10}
+#izq{z-index:5}
+#centro{z-index:5}
+#der{z-index:5}
+#bottom{z-index:15}
+.panel{background:var(--glass);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);
+  border:1px solid var(--line);border-radius:var(--r);box-shadow:var(--glow);
+  padding:10px;overflow:hidden}
+.panel-err{color:var(--fail);font-size:10px;padding:4px 6px;opacity:.85}
+.panel-title{font-size:9px;text-transform:uppercase;letter-spacing:1.5px;color:var(--dim);margin-bottom:6px;font-weight:600}
+/* TOPBAR */
+#top{grid-area:top;display:flex;align-items:center;gap:14px;padding:0 14px}
+#top .clk{font-size:16px;font-weight:700;color:var(--neon);text-shadow:0 0 8px rgba(89,200,255,.4);min-width:190px}
+.icon-group{display:flex;gap:10px;align-items:center;flex:1}
+.icon-state{display:flex;align-items:center;gap:4px;font-size:10px;color:var(--dim);white-space:nowrap}
+.icon-state .dot{width:7px;height:7px;border-radius:50%;background:var(--ok);box-shadow:0 0 6px currentColor}
+.icon-state.warn .dot{background:var(--warn)}
+.icon-state.fail .dot{background:var(--fail);animation:blink 1s infinite}
+@keyframes blink{50%{opacity:.3}}
+#err-badge{display:none;position:fixed;top:6px;right:6px;background:var(--fail);color:#fff;padding:4px 10px;border-radius:8px;font-size:10px;font-weight:700;z-index:9999}
+/* IZQ */
+#izq{grid-area:izq;display:grid;grid-template-rows:auto auto 1fr;gap:6px}
+#saludo .hi{font-size:18px;font-weight:700;color:var(--txt);text-shadow:0 0 10px rgba(90,180,255,.3)}
+#saludo .sub{font-size:11px;color:var(--dim);margin-top:4px}
+#saludo .sub b{color:var(--neon);font-weight:600}
+#clima .act{display:flex;align-items:flex-start;gap:8px}
+#clima .temp{font-size:32px;font-weight:700;color:var(--neon);text-shadow:0 0 12px rgba(89,200,255,.4);line-height:1}
+#clima .info{font-size:10px;color:var(--dim);line-height:1.4}
+#clima .days{display:flex;justify-content:space-between;margin-top:6px}
+#clima .day{text-align:center;font-size:9px;color:var(--dim)}
+#clima .day .t{color:var(--txt);font-size:11px;font-weight:600}
+#sistema .bars{display:flex;flex-direction:column;gap:7px;margin-top:2px}
+.bar{position:relative;height:5px;background:rgba(140,200,255,.08);border-radius:3px;overflow:hidden}
+.bar .fill{height:100%;border-radius:3px;background:linear-gradient(90deg,var(--cyan),var(--neon));box-shadow:0 0 8px var(--neon);transition:width .6s ease}
+.bar .fill.warn{background:linear-gradient(90deg,var(--warn),#ff9000)}
+.bar .fill.fail{background:linear-gradient(90deg,var(--fail),#cc2020)}
+.bar-lbl{display:flex;justify-content:space-between;font-size:9px;color:var(--dim);margin-bottom:1px}
+/* CENTRO */
+#centro{grid-area:centro;position:relative;display:flex;align-items:center;justify-content:center;padding:4px}
+#sphere-canvas{width:100%;height:100%;border-radius:var(--r);cursor:pointer}
+#centro .hint{position:absolute;bottom:10px;left:50%;transform:translateX(-50%);font-size:9px;color:var(--dim);opacity:.6;pointer-events:none}
+.modal-btn{position:absolute;top:10px;right:10px;background:var(--glass);border:1px solid var(--line);color:var(--neon);padding:5px 10px;border-radius:8px;font-size:9px;cursor:pointer;backdrop-filter:blur(8px)}
+.modal-btn:hover{background:rgba(90,180,255,.15)}
+/* DER */
+#der{grid-area:der;display:grid;grid-template-rows:auto 1fr auto;gap:6px}
+#agenda .cal-mini{font-size:18px;color:var(--dim);text-align:center;padding:20px 0}
+#agenda .cal-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:1px;font-size:9px;text-align:center}
+#agenda .cal-grid .d{padding:2px 0;border-radius:3px;position:relative;color:var(--dim)}
+#agenda .cal-grid .d.has::after{content:'';position:absolute;bottom:1px;left:50%;transform:translateX(-50%);width:4px;height:4px;border-radius:50%;background:var(--neon);box-shadow:0 0 5px var(--neon)}
+#agenda .cal-grid .d.today{background:rgba(89,200,255,.12);color:var(--neon);border:1px solid var(--line)}
+#agenda .next-list{margin-top:6px;display:flex;flex-direction:column;gap:3px}
+#agenda .next-item{font-size:9px;color:var(--dim);padding:3px 6px;border-radius:6px;background:rgba(140,190,255,.05);border-left:2px solid var(--neon)}
+#agenda .next-item b{color:var(--txt)}
+#tareas .chip-list{display:flex;flex-direction:column;gap:4px}
+.chip{background:var(--glass);border:1px solid var(--line);border-radius:10px;padding:5px 8px;display:flex;align-items:center;gap:6px;overflow:hidden}
+.chip .tag{font-size:10px;font-weight:600;color:var(--neon)}
+.chip .desc{font-size:9px;color:var(--dim);flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.chip .prog{font-size:9px;color:var(--txt);font-weight:600}
+.chip.progress-glow{box-shadow:0 0 10px rgba(89,200,255,.25)}
+.chip.amber{border-color:rgba(255,200,87,.4)}
+.chip.amber .tag{color:var(--warn)}
+.chip.red{border-color:rgba(255,93,93,.4)}
+.chip.red .tag{color:var(--fail)}
+#pendiente .pend-list{display:flex;flex-direction:column;gap:3px}
+#pendiente .pend-item{font-size:9px;color:var(--dim);padding:3px 6px;border-radius:6px;background:rgba(255,200,87,.06);border-left:2px solid var(--warn)}
+#pendiente .pend-item.red{background:rgba(255,93,93,.06);border-left-color:var(--fail)}
+#pendiente .pend-item b{color:var(--txt)}
+/* BOTTOM */
+#bottom{grid-area:bottom;display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;padding:0;overflow:hidden}
+#bottom .panel{padding:8px}
+#quickcmds{display:flex;flex-direction:column;gap:4px;justify-content:center}
+.qm-row{display:flex;gap:5px;justify-content:center}
+.qm-btn{flex:1;max-width:120px;background:rgba(90,180,255,.08);border:1px solid var(--line);color:var(--neon);padding:7px;border-radius:10px;font-size:11px;font-weight:600;cursor:pointer;backdrop-filter:blur(8px);transition:all .2s;text-align:center}
+.qm-btn:hover{background:rgba(90,180,255,.18);box-shadow:0 0 12px rgba(89,200,255,.3)}
+.qm-btn:active{transform:scale(.95)}
+#orden .orden-form{display:flex;flex-direction:column;gap:5px;justify-content:center;height:100%}
+#orden .row1{display:flex;gap:5px}
+#orden select{background:var(--glass);border:1px solid var(--line);color:var(--txt);padding:6px;border-radius:8px;font-size:11px}
+#orden input{flex:1;background:var(--glass);border:1px solid var(--line);color:var(--txt);padding:6px 8px;border-radius:8px;font-size:12px}
+#orden input:focus{outline:none;border-color:var(--neon);box-shadow:0 0 8px rgba(89,200,255,.2)}
+#orden button{background:linear-gradient(135deg,var(--cyan),var(--neon));border:none;color:#04070d;font-size:11px;font-weight:700;padding:6px 14px;border-radius:8px;cursor:pointer;width:100%}
+#orden button:hover{box-shadow:0 0 14px rgba(89,200,255,.4)}
+#waveform .wave-wrap{height:100%;display:flex;align-items:center;justify-content:center}
+#waveform canvas{width:100%;height:60px}
+#waveform .lbl{font-size:9px;color:var(--dim);text-align:center;margin-top:2px}
+/* MODAL */
+#modal{display:none;position:fixed;inset:0;z-index:9998;background:rgba(4,7,13,.7);backdrop-filter:blur(4px);align-items:center;justify-content:center}
+#modal.show{display:flex}
+#modal .m-content{background:linear-gradient(#0a1424,#060b16);border:1px solid var(--neon);border-radius:16px;box-shadow:0 0 40px rgba(89,200,255,.2);padding:16px;width:90%;max-width:520px;max-height:80vh;overflow:auto}
+#modal .m-tabs{display:flex;gap:6px;margin-bottom:10px}
+#modal .m-tab{background:var(--glass);border:1px solid var(--line);color:var(--dim);padding:5px 12px;border-radius:8px;font-size:10px;cursor:pointer}
+#modal .m-tab.active{color:var(--neon);border-color:var(--neon);box-shadow:0 0 8px rgba(89,200,255,.2)}
+#modal .m-body{min-height:120px;font-size:11px;color:var(--dim);line-height:1.5}
+#modal .m-close{float:right;background:none;border:none;color:var(--dim);font-size:18px;cursor:pointer}
+#modal .m-close:hover{color:var(--fail)}
+/* breakpoints */
+@media(max-width:900px){
+  #app{grid-template-columns:1fr;grid-template-rows:48px auto 1fr auto auto;grid-template-areas:"top" "izq" "centro" "der" "bottom"}
+  #bottom{grid-template-columns:1fr}
+}
+@media(min-width:1920px){
+  #app{grid-template-columns:280px 1fr 280px}
+  body{font-size:14px}
+}
+@media(min-width:2560px){
+  #app{grid-template-columns:360px 1fr 360px;gap:10px;padding:10px}
+  body{font-size:16px}
+}
+</style>
+</head>
+<body>
+<div id="err-badge"></div>
+<div id="app">
+
+  <!-- TOPBAR -->
+  <div id="top" class="panel">
+    <div class="clk" id="clock">--:--:--</div>
+    <div class="icon-group" id="topbar-icons">
+      <div class="icon-state"><div class="dot"></div><span id="ic-health">health</span></div>
+      <div class="icon-state"><div class="dot"></div><span id="ic-providers">providers</span></div>
+      <div class="icon-state"><div class="dot"></div><span id="ic-daemon">daemon</span></div>
+      <div class="icon-state"><div class="dot"></div><span id="ic-uptime">uptime</span></div>
+      <div class="icon-state"><div class="dot"></div><span id="ic-modelo">modelo</span></div>
+    </div>
+    <div style="font-size:10px;color:var(--dim)">ATLAS · HOLO-GLASS v3</div>
+  </div>
+
+  <!-- IZQ -->
+  <div id="izq">
+    <div id="saludo" class="panel">
+      <div class="panel-title">Saludo</div>
+      <div class="hi" id="greet-hi">Hola</div>
+      <div class="sub" id="greet-sub">foco — · — tareas activas</div>
+    </div>
+    <div id="clima" class="panel">
+      <div class="panel-title">Clima</div>
+      <div id="clima-body"><div class="panel-err">cargando…</div></div>
+    </div>
+    <div id="sistema" class="panel">
+      <div class="panel-title">Sistema</div>
+      <div class="bars" id="sys-bars">
+        <div class="bar-lbl"><span>CPU</span><span id="v-cpu">—</span></div>
+        <div class="bar"><div class="fill" id="f-cpu" style="width:0%"></div></div>
+        <div class="bar-lbl"><span>RAM</span><span id="v-ram">—</span></div>
+        <div class="bar"><div class="fill" id="f-ram" style="width:0%"></div></div>
+        <div class="bar-lbl"><span>Disco</span><span id="v-disk">—</span></div>
+        <div class="bar"><div class="fill" id="f-disk" style="width:0%"></div></div>
+        <div class="bar-lbl"><span>Latencia</span><span id="v-lat">—</span></div>
+        <div class="bar"><div class="fill warn" id="f-lat" style="width:0%"></div></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- CENTRO -->
+  <div id="centro" class="panel">
+    <canvas id="sphere-canvas"></canvas>
+    <button class="modal-btn" id="open-modal">Módulos</button>
+    <div class="hint">click en la esfera para ver módulos</div>
+  </div>
+
+  <!-- DER -->
+  <div id="der">
+    <div id="agenda" class="panel">
+      <div class="panel-title">Agenda</div>
+      <div id="agenda-body"><div class="panel-err">cargando…</div></div>
+    </div>
+    <div id="tareas" class="panel">
+      <div class="panel-title">Tareas</div>
+      <div class="chip-list" id="tareas-list"><div class="panel-err">cargando…</div></div>
+    </div>
+    <div id="pendiente" class="panel">
+      <div class="panel-title">Pendiente</div>
+      <div class="pend-list" id="pend-list"><div class="panel-err">cargando…</div></div>
+    </div>
+  </div>
+
+  <!-- BOTTOM -->
+  <div id="bottom">
+    <div id="quickcmds" class="panel">
+      <div class="panel-title">Quick Cmds</div>
+      <div class="qm-row">
+        <button class="qm-btn" data-l0="buscar">🔍 Buscar</button>
+        <button class="qm-btn" data-l0="informe">📊 Informe</button>
+        <button class="qm-btn" data-l0="foco">🎯 Foco</button>
+      </div>
+      <div class="qm-row">
+        <button class="qm-btn" data-l0="diseno">🎨 Diseño</button>
+        <button class="qm-btn" data-l0="backup">💾 Backup</button>
+      </div>
+    </div>
+    <div id="orden" class="panel">
+      <div class="panel-title">Orden</div>
+      <div class="orden-form">
+        <div class="row1">
+          <select id="o-level"><option value="L0">L0</option><option value="L1">L1</option><option value="L2">L2</option><option value="L3">L3</option></select>
+          <input id="o-input" type="text" placeholder="Escribe tu orden…" />
+        </div>
+        <button id="o-btn">Enviar</button>
+      </div>
+    </div>
+    <div id="waveform" class="panel">
+      <div class="panel-title">Waveform</div>
+      <div class="wave-wrap"><canvas id="wave-canvas"></canvas></div>
+      <div class="lbl" id="wave-lbl">actividad: —</div>
+    </div>
+  </div>
+
+</div>
+
+<!-- MODAL -->
+<div id="modal">
+  <div class="m-content">
+    <button class="m-close" id="modal-close">×</button>
+    <div class="panel-title">Módulos Atlas</div>
+    <div class="m-tabs">
+      <button class="m-tab active" data-tab="memoria">Memoria grafo</button>
+      <button class="m-tab" data-tab="tareas">Tareas anillos</button>
+      <button class="m-tab" data-tab="dinero">Dinero</button>
+      <button class="m-tab" data-tab="noticias">Noticias</button>
+      <button class="m-tab" data-tab="informes">Informes</button>
+    </div>
+    <div class="m-body" id="modal-body">cargando…</div>
+  </div>
+</div>
+
+<script>
+(function(){
+  'use strict';
+  var $id = function(id){return document.getElementById(id)};
+
+  // === ERROR BADGE ===
+  window.onerror = function(msg,src,line,col,err){
+    var b = $id('err-badge'); if(!b) return;
+    b.style.display='block'; b.textContent = 'JS Error: '+(msg||'unknown');
+    console.error('CAUGHT',msg);
+    return true;
+  };
+
+  // === CLOCK (immediately before anything else) ===
+  function tickClock(){
+    var d = new Date();
+    function p(n){return n<10?'0'+n:''+n}
+    $id('clock').textContent = p(d.getHours())+':'+p(d.getMinutes())+':'+p(d.getSeconds());
+  }
+  tickClock(); setInterval(tickClock,1000);
+
+  // === SPHERE CANVAS (immediately, before fetch) ===
+  var canvas = $id('sphere-canvas');
+  var ctx = canvas.getContext('2d');
+  var particles = [];
+  var P_COUNT = 1200;
+  var rotX = 0, rotY = 0.3, rotZ = 0;
+  var pulse = 1, heartbeat = 0;
+  var ripples = [];
+  var sphereColor = '#59c8ff';
+  var sphereOk = true;
+
+  function initParticles(){
+    particles = [];
+    for(var i=0;i<P_COUNT;i++){
+      var theta = Math.acos(-1+2*i/P_COUNT);
+      var phi = Math.sqrt(P_COUNT*Math.PI)*theta;
+      particles.push({
+        x: Math.sin(theta)*Math.cos(phi),
+        y: Math.sin(theta)*Math.sin(phi),
+        z: Math.cos(theta),
+        size: Math.random()*1.2+0.4
+      });
+    }
+  }
+  initParticles();
+
+  function resizeCanvas(){
+    var r = canvas.getBoundingClientRect();
+    canvas.width = r.width*window.devicePixelRatio;
+    canvas.height = r.height*window.devicePixelRatio;
+    ctx.scale(window.devicePixelRatio,window.devicePixelRatio);
+  }
+
+  function sphereAni(){
+    var r = canvas.getBoundingClientRect();
+    var w = r.width, h = r.height;
+    var cx = w/2, cy = h/2;
+    var rad = Math.min(w,h)*0.40;
+    if(rad < 20) rad = 20;
+
+    ctx.clearRect(0,0,w,h);
+
+    var cosX=Math.cos(rotX),sinX=Math.sin(rotX);
+    var cosY=Math.cos(rotY),sinY=Math.sin(rotY);
+    var cosZ=Math.cos(rotZ),sinZ=Math.sin(rotZ);
+    var p = pulse + heartbeat*0.04;
+
+    for(var i=0;i<particles.length;i++){
+      var pt = particles[i];
+      var x=pt.x*p, y=pt.y*p, z=pt.z*p;
+      var y1=y*cosX-z*sinX, z1=y*sinX+z*cosX;
+      var x1=x*cosY+z1*sinY, z2=-x*sinY+z1*cosY;
+      var x2=x1*cosZ-y1*sinZ, y2=x1*sinZ+y1*cosZ;
+
+      var scale = 1/(2.5+(-z2));
+      var px = cx + x2*rad*scale;
+      var py = cy + y2*rad*scale;
+      var alpha = (z2+1)/2 * 0.85 + 0.15;
+
+      var sz = pt.size * (1+scale*0.5);
+      ctx.fillStyle = 'rgba(89,200,255,'+alpha.toFixed(2)+')';
+      ctx.beginPath();
+      ctx.arc(px,py,sz,0,Math.PI*2);
+      ctx.fill();
+
+      if(z2 > 0.5){
+        ctx.fillStyle = 'rgba(234,246,255,'+(alpha*0.6).toFixed(2)+')';
+        ctx.beginPath();
+        ctx.arc(px,py,sz*0.4,0,Math.PI*2);
+        ctx.fill();
+      }
+    }
+
+    // ripples
+    for(var j=ripples.length-1;j>=0;j--){
+      var rp = ripples[j];
+      rp.r += 1.5; rp.life -= 0.012;
+      if(rp.life <= 0){ ripples.splice(j,1); continue; }
+      ctx.strokeStyle = 'rgba(89,200,255,'+(rp.life*0.4).toFixed(2)+')';
+      ctx.lineWidth = 1.5;
+      ctx.beginPath();
+      ctx.arc(cx,cy,rp.r,0,Math.PI*2);
+      ctx.stroke();
+    }
+
+    rotY += 0.0018;
+    rotX += 0.0006;
+    heartbeat = Math.sin(Date.now()*0.002)*0.5+0.5;
+
+    if(!document.hidden && sphereOk) requestAnimationFrame(sphereAni);
+  }
+
+  function startCanvas(){
+    try { resizeCanvas(); sphereAni(); }
+    catch(e){
+      console.error('canvas init',e);
+      setTimeout(startCanvas,500);
+    }
+  }
+
+  if(window.ResizeObserver){
+    new ResizeObserver(function(){ try{resizeCanvas()}catch(e){} }).observe(canvas);
+  } else {
+    window.addEventListener('resize', function(){ try{resizeCanvas()}catch(e){} });
+  }
+  canvas.addEventListener('click', function(){ showRipple(); openModal(); });
+  function showRipple(){ ripples.push({r:5,life:1.0}); }
+
+  // === FETCH HELPERS ===
+  function safeFetch(url, cb){
+    var ctrl = null;
+    try {
+      ctrl = new AbortController();
+    } catch(e){}
+    var opts = ctrl ? {signal:ctrl.signal} : {};
+    var fetcher = window.fetch ? window.fetch(url,opts) : null;
+    if(!fetcher){
+      cb(null, 'fetch no soportado'); return;
+    }
+    fetcher.then(function(r){return r.json()})
+      .then(function(d){cb(d,null)})
+      .catch(function(e){
+        if(timeoutId) clearTimeout(timeoutId);
+        cb(null, e && e.message || String(e));
+      });
+    var timeoutId = setTimeout(function(){
+      if(ctrl) try{ctrl.abort()}catch(e){}
+      cb(null,'timeout');
+    }, 8000);
+  }
+
+  function showErr(panelId, msg){
+    var el = $id(panelId+'-body') || $id(panelId);
+    if(!el) return;
+    el.innerHTML = '<div class="panel-err">⚠ API caído ('+msg+')</div>';
+  }
+
+  // === GREETS ===
+  function getPrefs(cb){
+    safeFetch('/api/preferences', function(d,e){
+      if(e){ cb({}, e); return; }
+      cb(d, null);
+    });
+  }
+
+  // === CLIMA ===
+  function loadClima(){
+    safeFetch('/api/clima', function(d,e){
+      if(e){ showErr('clima',e); return; }
+      try {
+        var h = '<div class="act">';
+        var cur = d.current||d.hoy||d;
+        var t = cur.temp||cur.temperatura||cur.temperature||'—';
+        h += '<div class="temp">'+t+'°</div>';
+        if(cur.descripcion) h += '<div class="info">'+cur.descripcion+'<br>viento '+(cur.viento||cur.wind||'—')+' km/h</div>';
+        else if(cur.text) h += '<div class="info">'+cur.text+'</div>';
+        h += '</div>';
+        var days = d.daily||d.dias||d.forecast||[];
+        if(days.length){
+          h += '<div class="days">';
+          for(var i=0;i<Math.min(5,days.length);i++){
+            var dy = days[i];
+            h += '<div class="day"><div>'+diName(dy)+'</div><div class="t">'+(dy.max||dy.tmax||dy.temp_max||'—')+'°</div></div>';
+          }
+          h += '</div>';
+        }
+        $id('clima-body').innerHTML = h;
+      } catch(err){ showErr('clima',err.message); }
+    });
+  }
+  function diName(dy){
+    var d = dy.dia||dy.date||dy.datetime||'';
+    try { return new Date(d).toLocaleDateString('es',{weekday:'short'}) } catch(e){ return '—' }
+  }
+
+  // === SISTEMA ===
+  function loadSystem(){
+    safeFetch('/api/health', function(d,e){
+      if(e){ showErr('sistema',e); return;}
+      try{
+        var cpu = d.cpu||d.cpu_percent||0;
+        var ram = d.ram||d.memory_percent||d.memory||0;
+        var disk = d.disk||d.disk_percent||0;
+        var lat = d.latency||d.lat||50;
+        $id('v-cpu').textContent = Math.round(cpu)+'%';
+        $id('f-cpu').style.width = cpu+'%';
+        $id('v-ram').textContent = Math.round(ram)+'%';
+        $id('f-ram').style.width = ram+'%';
+        $id('v-disk').textContent = Math.round(disk)+'%';
+        $id('f-disk').style.width = disk+'%';
+        $id('v-lat').textContent = Math.round(lat)+'ms';
+        $id('f-lat').style.width = Math.min(100,lat/10)+'%';
+        // color
+        $id('f-cpu').className = 'fill'+(cpu>80?' fail':(cpu>60?' warn':''));
+        $id('f-ram').className = 'fill'+(ram>85?' fail':(ram>70?' warn':''));
+      }catch(err){ showErr('sistema',err.message); }
+    });
+  }
+
+  // === LIVE / TOPBAR ===
+  function loadLive(){
+    safeFetch('/api/live', function(d,e){
+      if(e){ return; }
+      try{
+        var hs = d.health_status||d.status||'?';
+        var icH = $id('ic-health');
+        icH.textContent = hs;
+        var dotH = icH.closest('.icon-state');
+        dotH.className = 'icon-state' + (hs==='red'?' fail':(hs==='yellow'?' warn':''));
+        var prov = d.providers||d.provider_count||'?';
+        $id('ic-providers').textContent = 'providers: '+prov;
+        if(d.daemon){ $id('ic-daemon').textContent = 'daemon '+d.daemon; }
+        if(d.uptime){ $id('ic-uptime').textContent = 'uptime '+d.uptime; }
+        if(d.modelo){ $id('ic-modelo').textContent = d.modelo; }
+        if(d.nivel){ $id('ic-modelo').textContent = (d.modelo||'')+' · '+d.nivel; }
+        // greet
+        var hi = $id('greet-hi');
+        var sub = $id('greet-sub');
+        if(d.usuario||d.nombre){ hi.textContent = 'Hola, '+(d.usuario||d.nombre); }
+        var foco = d.foco!==undefined?d.foco:'—';
+        var ta = d.tasks_active||d.tareas_activas||0;
+        sub.innerHTML = 'foco <b>'+foco+'%</b> · <b>'+ta+'</b> tareas activas';
+      }catch(err){ console.error('live',err); }
+    });
+    getPrefs(function(p,fe){
+      if(fe) return;
+      try{
+        if(p.usuario||p.nombre||p.user){
+          $id('greet-hi').textContent = 'Hola, '+(p.usuario||p.nombre||p.user);
+        }
+        if(p.nombre){ $id('greet-hi').textContent = 'Hola, '+p.nombre; }
+      }catch(err){}
+    });
+  }
+
+  // === MODELO/ORCH ===
+  function loadModelo(){
+    safeFetch('/api/modelo', function(d,e){
+      if(e) return;
+      try{
+        if(d.modelo||d.model){
+          $id('ic-modelo').textContent = (d.modelo||d.model)+(d.nivel?' · '+d.nivel:'');
+        }
+      }catch(err){}
+    });
+  }
+
+  // === AGENDA ===
+  function loadAgenda(){
+    safeFetch('/api/mercado', function(m,e){
+      if(e) return;
+      try{
+        var now = new Date();
+        var year = now.getFullYear(), mon = now.getMonth();
+        var first = new Date(year,mon,1); var firstDay = first.getDay();
+        var dim = new Date(year,mon+1,0).getDate();
+        var events = {};
+        (m.eventos||m.agenda||m.historial||[]).forEach(function(ev){
+          if(ev.fecha||ev.fecha_evento||ev.dia){
+            events[(ev.fecha||ev.fecha_evento||ev.dia).slice(0,10)] = 1;
+          }
+        });
+        try{
+          safeFetch('/api/notas', function(ns,ne){
+            if(!ne&&ns){
+              (ns.items||ns.notas||[]).forEach(function(n){
+                if(n.type === 'agenda' && (n.date||n.fecha)){
+                  events[(n.date||n.fecha).slice(0,10)] = 1;
+                }
+              });
+            }
+          });
+        }catch(x){}
+        var html = '<div class="cal-grid" id="cal-grid"></div>';
+        $id('agenda-body').innerHTML = html;
+        var grid = $id('cal-grid');
+        for(var i=0;i<firstDay;i++){
+          grid.innerHTML += '<div class="d"></div>';
+        }
+        var today = now.getDate();
+        for(var day=1; day<=dim; day++){
+          var dStr = year+'-'+('0'+(mon+1)).slice(-2)+'-'+('0'+day).slice(-2);
+          var cls = 'd';
+          if(events[dStr]) cls += ' has';
+          if(day === today) cls += ' today';
+          grid.innerHTML += '<div class="'+cls+'">'+day+'</div>';
+        }
+        var next = (m.eventos||m.agenda||[]).slice(0,3);
+        var nHtml = '';
+        next.forEach(function(ev){
+          nHtml += '<div class="next-item"><b>'+(ev.fecha||ev.fecha_evento||ev.dia||'')+'</b> '+(ev.descripcion||ev.tipo||ev.title||'')+'</div>';
+        });
+        if(!nHtml) nHtml = '<div class="next-item" style="border-left-color:var(--dim)"><b>—</b> sin eventos próximos</div>';
+        $id('agenda-body').innerHTML += '<div><div class="panel-title" style="margin-top:8px">Próximos</div><div class="next-list">'+nHtml+'</div></div>';
+      }catch(err){ showErr('agenda',err.message); }
+    });
+  }
+
+  // === TAREAS ===
+  function loadTareas(){
+    safeFetch('/api/tareas', function(d,e){
+      if(e){ showErr('tareas',e); return; }
+      try{
+        var items = d.items||d.tareas||[];
+        if(!items.length){ $id('tareas-list').innerHTML = '<div class="panel-err">sin tareas activas</div>'; return; }
+        var h = '';
+        items.forEach(function(t){
+          var prog = t.progress||t.progreso||0;
+          var progStr = prog>0 ? prog+'%':'act';
+          var cls = 'chip';
+          if(t.priority === 'alta' || t.prioridad === 'alta') cls += ' amber';
+          if(t.status === 'blocked' || t.estado === 'blocked') cls += ' red';
+          if(prog>0 && prog<100) cls += ' progress-glow';
+          h += '<div class="'+cls+'">'
+            + '<span class="tag">'+esc(t.tipo||t.type||'T')+'</span>'
+            + '<span class="desc">'+esc(t.descripcion||t.desc||t.title||'')+'</span>'
+            + '<span class="prog">'+progStr+'</span>'
+            + '</div>';
+        });
+        $id('tareas-list').innerHTML = h;
+      }catch(err){ showErr('tareas',err.message); }
+    });
+  }
+
+  function esc(s){return (s||'').toString().replace(/</g,'<').replace(/>/g,'>')}
+
+  // === PENDIENTE ===
+  function loadPendiente(){
+    safeFetch('/api/pendientes', function(d,e){
+      if(e){ showErr('pendiente',e); return;}
+      try{
+        var items = d.items||d.pendientes||[];
+        if(!items.length){ $id('pend-list').innerHTML = '<div class="panel-err">sin pendientes</div>'; return; }
+        var h = '';
+        items.forEach(function(p){
+          var cls = 'pend-item' + ((p.severity==='alta'||p.priority==='alta')?' red':'');
+          h += '<div class="'+cls+'"><b>'+esc(p.tipo||p.title||'')+'</b> '+esc(p.descripcion||p.desc||'')+'</div>';
+        });
+        $id('pend-list').innerHTML = h;
+      }catch(err){ showErr('pendiente',err.message); }
+    });
+  }
+
+  // === WAVEFORM ===
+  var waveCanvas = $id('wave-canvas');
+  var waveCtx = waveCanvas.getContext('2d');
+  var waveData = [];
+  var waveMax = 60;
+  var activityLevel = 0;
+
+  function loadWaveform(){
+    safeFetch('/api/modelo', function(d,e){
+      if(e) return;
+      try{
+        activityLevel = d.actions_per_min||d.activity||d.workload||Math.random()*30;
+      }catch(err){}
+    });
+    // Also pull heartbeat via live
+    safeFetch('/api/live', function(d,e){
+      if(e) return;
+      try{
+        activityLevel = activityLevel || d.actions||d.activity||Math.random()*40;
+      }catch(err){}
+    });
+  }
+
+  function waveAni(){
+    var wr = waveCanvas.getBoundingClientRect();
+    waveCanvas.width = wr.width*window.devicePixelRatio;
+    waveCanvas.height = 60*window.devicePixelRatio;
+    var w = waveCanvas.width, h = waveCanvas.height;
+    waveCtx.clearRect(0,0,w,h);
+
+    if(waveData.length<2){
+      waveData.push(0.5);
+    }
+
+    var now = Date.now()*0.003;
+    var amp = (activityLevel/100)*0.8 || 0.05;
+    waveData.push(0.5 + Math.sin(now)*amp + Math.sin(now*3)*amp*0.3);
+    if(waveData.length > waveMax) waveData.shift();
+
+    waveCtx.strokeStyle = '#59c8ff';
+    waveCtx.lineWidth = 1.5*window.devicePixelRatio;
+    waveCtx.shadowBlur = 8*window.devicePixelRatio;
+    waveCtx.shadowColor = '#59c8ff';
+    waveCtx.beginPath();
+    var stepX = w/(waveMax-1);
+    for(var i=0;i<waveData.length;i++){
+      var x = i*stepX;
+      var y = waveData[i]*h;
+      if(i===0) waveCtx.moveTo(x,y);
+      else waveCtx.lineTo(x,y);
+    }
+    waveCtx.stroke();
+
+    $id('wave-lbl').textContent = 'actividad: '+Math.round(activityLevel)+'%';
+
+    if(!document.hidden) requestAnimationFrame(waveAni);
+    setTimeout(waveAni, 200);
+  }
+
+  // === ORDEN ===
+  $id('o-btn').addEventListener('click', function(){
+    var lvl = $id('o-level').value;
+    var inp = $id('o-input');
+    var val = (inp.value||'').trim();
+    if(!val) return;
+    var btn = $id('o-btn');
+    btn.textContent = 'Enviando…'; btn.disabled = true;
+    var prio = lvl==='L0'?'alta':(lvl==='L1'?'normal':'normal');
+    var body = JSON.stringify({texto:val, prioridad:prio});
+    var r = new XMLHttpRequest();
+    r.open('POST','/api/orden');
+    r.setRequestHeader('Content-Type','application/json');
+    r.onreadystatechange = function(){
+      if(r.readyState===4){
+        btn.textContent='Enviar'; btn.disabled=false;
+        if(r.status===200||r.status===201||r.status===202){
+          inp.value = '';
+          btn.textContent = '✓ Enviado';
+          setTimeout(function(){btn.textContent='Enviar'},1500);
+        } else {
+          btn.textContent = '✗ Error';
+          setTimeout(function(){btn.textContent='Enviar'},1500);
+        }
+      }
+    };
+    try { r.send(body); } catch(e){ btn.textContent='Enviar'; btn.disabled=false; }
+  });
+
+  // === QUICKCMDS ===
+  var qmBtns = document.querySelectorAll('.qm-btn');
+  qmBtns.forEach(function(btn){
+    btn.addEventListener('click', function(){
+      var l0 = btn.getAttribute('data-l0');
+      var body = JSON.stringify({texto:l0, prioridad:'alta'});
+      var r = new XMLHttpRequest();
+      r.open('POST','/api/orden');
+      r.setRequestHeader('Content-Type','application/json');
+      try {
+        r.send(body);
+        btn.style.color = '#5cf0c8';
+        setTimeout(function(){btn.style.color=''},1200);
+        showRipple();
+      } catch(e){
+        btn.style.color = '#ff5d5d';
+        setTimeout(function(){btn.style.color=''},1200);
+      }
+    });
+  });
+
+  // === MODAL ===
+  function openModal(){
+    $id('modal').classList.add('show');
+    loadModalTab('memoria');
+  }
+  function closeModal(){ $id('modal').classList.remove('show'); }
+  $id('open-modal').addEventListener('click', openModal);
+  $id('modal-close').addEventListener('click', closeModal);
+  $id('modal').addEventListener('click', function(e){
+    if(e.target === $id('modal')) closeModal();
+  });
+  document.addEventListener('keydown', function(e){
+    if(e.key === 'Escape') closeModal();
+  });
+
+  var modalTabs = document.querySelectorAll('.m-tab');
+  modalTabs.forEach(function(tab){
+    tab.addEventListener('click', function(){
+      modalTabs.forEach(function(t){t.className='m-tab'});
+      tab.className = 'm-tab active';
+      loadModalTab(tab.getAttribute('data-tab'));
+    });
+  });
+
+  function loadModalTab(tab){
+    var body = $id('modal-body');
+    body.textContent = 'cargando…';
+    var url = {memoria:'/api/grafo', tareas:'/api/tareas', dinero:'/api/mercado', noticias:'/api/noticias', informes:'/api/pendientes'}[tab];
+    if(!url){ body.textContent = ' módulo no disponible'; return; }
+    safeFetch(url, function(d,e){
+      if(e){ body.innerHTML = '<div class="panel-err">⚠ API caído ('+e+')</div>'; return; }
+      body.innerHTML = '<pre style="overflow:auto;font-size:9px;color:var(--dim);max-height:300px">'+esc(JSON.stringify(d,null,1))+'</pre>';
+    });
+  }
+
+  // === STARTUP ===
+  loadLive();
+  loadClima();
+  loadSystem();
+  loadTareas();
+  loadPendiente();
+  loadAgenda();
+  loadModelo();
+  loadWaveform();
+
+  // periodic refresh
+  setInterval(loadLive, 30000);
+  setInterval(loadSystem, 15000);
+  setInterval(loadTareas, 20000);
+  setInterval(loadPendiente, 20000);
+  setInterval(loadWaveform, 5000);
+
+  // start canvases after slight delay for layout
+  setTimeout(startCanvas, 300);
+  setTimeout(function(){
+    try{
+      waveCtx.fillStyle = 'rgba(89,200,255,.5)';
+      waveCtx.fillRect(0,0,20,30);
+    }catch(e){}
+    waveAni();
+  }, 400);
+
+})();
+</script>
+</body>
+</html>
