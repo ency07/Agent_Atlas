@@ -316,7 +316,7 @@ body::before{content:'';position:fixed;inset:0;background:radial-gradient(ellips
           if(c.name==='latency'&&c.detail){var m=c.detail.match(/([\d.]+)/);if(m)lat=parseFloat(m[1])}
           if(c.name==='daemon_activity'&&c.detail&&c.detail.indexOf('paused')!==-1)pausable=true;
         });
-        if(!cpu)cpu=Math.random()*30;if(!ram)ram=Math.random()*40+30;
+        if(!cpu&&!ram&&!disk){$id('v-cpu').textContent='—';$id('v-ram').textContent='—';$id('v-disk').textContent='—';$id('v-lat').textContent='—';return}
         $id('v-cpu').textContent=Math.round(cpu)+'%';$id('f-cpu').style.width=cpu+'%';
         $id('v-ram').textContent=Math.round(ram)+'%';$id('f-ram').style.width=ram+'%';
         $id('v-disk').textContent=Math.round(disk)+'%';$id('f-disk').style.width=disk+'%';
@@ -432,10 +432,21 @@ body::before{content:'';position:fixed;inset:0;background:radial-gradient(ellips
       try{
         var wc=d.weather_code||0,icon=WMO_ICONS[wc]||'🌡️';
         var h='<div class="clime-act"><div class="clime-icon">'+icon+'</div><div><div class="temp">'+esc(d.temperature||'—')+'°</div><div class="clim-info">💧 '+esc(d.humidity||'—')+'% · 💨 '+esc(d.wind_speed||'—')+' km/h</div></div></div>';
-        h+='<div class="clim-days">';
-        // 5 días mock (API clima no tiene forecast, usamos info actual replicada)
-        for(var i=0;i<5;i++){var dt=new Date();dt.setDate(dt.getDate()+i);h+='<div class="clim-day"><div>'+dt.toLocaleDateString('es',{weekday:'short'})+'</div><div class="t">'+esc(d.temperature||'—')+'°</div></div>'}
-        h+='</div>';$id('clima-body').innerHTML=h;
+        // V5: forecast real si disponible, si no badge honesto
+        var daily=d.daily||d.forecast;
+        if(daily&&daily.length){
+          h+='<div class="clim-days">';
+          daily.slice(0,5).forEach(function(dy){
+            var dt=dy.date||dy.dia||'';var dname='—';try{dname=new Date(dt).toLocaleDateString('es',{weekday:'short'})}catch(x){}
+            var tmax=dy.max||dy.tmax||dy.temp_max||'—';
+            var icon2=WMO_ICONS[dy.weather_code||wc]||'🌡️';
+            h+='<div class="clim-day"><div>'+dname+'</div><div>'+icon2+'</div><div class="t">'+esc(tmax)+'°</div></div>';
+          });
+          h+='</div>';
+        }else{
+          h+='<div style="font-size:9px;color:var(--dim);margin-top:4px;text-align:center">📅 forecast no disponible</div>';
+        }
+        $id('clima-body').innerHTML=h;
       }catch(err){}
     });
   }
@@ -461,6 +472,10 @@ body::before{content:'';position:fixed;inset:0;background:radial-gradient(ellips
         $id('con2').innerHTML='providers: <b>'+active+'</b>/<b>'+provs.length+'</b> activos';
         $id('is-prov').querySelector('span').textContent='providers '+active+'/'+provs.length;
       }catch(err){}
+    });
+    // V4: modelo real
+    sf('/api/modelo',function(d,e){
+      if(!e&&d){var mdl=d.model||d.modelo||'';$id('is-model').querySelector('span').textContent=mdl||'modelo'}
     });
   }
 
@@ -580,6 +595,22 @@ body::before{content:'';position:fixed;inset:0;background:radial-gradient(ellips
         if(btc.price===null||btc.usd===null)h+='<div class="rich-badge" style="background:rgba(255,93,93,.15);color:var(--fail)">⚠ fuente caída</div>';
         var sp500=d.sp500||{};
         h+='<div style="margin-top:8px"><div class="rich-sub">S&P 500: <b>'+(sp500.value||sp500.price||'—')+'</b></div></div>';
+        body.innerHTML=h;
+      }else if(tab==='noticias'){
+        var items=d.items||d.noticias||[];
+        if(!items.length){body.innerHTML='<div class="err">sin noticias</div>';return}
+        var h='';items.slice(0,8).forEach(function(n){
+          h+='<div class="fi ok" style="margin-bottom:3px"><span class="ic">📰</span><span class="st"><b>'+esc(n.titulo||n.title||'')+'</b></span><span class="tm">'+esc((n.fecha||n.ts||'').slice(0,10))+'</span></div>';
+          if(n.resumen||n.summary)h+='<div style="font-size:9px;color:var(--dim);padding:0 16px 4px">'+esc((n.resumen||n.summary||'').slice(0,100))+'</div>';
+        });
+        body.innerHTML=h;
+      }else if(tab==='system'){
+        var checks=d.checks||[];
+        var h='<div style="text-align:center;padding:8px"><div class="rich-val" style="color:'+(d.status==='green'?'var(--ok)':'var(--warn)')+'">'+esc(d.status_label||d.status||'')+'</div></div>';
+        checks.forEach(function(c){
+          var ic=c.ok?'✅':(c.critical?'❌':'⚠️');
+          h+='<div class="fi '+(c.ok?'ok':'err')+'" style="margin-bottom:2px"><span class="ic">'+ic+'</span><span class="st">'+esc(c.name)+'</span><span class="tm">'+esc((c.detail||'').slice(0,40))+'</span></div>';
+        });
         body.innerHTML=h;
       }else if(tab==='memoria'){
         var nodes=d.nodes||[];var total=d.total_nodes||nodes.length;
