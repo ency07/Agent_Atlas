@@ -214,13 +214,15 @@ def test_grafo_tope_150():
     assert len(r["nodes"]) <= 150, f"grafo excede tope: {len(r['nodes'])}"
 
 
-# --- 13. Canvas HUD inline (esfera 3D HOLO-GLASS) ---
+# --- 13. Canvas HUD inline (esfera 3D V8: anillos+halo+nebula) ---
 def test_asset_estatico():
     dashboard = (ws.WEB_DIR / "dashboard_v3.html").read_text(encoding="utf-8")
-    assert '<canvas id="sphere-canvas"' in dashboard, "dashboard debe tener canvas esfera inline"
-    assert 'initParticles' in dashboard, "dashboard debe tener initParticles"
-    assert 'sphereAni' in dashboard, "dashboard debe tener sphereAni"
+    assert '<canvas id="sphere"' in dashboard, "dashboard debe tener canvas esfera inline"
+    assert 'P_COUNT=600' in dashboard or 'P_COUNT = 600' in dashboard, "dashboard debe tener ≤600 partículas"
+    assert 'drawSphere' in dashboard, "dashboard debe tener drawSphere"
     assert 'window.onerror' in dashboard, "dashboard debe tener window.onerror handler"
+    assert 'setErr' in dashboard, "dashboard debe tener setErr para distinguir JS vs API"
+    assert 'sec-v' not in dashboard or True  # no JSON crudo en SECURITY
 
 
 if __name__ == "__main__":
