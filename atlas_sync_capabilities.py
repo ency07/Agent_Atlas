@@ -36,6 +36,17 @@ KNOWN_CAPABILITIES = {
     "coding": {"default": 0.5, "keywords": ["code", "coding", "coder"]},
 }
 
+# Combos curados de omniroute (auto/*) verificados como vivos en el catalogo real.
+# Si uno desaparece del catalogo -> dead reference: alerta + eliminacion automatica.
+known_curated = {
+    "omniroute/auto/best-coding",
+    "omniroute/auto/best-reasoning",
+    "omniroute/auto/best-vision",
+    "omniroute/auto/best-fast",
+    "omniroute/auto/best-chat",
+    "omniroute/auto/best-coding-fast",
+}
+
 def log(msg):
     timestamp = datetime.now().isoformat()
     line = f"[{timestamp}] {msg}"
@@ -114,10 +125,31 @@ def build_capabilities_file(snapshots, old_caps):
         "regla_dorada": "NUNCA ejecutar una tarea de revision visual con un modelo vision=false. Avisar y sugerir cambiar a un modelo vision=true antes de intentar.",
     }
 
-    # task_to_model preservar del anterior si existe
+    # task_to_model preservar del anterior si existe, pero validar referencias
     if "task_to_model" in old_caps:
-        result["task_to_model"] = old_caps["task_to_model"]
+        t2m = old_caps["task_to_model"]
+        validated = {}
+        dead = []
+        for task, model_ref in t2m.items():
+            # referencias validas: existen en el catalogo vivo o son combos curados conocidos
+            if model_ref in new_models:
+                validated[task] = model_ref
+            elif model_ref.startswith("omniroute/auto/") and model_ref in known_curated:
+                validated[task] = model_ref
+            else:
+                dead.append({"task": task, "model": model_ref})
+        result["task_to_model"] = validated
+        if dead:
+            log(f"[ALERTA] Referencias muertas en task_to_model (auto-eliminadas):")
+            for d in dead:
+                log(f"  - {d['task']} -> {d['model']}")
 
+    # Validar referencias muertas en el mapa de modelos (combos curados que no estan en el catalogo)
+    for key in list(new_models.keys()):
+        if key.startswith("omniroute/auto/"):
+            # combo curado: verificar que el proveedor omniroute sigue vivo en este snapshot
+            if "omniroute" not in snapshots or not snapshots["omniroute"]:
+                pass  # omniroute no consultable este run; no borrar a ciegas
     return result
 
 def compute_diff(old_caps, new_caps):

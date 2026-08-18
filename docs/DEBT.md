@@ -302,6 +302,15 @@
 
 ---
 
+## DEBT-032 — Integración de atlas_metrics / atlas_benchmark como fuentes del auto‑modelo (C3‑3)
+- **Origen:** E‑05 (requerimiento de evidencia)
+- **Descripción:** `atlas_capabilities_real.py` debe consumir métricas de latencia/éxito de `atlas_metrics` y resultados de `atlas_benchmark` para enriquecer el mapa de capacidades reales.
+- **Responsable:** Atlas Core
+- **Fecha objetivo:** 2026-09-01
+- **Estado:** ABIERTO
+
+---
+
 ## ÍNDICE POR CATEGORÍA
 
 | Categoría | IDs |
@@ -310,7 +319,7 @@
 | Logs/Observabilidad | 002, 012, 013, 014 |
 | Backup/Restore | 006 |
 | Testing/QA | 004 |
-| Capabilities/Sync | 005, 011, 017, 019 |
+| Capabilities/Sync | 005, 011, 017, 019, 032 |
 | Auto-Modelo C3v2 | 017–026 |
 | Intención C4 | 027–031 |
 | UI/Chat | 003, 013 |
@@ -322,3 +331,14 @@
 
 ## REGLA DE COLISIÓN
 > **Antes de añadir una nueva deuda:** buscar en este archivo si el ID ya existe. Si existe, actualizar la entrada existente. **Nunca crear ID duplicado.**
+
+---
+
+## DEBT-033 — Ollama: falta qwen2.5:7b como fallback offline L2/L3
+- **Origen:** Routing Liviano + Honesto (§16, 2026-08-16)
+- **Descripción:** El fallback offline de L2/L3 necesita `qwen2.5:7b` en Ollama; el `1.5b` no razona L2+. RAM libre era 6.1GB (umbral 8GB) → se difiere el pull.
+- **Impacto:** Sin red, L2/L3 no tienen fallback (escalan en vez de razonar a ciegas, comportamiento correcto pero sin recuperación offline).
+- **Mitigación:** `ollama pull qwen2.5:7b` cuando RAM libre ≥ 8GB y registrarlo como `offline_fallback_l2`.
+- **Responsable:** Atlas Ops
+- **Fecha objetivo:** 2026-09-01
+- **Estado:** ABIERTO

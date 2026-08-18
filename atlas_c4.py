@@ -98,6 +98,39 @@ def get_injection_budget(level: str) -> int:
     """Tope de tokens para inyección de contexto por nivel."""
     return {"L0": 300, "L1": 300, "L2": 700}.get(level, 700)
 
+
+def estimate_ctx_tokens(text: str) -> int:
+    """Estimación rápida de tokens del contexto (~4 chars/token)."""
+    if not text:
+        return 0
+    return max(1, int(len(text) / 4))
+
+
+def classify_with_context(task: str) -> dict:
+    """Clasifica nivel + estima contexto del turno (para el orquestador).
+
+    Returns: {"nivel": "L0|L1|L2|L3", "ctx_tokens": int}
+    """
+    nivel = classify_level(task)
+    ctx_tokens = estimate_ctx_tokens(task)
+    return {"nivel": nivel, "ctx_tokens": ctx_tokens}
+
+
+def route_with_context(task: str, orchestrator=None) -> dict:
+    """Pasa nivel+ctx al orquestador en cada turno (registra en routing_log).
+
+    Si orchestrator es None, usa atlas_orchestrator.route.
+    Returns la decision del orquestador.
+    """
+    ctx = classify_with_context(task)
+    if orchestrator is None:
+        try:
+            import atlas_orchestrator
+            return atlas_orchestrator.route(task, nivel=ctx["nivel"], ctx_tokens=ctx["ctx_tokens"])
+        except Exception as e:
+            return {"error": f"orchestrator no disponible: {e}", **ctx}
+    return orchestrator.route(task, nivel=ctx["nivel"], ctx_tokens=ctx["ctx_tokens"])
+
 # --- Dominio de conocimiento ---
 DOMAIN_KEYWORDS = {
     "trading": ["trading", "trade", "posición", "entrada", "salida", "stop", "riesgo", "r-multiple", "setup"],

@@ -12,6 +12,7 @@
       "research": 0.6,
       "speed": 0.7,
       "context_ok": true,
+      "context_window": 1048576,
       "ideal_para": ["codigo", "refactor", "debug", "revision_codigo"]
     },
     "omniroute/auto/best-reasoning": {
@@ -21,6 +22,7 @@
       "research": 0.7,
       "speed": 0.5,
       "context_ok": true,
+      "context_window": 1048576,
       "ideal_para": ["planificacion", "arquitectura", "decisiones", "analisis_profundo"]
     },
     "omniroute/auto/best-chat": {
@@ -30,6 +32,7 @@
       "research": 0.5,
       "speed": 0.95,
       "context_ok": false,
+      "context_window": 1048576,
       "ideal_para": ["conversacion", "resumen", "respuesta_rapida"]
     },
     "omniroute/auto/best-vision": {
@@ -39,6 +42,7 @@
       "research": 0.6,
       "speed": 0.7,
       "context_ok": true,
+      "context_window": 1048576,
       "ideal_para": ["revision_visual", "screenshot", "imagen", "ui", "coreldraw"]
     },
     "omniroute/auto/best-fast": {
@@ -48,16 +52,8 @@
       "research": 0.4,
       "speed": 0.99,
       "context_ok": false,
+      "context_window": 1048576,
       "ideal_para": ["consulta_simple", "formato", "traduccion"]
-    },
-    "omniroute/auto/best-research": {
-      "vision": false,
-      "coding": 0.4,
-      "reasoning": 0.7,
-      "research": 0.98,
-      "speed": 0.8,
-      "context_ok": true,
-      "ideal_para": ["investigacion", "web_research", "documentacion"]
     },
     "ollama/phi4-mini": {
       "vision": false,
@@ -99,9 +95,9 @@
     "planificacion": "omniroute/auto/best-reasoning",
     "arquitectura": "omniroute/auto/best-reasoning",
     "decision": "omniroute/auto/best-reasoning",
-    "investigacion": "omniroute/auto/best-research",
-    "web_research": "omniroute/auto/best-research",
-    "documentacion": "omniroute/auto/best-research",
+    "investigacion": "omniroute/auto/best-reasoning",
+    "web_research": "omniroute/auto/best-reasoning",
+    "documentacion": "omniroute/auto/best-reasoning",
     "resumen": "omniroute/auto/best-chat",
     "conversacion": "omniroute/auto/best-chat",
     "consulta_rapida": "omniroute/auto/best-fast"

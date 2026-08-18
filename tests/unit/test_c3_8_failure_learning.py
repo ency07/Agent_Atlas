@@ -1,30 +1,34 @@
 #!/usr/bin/env python3
 """Test C3-8: Aprendizaje de fallos en vivo."""
-import sys, json, os
+import sys, json, os, time
 sys.path.insert(0, "E:/Agente_IA")
 import atlas_failure_learning
 
+def unique_error(base):
+    return f"{base}_{time.time()}"
+
 def test_register_new_failure():
-    res = atlas_failure_learning.register_failure("test_tool", "Error de prueba único")
+    err = unique_error("Error de prueba único")
+    res = atlas_failure_learning.register_failure("test_tool", err)
     assert res["tool"] == "test_tool"
     assert res["already_seen"] is False
     assert res["retry_allowed"] is True
     print("OK new failure registered, retry allowed")
 
 def test_duplicate_failure_blocked():
-    # register same error again
-    res1 = atlas_failure_learning.register_failure("tool2", "Otro error duplicado")
-    res2 = atlas_failure_learning.register_failure("tool2", "Otro error duplicado")
+    err = unique_error("Otro error duplicado")
+    res1 = atlas_failure_learning.register_failure("tool2", err)
+    res2 = atlas_failure_learning.register_failure("tool2", err)
     assert res1["already_seen"] is False
     assert res2["already_seen"] is True
     assert res2["retry_allowed"] is False
     print("OK duplicate failure blocked from retry")
 
 def test_can_retry():
-    assert atlas_failure_learning.can_retry("tool3", "error nuevo") is True
-    # register then check
-    atlas_failure_learning.register_failure("tool3", "error nuevo")
-    assert atlas_failure_learning.can_retry("tool3", "error nuevo") is False
+    err = unique_error("error nuevo")
+    assert atlas_failure_learning.can_retry("tool3", err) is True
+    atlas_failure_learning.register_failure("tool3", err)
+    assert atlas_failure_learning.can_retry("tool3", err) is False
     print("OK can_retry works")
 
 def test_failure_log_written():
@@ -36,12 +40,10 @@ def test_failure_log_written():
     print("OK failure_learning.jsonl written")
 
 def test_friction_log_entry():
-    # friction_log should have a correccion entry for tool2
     fr_path = "E:/Agente_IA/memory_data/state/friction_log.jsonl"
     assert os.path.exists(fr_path)
     with open(fr_path, "r", encoding="utf-8") as f:
         lines = f.read().strip().splitlines()
-    # find last entry with tool2
     found = False
     for line in reversed(lines):
         entry = json.loads(line)

@@ -14,6 +14,9 @@ mcp-server-git>=2026.7.10
 # Chat flotante (F2) - ventana frameless siempre-al-frente
 pywebview>=6.2.1
 
+# Bandeja de sistema (semáforo verde/amarillo/rojo en la barra de tareas)
+pystray>=0.19.5
+
 # Navegación/automatización (MCP playwright, si se usa)
 playwright>=1.62.0
 

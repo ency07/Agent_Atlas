@@ -1,0 +1,14 @@
+{
+  "project": "default",
+  "generated": "2026-08-18T01:06:55+00:00",
+  "nodes": [
+    {
+      "id": "20260817-200655-n8n-opera-browser-operator-config",
+      "label": "20260817-200655-n8n-opera-browser-operator-config",
+      "type": "fact",
+      "project": "default",
+      "properties": "Configuración rápida para usar n8n con la función Browser Operator de Opera.\n\n1. Instalar n8n y arrancarlo (`n8n start`).\n2. Actualizar Opera a la versión que incluye Browser Operator (sidebar > ícono).\n3. El operator expone un endpoint local, por defecto `http://127.0.0.1:3005/api/operator/run`.\n4."
+    }
+  ],
+  "edges": []
+}

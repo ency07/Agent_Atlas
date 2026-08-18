@@ -35,6 +35,9 @@ RUBRICA = {
     "E3": {"name": "informe-entrega", "target": "publish_report publica html en outputs/", "max": 2},
     "E4": {"name": "checkpoint", "target": "checkpoint save/resume conserva contexto", "max": 2},
     "E5": {"name": "redaccion", "target": "redact() oculta token sembrado en entrega", "max": 2},
+    "E6": {"name": "dashboard-live", "target": "/api/live responde con health_status y tasks", "max": 2},
+    "E7": {"name": "orden-l0", "target": "POST /api/orden L0/L1 ejecuta fast-path sin contrato", "max": 2},
+    "E8": {"name": "overlay-activo", "target": "atlas_overlay.py proceso vivo (proceso o tarea ONLOGON)", "max": 2},
 }
 
 
@@ -112,12 +115,70 @@ def run_case_e5():
         return 0, str(e)
 
 
+def run_case_e6():
+    """GET /api/live → 200 con health_status + tasks."""
+    import urllib.request
+    try:
+        r = urllib.request.urlopen("http://127.0.0.1:4100/api/live", timeout=8)
+        data = json.loads(r.read())
+        if data.get("health_status") and "tasks" in data:
+            return 2, ""
+        return 1, f"live incompleto: {list(data.keys())}"
+    except Exception as e:
+        return 0, str(e)
+
+
+def run_case_e7():
+    """POST /api/orden L0/L1 → ok + requires_confirmation=false."""
+    import urllib.request
+    try:
+        req = urllib.request.Request(
+            "http://127.0.0.1:4100/api/orden",
+            data=json.dumps({"texto": "abre el navegador"}).encode(),
+            headers={"Content-Type": "application/json"},
+        )
+        r = urllib.request.urlopen(req, timeout=15)
+        data = json.loads(r.read())
+        if data.get("ok") and data.get("requires_confirmation") is False:
+            return 2, ""
+        return 1, f"orden no fast-path: {data}"
+    except Exception as e:
+        return 0, str(e)
+
+
+def run_case_e8():
+    """atlas_overlay.py vivo (proceso corriendo o tarea ONLOGON registrada)."""
+    import subprocess
+    try:
+        for p in subprocess.Popen(
+            ["wmic", "process", "where", "name like '%python%'", "get", "commandline"],
+            stdout=subprocess.PIPE, text=True, creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0),
+        ).stdout:
+            if "atlas_overlay.py" in p:
+                return 2, ""
+    except Exception:
+        pass
+    try:
+        out = subprocess.run(
+            ["schtasks", "/Query", "/TN", "AtlasOverlay"],
+            capture_output=True, text=True, timeout=10,
+        )
+        if out.returncode == 0 and "AtlasOverlay" in out.stdout:
+            return 2, "tarea ONLOGON registrada (proceso no corriendo)"
+    except Exception:
+        pass
+    return 1, "overlay no encontrado como proceso ni tarea"
+
+
 CASES = {
     "E1": run_case_e1,
     "E2": run_case_e2,
     "E3": run_case_e3,
     "E4": run_case_e4,
     "E5": run_case_e5,
+    "E6": run_case_e6,
+    "E7": run_case_e7,
+    "E8": run_case_e8,
 }
 
 

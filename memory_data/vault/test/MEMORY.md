@@ -12,9 +12,9 @@
 - (sin notas aun)
 
 ## Sesiones recientes
-- [[sesion-20260814-133802]]
-- [[sesion-20260814-132642]]
-- [[sesion-20260814-132354]]
+- [[sesion-20260816-210653]]
+- [[sesion-20260816-210213]]
+- [[sesion-20260816-134733]]
 
 ## Enlaces
 - Boveda central: `E:\Agente_IA\memory_data\vault\test`

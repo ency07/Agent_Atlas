@@ -1,6 +1,6 @@
 {
   "project": "agente_ia",
-  "generated": "2026-08-15T00:31:36+00:00",
+  "generated": "2026-08-16T15:37:17+00:00",
   "nodes": [
     {
       "id": "20260814-121159-20260814-tareas-alta-completadas-logrota",
@@ -36,6 +36,13 @@
       "type": "summary",
       "project": "agente_ia",
       "properties": "Fase C1 (Ejecucion Profesional, SPEC_C1.html) COMPLETADA el 14/08/2026. Commit 863f7dd, pusheado a https://github.com/ency07/Agent_Atlas.\n\n**Que se construyo (REQs C1-C16):**\n\n1. **Skills C1-C2 (6 nuevas)**: ejecucion-verificada (MASTER), informe-profesional (6 bloques), investigacion-exhaustiva (L3"
+    },
+    {
+      "id": "20260816-103717-dash-v3-ux-rbitro-entregado-2026-08-16",
+      "label": "20260816-103717-dash-v3-ux-rbitro-entregado-2026-08-16",
+      "type": "decision",
+      "project": "agente_ia",
+      "properties": "Dashboard v3 + UX árbitro completado y verificado (gate PASS).\n\n**Qué se entregó:**\n- dashboard_v3.html único artefacto servido por :4100 (núcleo pulse + 9 módulos + 3 adaptadores radiales, sidebar 10 vistas).\n- Adaptadores stdlib con caché+stale badge: /api/mercado (CoinGecko+stooq), /api/noticias "
     }
   ],
   "edges": []

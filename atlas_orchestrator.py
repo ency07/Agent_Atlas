@@ -267,6 +267,57 @@ TASK_PATTERNS = {
 WORD_ONLY = {"ui", "looks", "fix", "ui_audit", "corel", "test", "visual"}
 
 
+# --- Routing liviano + honesto: nivel x contexto x costo ---
+# L0/L1: gratis primero, nunca un modelo sin contexto.
+FREE_PRIORITY = [
+    "omniroute/oc/north-mini-code-free",      # coding 0.95, speed 0.9, ctx 200k
+    "omniroute/oc/deepseek-v4-flash-free",    # coding 0.5,  speed 0.9, ctx 1M
+    "omniroute/openrouter/cohere/north-mini-code:free",
+]
+
+# Fallback de pago tras el breaker de gratis (L0/L1)
+PAID_FAST_FALLBACK = [
+    "omniroute/opencode-go/deepseek-v4-flash",  # coding 0.95, speed 0.9, ctx 1M
+    "omniroute/auto/best-coding-fast",          # coding 0.95, speed 0.9, ctx 1M
+]
+
+# Nivel -> modelo preferido (L2+)
+LEVEL_MODEL = {
+    "L2": "omniroute/auto/best-coding",
+    "L3": "omniroute/auto/best-reasoning",
+    "plan": "omniroute/auto/best-reasoning",
+}
+
+# Offline (solo ollama): el 1.5b NO razona bien L2+. Escalar, no razonar a ciegas.
+OFFLINE_LIGHT_ONLY = "ollama/qwen2.5:1.5b"
+
+# Margen de seguridad sobre el contexto estimado
+CTX_MARGIN = 0.15
+
+
+def estimate_ctx_tokens(text: str) -> int:
+    """Estimación rápida de tokens del contexto (heuristico ~4 chars/token)."""
+    if not text:
+        return 0
+    return max(1, int(len(text) / 4))
+
+
+def _context_window(cap: dict) -> int:
+    """Ventana de contexto del modelo (context_window si existe, sino context_length)."""
+    return int(cap.get("context_window") or cap.get("context_length") or 0)
+
+
+def _fits_context(cap: dict, ctx_tokens: int) -> bool:
+    """True si el modelo aguanta el contexto estimado.
+    context_ok=false -> NO confiable aunque tenga ventana (combo degradado)."""
+    if cap.get("context_ok") is False:
+        return False
+    win = _context_window(cap)
+    if win <= 0:
+        return True  # ventana desconocida: no bloquear, curators deciden
+    return ctx_tokens <= win * (1 + CTX_MARGIN)
+
+
 def classify_task(task: str) -> dict:
     task = task.lower()
     for tipo, (cap, patterns) in TASK_PATTERNS.items():
@@ -279,12 +330,50 @@ def classify_task(task: str) -> dict:
     return {"task_type": "general", "required_capability": None}
 
 
-def best_model_for(required_cap: str | None, model_pool: dict | None = None) -> dict | None:
-    """Elige el mejor modelo del pool activo para la capacidad requerida.
-    Los modelos CURADOS (mapa de capacidades) siempre ganan sobre inferidos."""
+def best_model_for(required_cap: str | None, model_pool: dict | None = None,
+                   nivel: str = "L2", ctx_tokens: int = 0) -> dict | None:
+    """Elige el mejor modelo del pool activo segun NIVEL + CONTEXTO + COSTO.
+
+    Reglas bloqueantes:
+    - ctx_tokens estimado > ventana o context_ok=false del candidato ->
+      siguiente candidato con contexto (nunca mandar a un modelo que no aguanta).
+    - L0/L1: gratis primero (north-mini-code-free / deepseek-v4-flash-free);
+      breaker -> fallback de pago (deepseek-v4-flash -> best-coding).
+    - L2+: auto/best-coding. Plan/L3: best-reasoning. Visual: best-vision.
+    - Offline (solo ollama): 1.5b SOLO L0/L1. L2+ sin provider -> None (escalar).
+    """
     if model_pool is None:
         model_pool = active_models()
     if not model_pool:
+        return None
+
+    # filtro de contexto: elimina modelos que no aguantan el turno
+    pool = {m: c for m, c in model_pool.items() if _fits_context(c, ctx_tokens)}
+    if not pool:
+        # nada aguanta el contexto: usar el de mayor ventana con context_ok != False
+        honest = {m: c for m, c in model_pool.items() if c.get("context_ok") is not False}
+        if not honest:
+            honest = model_pool
+        def _w(kv):
+            return _context_window(kv[1])
+        widest = max(honest.items(), key=_w)
+        cap = widest[1]
+        return {"model": widest[0], "reason": f"ninguno aguanta ctx={ctx_tokens}; uso el de mayor ventana ({_context_window(cap)})",
+                "capability": cap, "nivel": nivel, "ctx_tokens": ctx_tokens}
+
+    # offline: solo ollama vivo
+    only_offline = all("ollama" in m for m in pool)
+    if only_offline:
+        if nivel in ("L0", "L1"):
+            for mid in (OFFLINE_LIGHT_ONLY,):
+                if mid in pool:
+                    return {"model": mid, "reason": "offline L0/L1: modelo local liviano",
+                            "capability": pool[mid], "nivel": nivel, "ctx_tokens": ctx_tokens}
+            # sin el 1.5b instalado: mejor local disponible
+            mid, cap = max(pool.items(), key=lambda kv: kv[1].get("coding", 0))
+            return {"model": mid, "reason": "offline L0/L1: mejor local disponible",
+                    "capability": cap, "nivel": nivel, "ctx_tokens": ctx_tokens}
+        # L2+ offline -> escalar (None), NO razonar a ciegas con 1.5b
         return None
 
     def rank(kv):
@@ -293,29 +382,63 @@ def best_model_for(required_cap: str | None, model_pool: dict | None = None) -> 
         score = cap.get(required_cap, 0) if required_cap else (cap.get("coding", 0) + cap.get("reasoning", 0)) / 2
         return (curated, score)
 
-    if required_cap is None:
-        scored = sorted(model_pool.items(), key=rank, reverse=True)
+    # L0/L1: gratis primero con breaker
+    if nivel in ("L0", "L1"):
+        for mid in FREE_PRIORITY:
+            if mid in pool:
+                return {"model": mid, "reason": f"L{nivel[-1]} gratis+rapido ({mid})",
+                        "capability": pool[mid], "nivel": nivel, "ctx_tokens": ctx_tokens}
+        for mid in PAID_FAST_FALLBACK:
+            if mid in pool:
+                return {"model": mid, "reason": f"L{nivel[-1]} breaker: gratis caido, pago rapido ({mid})",
+                        "capability": pool[mid], "nivel": nivel, "ctx_tokens": ctx_tokens}
+        # ultimo recurso L0/L1: mejor rapido con contexto
+        scored = sorted(pool.items(), key=lambda kv: (kv[1].get("speed", 0), rank(kv)), reverse=True)
         mid, cap = scored[0]
-        return {"model": mid, "reason": "mejor general entre activos", "capability": cap}
+        return {"model": mid, "reason": f"L{nivel[-1]} fallback por velocidad", "capability": cap,
+                "nivel": nivel, "ctx_tokens": ctx_tokens}
 
+    # L2+/plan/visual: modelo curado por rol
     if required_cap == "vision":
-        vision_pool = {m: c for m, c in model_pool.items() if c.get("vision")}
+        vision_pool = {m: c for m, c in pool.items() if c.get("vision")}
         if not vision_pool:
             return None  # ninguno activo con vision
-        scored = sorted(vision_pool.items(), key=rank, reverse=True)
-        mid, cap = scored[0]
-        return {"model": mid, "reason": "mejor vision entre activos", "capability": cap}
+        for mid in ("omniroute/auto/best-vision",):
+            if mid in vision_pool:
+                return {"model": mid, "reason": "L2+ visual: best-vision", "capability": vision_pool[mid],
+                        "nivel": nivel, "ctx_tokens": ctx_tokens}
+        mid, cap = max(vision_pool.items(), key=rank)
+        return {"model": mid, "reason": "L2+ visual: mejor vision activo", "capability": cap,
+                "nivel": nivel, "ctx_tokens": ctx_tokens}
 
-    scored = sorted(model_pool.items(), key=rank, reverse=True)
+    prefer = LEVEL_MODEL.get(nivel)
+    if prefer and prefer in pool:
+        return {"model": prefer, "reason": f"L2+ {nivel}: {prefer}", "capability": pool[prefer],
+                "nivel": nivel, "ctx_tokens": ctx_tokens}
+
+    scored = sorted(pool.items(), key=rank, reverse=True)
     mid, cap = scored[0]
-    return {"model": mid, "reason": f"max {required_cap} entre activos (curado preferido)", "capability": cap}
+    return {"model": mid, "reason": f"max {required_cap or 'general'} entre activos (curado preferido)",
+            "capability": cap, "nivel": nivel, "ctx_tokens": ctx_tokens}
 
 
-def analyze(task: str) -> dict:
+def analyze(task: str, nivel: str | None = None, ctx_tokens: int | None = None) -> dict:
+    """Analiza una tarea y decide el mejor modelo. Liviano+honesto:
+    usa el clasificador de nivel (atlas_c4) y estima el contexto del turno."""
     cls = classify_task(task)
     req = cls["required_capability"]
     provs = active_providers()
     pool = active_models()
+
+    # nivel y contexto: si no llegan, clasificar localmente
+    if nivel is None:
+        try:
+            from atlas_c4 import classify_level
+            nivel = classify_level(task)
+        except Exception:
+            nivel = "L2"
+    if ctx_tokens is None:
+        ctx_tokens = estimate_ctx_tokens(task)
 
     live_names = [n for n, s in provs.items() if s["alive"]]
     cooldown_names = [n for n, s in provs.items() if s["in_cooldown"]]
@@ -326,6 +449,8 @@ def analyze(task: str) -> dict:
         "task": task,
         "task_type": cls["task_type"],
         "required_capability": req,
+        "nivel": nivel,
+        "ctx_tokens": ctx_tokens,
         "providers": provs,
         "active_providers": live_names,
         "cooldown_providers": cooldown_names,
@@ -345,13 +470,20 @@ def analyze(task: str) -> dict:
             }
             return result
 
-    pick = best_model_for(req, pool)
+    pick = best_model_for(req, pool, nivel=nivel, ctx_tokens=ctx_tokens)
     if pick is None:
+        # L2+ sin provider (offline): ESCALAR, no razonar a ciegas
+        action = "escalate" if nivel in ("L2", "L3") else "no_providers"
+        reason = ("L2+/L3 sin provider capaz: ESCALAR, no razonar a ciegas "
+                  "(modelo local insuficiente).") if action == "escalate" else (
+                  "Ningun provider de modelos responde (omniroute:20128, 9router:4000, ollama:11434).")
         result["decision"] = {
-            "action": "no_providers",
+            "action": action,
             "suggested_model": None,
             "vision_supported": False,
-            "reason": "Ningun provider de modelos responde (omniroute:20128, 9router:4000, ollama:11434).",
+            "reason": reason,
+            "nivel": nivel,
+            "ctx_tokens": ctx_tokens,
         }
         return result
 
@@ -360,20 +492,25 @@ def analyze(task: str) -> dict:
         "suggested_model": pick["model"],
         "reason": pick["reason"],
         "vision_supported": bool(pick["capability"].get("vision")),
+        "nivel": nivel,
+        "ctx_tokens": ctx_tokens,
     }
     return result
 
 
-def route(task: str) -> dict:
+def route(task: str, nivel: str | None = None, ctx_tokens: int | None = None) -> dict:
     """Igual que analyze pero registra en el log de routing (decision real ejecutada)."""
-    res = analyze(task)
+    res = analyze(task, nivel=nivel, ctx_tokens=ctx_tokens)
     _log_entry({
         "ts": res["timestamp"],
         "task": task[:120],
         "task_type": res["task_type"],
         "req_cap": res["required_capability"],
+        "nivel": res.get("nivel"),
+        "ctx_tokens": res.get("ctx_tokens"),
         "decision": res.get("decision", {}).get("action"),
         "model": res.get("decision", {}).get("suggested_model"),
+        "reason": res.get("decision", {}).get("reason"),
         "active": res["active_providers"],
     })
     return res
@@ -392,15 +529,16 @@ def orchestrator_available() -> dict:
 
 
 @mcp.tool()
-def orchestrator_analyze(task: str) -> dict:
-    """Analiza una tarea y decide el mejor modelo ENTRE los proveedores activos."""
-    return analyze(task)
+def orchestrator_analyze(task: str, nivel: str | None = None, ctx_tokens: int | None = None) -> dict:
+    """Analiza una tarea y decide el mejor modelo ENTRE los proveedores activos.
+    Optional: nivel (L0/L1/L2/L3) y ctx_tokens estimados; si no llegan se clasifican solos."""
+    return analyze(task, nivel=nivel, ctx_tokens=ctx_tokens)
 
 
 @mcp.tool()
-def orchestrator_route(task: str) -> dict:
+def orchestrator_route(task: str, nivel: str | None = None, ctx_tokens: int | None = None) -> dict:
     """Igual que analyze + registra la decision en routing_log.json."""
-    return route(task)
+    return route(task, nivel=nivel, ctx_tokens=ctx_tokens)
 
 
 @mcp.tool()

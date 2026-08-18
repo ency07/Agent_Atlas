@@ -1,0 +1,26 @@
+<!DOCTYPE html><html lang="es"><head><meta charset="UTF-8">
+<title>Atlas — Módulo P · Percepción</title>
+<style>body{background:#101820;color:#e6e6e6;font-family:'Segoe UI',sans-serif;margin:2rem auto;max-width:1100px;line-height:1.45}h1{font-size:1.5rem}h2{font-size:1.1rem;margin-top:1.8rem;border-bottom:1px solid #333}code{background:#0d141b;padding:1px 5px;border-radius:4px;color:#8cf}table{border-collapse:collapse;width:100%;font-size:.85rem}td,th{border:1px solid #333;padding:6px;text-align:left}ul{margin:6px 0 6px 18px}</style>
+</head><body>
+<h1>Atlas — Módulo P · Percepción y friction_log</h1>
+<p class="sub">v1.0 · 15/08/2026 · Mata el "demora/se cuelga": mitad es latencia real, mitad es ausencia de feedback. VA PRIMERO.</p>
+
+<h2>01 · Componentes</h2>
+<ul>
+<li><b>01 Streaming + progreso + ETA por turno.</b> Ningún turno &gt;10s sin feedback visible (chat + bandeja). Lo que no se ve, se siente cuelgue.</li>
+<li><b>02 friction_log:</b> instrumenta 4 eventos: corrección tuya · repetición de pedido · espera &gt;Xs · "no" tuyo. Escribe a <code>state/friction_log.jsonl</code> + <code>/api/friction</code>.</li>
+<li><b>03 Métrica semanal + panel dashboard:</b> conteo y tendencia de fricciones. Es el detector de fricciones silenciosas y el juez de C3v2/C4.</li>
+<li><b>04 Latencia real:</b> MCPs persistentes (sin cold start) + caché única de liveness + FTS5 con LIMIT. (Caché 15s del orquestador ya existe.)</li>
+</ul>
+
+<h2>02 · REQs P</h2>
+<table><tr><th>REQ</th><th>Requisito</th><th>Aceptación</th></tr>
+<tr><td>P-1</td><td>Feedback visible en todo turno &gt;10s</td><td>Turno largo sin feedback = fallo registrado</td></tr>
+<tr><td>P-2</td><td>friction_log con 4 tipos</td><td>Eventos simulados aparecen en /api/friction</td></tr>
+<tr><td>P-3</td><td>Métrica semanal + panel</td><td>Dashboard muestra tendencia</td></tr>
+<tr><td>P-4</td><td>Sin cold start de MCPs</td><td>Primer tool de sesión &lt;1s</td></tr>
+<tr><td>P-5</td><td>Baseline de fricciones</td><td>Baseline medido antes de C3v2; meta: −50% tras C3v2+C4</td></tr></table>
+
+<h2>03 · Terminado P</h2>
+<ul><li>5 REQs con evidencia · baseline de fricciones publicado · cero turnos silenciosos &gt;10s en 1 semana.</li></ul>
+</body></html>

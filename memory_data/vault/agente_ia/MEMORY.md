@@ -6,14 +6,14 @@
 - (define el objetivo actual del proyecto)
 
 ## Decisiones clave
-- (sin decisiones registradas aun)
+- [[20260816-103717-dash-v3-ux-rbitro-entregado-2026-08-16]]
 
 ## Notas recientes
-- [[20260814-121159-20260814-tareas-alta-completadas-logrota]] · 20260814-121159-20260814-tareas-alta-completadas-logrota
 - [[20260814-130017-20260814-tareas-media-completadas-sync-c]] · 20260814-130017-20260814-tareas-media-completadas-sync-c
 - [[20260814-134557-20260814-f2.5-alta-completadas-chat-fix-]] · 20260814-134557-20260814-f2.5-alta-completadas-chat-fix-
 - [[20260814-142802-20260814-push-github-completado-docs-clo]] · 20260814-142802-20260814-push-github-completado-docs-clo
 - [[20260814-193136-20260814-c1-ejecucion-profesional-comple]] · 20260814-193136-20260814-c1-ejecucion-profesional-comple
+- [[20260816-103717-dash-v3-ux-rbitro-entregado-2026-08-16]] · 20260816-103717-dash-v3-ux-rbitro-entregado-2026-08-16
 
 ## Sesiones recientes
 - (sin sesiones aun)

@@ -1,0 +1,71 @@
+<!DOCTYPE html><html lang="es"><head><meta charset="UTF-8">
+<title>Atlas — Roadmap v1.7</title>
+<style>body{background:#101820;color:#e6e6e6;font-family:'Segoe UI',sans-serif;margin:2rem auto;max-width:1100px;line-height:1.45}h1{font-size:1.5rem}h2{font-size:1.1rem;margin-top:1.8rem;border-bottom:1px solid #333}.sub{color:#9ab}.card{border-radius:10px;padding:12px 14px;margin:12px 0;border-left:6px solid;background:#18222c}.g{border-color:#2e7d32}.y{border-color:#f9a825}.r{border-color:#c62828}.x{border-color:#546e7a}.b{border-color:#1976d2}.chip{display:inline-block;padding:2px 8px;border-radius:10px;font-size:.75rem;margin-left:8px}.cg{background:#2e7d32}.cy{background:#f9a825;color:#000}.cr{background:#c62828}.cx{background:#546e7a}.cb{background:#1976d2}code{background:#0d141b;padding:1px 5px;border-radius:4px;color:#8cf}table{border-collapse:collapse;width:100%;font-size:.88rem}td,th{border:1px solid #333;padding:6px;text-align:left}ul{margin:6px 0 6px 18px}</style>
+</head><body>
+<h1>Atlas — Roadmap v1.7</h1>
+<p class="sub">15/08/2026 · Orden: G → P → C3v2 → C4 → F4 → F5 · C5 solo con evidencia de friction_log</p>
+
+<h2>01 · Estado actual</h2>
+<div class="card g"><b>Cerradas:</b> F1–F3 · O1 · S1 · F2.5 · C1 · C2 (111/111 tests, e451a91) · <b>Capa continua YA EXISTE en código:</b> metrics, model_switch, sync_capabilities, logrotate, benchmark · <b>Intrínseco v1 hecho</b> con hallazgos I-01..I-05 abiertos (declaración 100% falsa, colisión de IDs de deuda, backups zip vs age, ficha web ausente, matrices parciales)<span class="chip cg">✔</span></div>
+
+<h2>02 · Orden de ejecución</h2>
+<table><tr><th>#</th><th>Fase</th><th>Por qué aquí</th></tr>
+<tr><td>0</td><td>G Gobernanza (30 min)</td><td>Registro único de deuda + auditorías bajo contrato C2. Sin esto, todo lo demás hereda IDs rotos y declaraciones falsas.</td></tr>
+<tr><td>1</td><td>P Percepción + friction_log</td><td>Queja #1 ("demora/se cuelga") + baseline que juzgará a C3v2/C4.</td></tr>
+<tr><td>2</td><td>C3v2 Auto-Modelo Vivo</td><td>Mata la desconexión. Primera tarea: T-C3-0 intrínseco corregido bajo contrato.</td></tr>
+<tr><td>3</td><td>C4 Intención Profunda</td><td>Mata el "no entiende"; genera contratos C2 automáticos.</td></tr>
+<tr><td>4</td><td>F4 Dinero · 5 F5 Tutor</td><td>Solo con agente conectado + comprensivo.</td></tr>
+<tr><td>—</td><td>C5 Proactividad · ⚪ horizonte</td><td>Solo si friction_log muestra −50% de fricciones.</td></tr></table>
+
+<h2>03 · Fases</h2>
+<div class="card b"><b>G · GOBERNANZA</b><span class="chip cb">🔵 Ahora</span>
+<ul><li>G-1: <code>docs/DEBT.md</code> registro único; colisión de IDs = fallo bloqueante.</li>
+<li>G-2: auditorías bajo contrato C2: cada sección = criterio; el % se prueba, no se declara.</li></ul></div>
+
+<div class="card r"><b>P · PERCEPCIÓN</b> <small>(SPEC_P.html)</small><span class="chip cr">🔴</span>
+<ul><li>Streaming/progreso/ETA · friction_log 4 tipos · /api/friction + panel · MCPs persistentes · baseline.</li>
+<li><b>Gates:</b> P-1..P-5 con evidencia.</li></ul></div>
+
+<div class="card r"><b>C3v2 · AUTO-MODELO VIVO</b> <small>(SPEC_C3v2.html)</small><span class="chip cr">🔴</span>
+<ul><li>T-C3-0 intrínseco corregido bajo contrato → self_model.json · snapshot TTL · inyección por relevancia · auto-modelo de capacidades · ontología · episódica · contexto vivo · redacción por proveedor · aprendizaje de fallos · gestión de contexto.</li>
+<li><b>Gates:</b> C3-1..C3-10 · cero preguntas de obviedad en 1 semana.</li></ul></div>
+
+<div class="card r"><b>C4 · INTENCIÓN</b> <small>(SPEC_C4.html)</small><span class="chip cr">🔴</span>
+<ul><li>Pragmática · restricciones implícitas · contratos auto · clarificación crítica · dominio.</li>
+<li><b>Gates:</b> C4-1..C4-5 · cero re-trabajos por interpretación en 1 semana.</li></ul></div>
+
+<div class="card x"><b>C5 · HORIZONTE</b><span class="chip cx">⚪</span> Solo con −50% fricciones medido.</div>
+
+<h2>04 · Trazabilidad</h2>
+<table><tr><th>De → A</th><th>Qué traspasa</th><th>Estado</th></tr>
+<tr><td>G → todos</td><td>Deuda única + auditorías probadas</td><td>🟢 bloqueante</td></tr>
+<tr><td>P → C3v2/C4</td><td>friction_log como juez</td><td>🟢 bloqueante</td></tr>
+<tr><td>Intrínseco corregido → C3v2</td><td>self_model.json sembrado limpio</td><td>🟢 (T-C3-0)</td></tr>
+<tr><td>Capa continua existente → C3v2</td><td>sync/switch/metrics como fuentes</td><td>🟢</td></tr>
+<tr><td>C3v2 → C4</td><td>Sabe qué puede antes de planear</td><td>🟢</td></tr>
+<tr><td>C4 → C2</td><td>Contratos automáticos</td><td>🟢</td></tr>
+<tr><td>C4 → F4/F5</td><td>Pipelines de dinero con intención correcta</td><td>🟢</td></tr></table>
+
+<h2>05 · Puntos donde puede romperse</h2>
+<ul>
+<li>🟡 self_model sembrado con datos malos → T-C3-0 bajo contrato ANTES de sembrar.</li>
+<li>🟡 Inyección por relevancia falla (slice no pertinente) → fallback a slice mayor + registro en friction_log.</li>
+<li>🟡 Streaming complica el chat → el wrapper api.js ya aísla el contenedor.</li>
+<li>🔴 Heredados: I-01..I-05 del intrínseco + DEBT-001..010 (unificados por G-1).</li>
+</ul>
+
+<h2>06 · Reglas</h2>
+<ul>
+<li><b>Nueva:</b> el % de verificación se prueba por checklist, nunca se declara.</li>
+<li><b>Nueva:</b> un solo registro de deuda; IDs únicos globales.</li>
+<li><b>Nueva:</b> ninguna fase nueva sin baseline de fricciones medido.</li>
+<li>Heredadas: F1 inmutable · adaptadores reemplazables · bóveda = verdad · el agente no cierra tareas (C2).</li>
+</ul>
+
+<h2>07 · Checklists de salida</h2>
+<p><b>P:</b> feedback en turnos &gt;10s · friction_log vivo · panel · sin cold start · baseline publicado.</p>
+<p><b>C3v2:</b> T-C3-0 cerrado · 10 REQs · "qué tengo instalado" sin web · cero obviedades en 1 semana.</p>
+<p><b>C4:</b> 5 REQs · 3 contratos auto válidos · cero re-trabajos en 1 semana.</p>
+
+<p class="sub">Atlas · Roadmap v1.7 · E:\Agente_IA\roadmap.html · Ejecutar G → P → C3v2 → C4 → F4 → F5</p>
+</body></html>

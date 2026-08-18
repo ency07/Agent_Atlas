@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """Test C3-9: self_model.json exists and has required keys."""
-import sys, json
+import sys, json, os
 sys.path.insert(0, "E:/Agente_IA")
 
 def test_self_model_exists():
@@ -17,6 +17,5 @@ def test_self_model_exists():
     print("OK self_model.json exists with required keys")
 
 if __name__ == "__main__":
-    import os
     test_self_model_exists()
     print("\nAll C3-9 tests passed!")

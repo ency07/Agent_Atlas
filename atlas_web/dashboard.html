@@ -3,386 +3,442 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Atlas — Dashboard de Actividad</title>
+<title>Atlas — HUD</title>
 <style>
-  :root { --bg: #0d1117; --bg2: #161b22; --bg3: #1f2630; --border: #30363d; --text: #e6edf3; --muted: #8b949e; --accent: #58a6ff; --green: #3fb950; --yellow: #d29922; --red: #f85149; }
-  * { box-sizing: border-box; margin: 0; padding: 0; }
-  body { background: var(--bg); color: var(--text); font-family: 'Segoe UI', system-ui, sans-serif; padding: 24px; }
-  .wrap { max-width: 900px; margin: 0 auto; }
-  h1 { font-size: 1.5rem; margin-bottom: 4px; }
-  .sub { color: var(--muted); margin-bottom: 20px; }
-  .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 16px; margin-bottom: 24px; }
-  .card { background: var(--bg2); border: 1px solid var(--border); border-radius: 12px; padding: 16px; }
-  .card h3 { font-size: .85rem; color: var(--muted); margin-bottom: 8px; text-transform: uppercase; letter-spacing: .05em; }
-  .card .val { font-size: 1.8rem; font-weight: 700; }
-  .card .detail { font-size: .78rem; color: var(--muted); margin-top: 4px; }
-  .tag { display: inline-block; padding: 2px 8px; border-radius: 20px; font-size: .72rem; font-weight: 600; }
-  .tag.up { background: rgba(63,185,80,.15); color: var(--green); }
-  .tag.down { background: rgba(248,81,73,.15); color: var(--red); }
-  .tag.paused { background: rgba(210,153,34,.15); color: var(--yellow); }
-  table { width: 100%; border-collapse: collapse; font-size: .85rem; margin-top: 16px; }
-  th, td { padding: 10px 12px; text-align: left; border-bottom: 1px solid var(--border); }
-  th { color: var(--muted); font-weight: 600; font-size: .75rem; text-transform: uppercase; }
-  .bar { height: 6px; border-radius: 3px; background: var(--bg3); margin-top: 6px; }
-  .bar-fill { height: 100%; border-radius: 3px; background: var(--accent); transition: width .3s; }
-  #status { font-size: .8rem; color: var(--muted); text-align: right; margin-bottom: 12px; }
-  .refresh { background: var(--bg3); border: 1px solid var(--border); color: var(--text); padding: 6px 14px; border-radius: 8px; cursor: pointer; font-size: .82rem; }
-  .refresh:hover { background: var(--bg2); border-color: var(--accent); }
+:root{
+  --bg:#04070d;--panel:rgba(10,20,35,.55);--line:rgba(0,255,200,.22);
+  --neon:#3dffb4;--cyan:#39d7ff;--warn:#ffc857;--fail:#ff5d5d;
+  --txt:#d8f3ee;--dim:#7fa39b;--glow:0 0 12px rgba(61,255,180,.22);--r:12px;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%;width:100%;overflow:hidden;background:var(--bg);color:var(--txt);font-family:'Segoe UI',system-ui,sans-serif;font-size:14px}
+#app{display:grid;
+  grid-template-areas:"header header header header header""izq centro centro centro der""inferior inferior inferior inferior inferior""footer footer footer footer footer";
+  grid-template-rows:56px 1fr 220px 48px;
+  grid-template-columns:280px 1fr 1fr 1fr 300px;
+  height:100vh;width:100vw;
+}
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:var(--r);backdrop-filter:blur(8px);box-shadow:var(--glow);overflow:hidden}
+.labels{text-transform:uppercase;letter-spacing:.14em;font-size:11px;color:var(--dim);margin-bottom:8px}
+.values{font-size:15px;color:var(--txt);text-shadow:0 0 8px rgba(57,215,255,.35);font-weight:500}
+.tag{display:inline-block;padding:2px 8px;border-radius:999px;font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.08em}
+.tag.ok{background:rgba(61,255,180,.15);color:var(--neon)}
+.tag.warn{background:rgba(255,200,87,.15);color:var(--warn)}
+.tag.err{background:rgba(255,93,93,.15);color:var(--fail)}
+.tag.info{background:rgba(57,215,255,.15);color:var(--cyan)}
+.skeleton{background:linear-gradient(90deg,rgba(10,20,35,.6) 25%,rgba(10,20,35,.3) 50%,rgba(10,20,35,.6) 75%);background-size:200% 100%;animation:shimmer 1.5s infinite;border-radius:6px;height:120px}
+@keyframes shimmer{0%{background-position:200% 0}100%{background-position:-200% 0}}
+.api-error{padding:12px;border:1px solid var(--fail);border-radius:8px;background:rgba(255,93,93,.08);color:var(--fail);font-size:12px;text-align:center}
+#js-error-badge{display:none;position:fixed;bottom:56px;left:50%;transform:translateX(-50%);z-index:9999;background:rgba(255,93,93,.95);color:#fff;padding:8px 20px;border-radius:8px;font-size:12px;font-weight:600;box-shadow:0 0 20px rgba(255,93,93,.5)}
+@media(max-width:1200px){#app{grid-template-areas:"header header header header header""izq centro centro centro centro""der der centro centro centro""inferior inferior inferior inferior inferior""footer footer footer footer footer";grid-template-columns:260px 1fr 1fr 1fr 1fr}}
+@media(max-width:900px){#app{grid-template-areas:"header""centro""izq""der""inferior""footer";grid-template-columns:1fr;grid-template-rows:56px 1fr auto auto 220px 48px}.izq,.der{position:static;width:100%}}
+::-webkit-scrollbar{width:4px;height:4px}::-webkit-scrollbar-track{background:transparent}::-webkit-scrollbar-thumb{background:var(--line);border-radius:2px}::-webkit-scrollbar-thumb:hover{background:var(--cyan)}
 </style>
 </head>
 <body>
-<div class="wrap">
-  <div style="display:flex;justify-content:space-between;align-items:center;">
-    <h1>Atlas — Dashboard de Actividad</h1>
-    <button class="refresh" onclick="load()">Actualizar</button>
-  </div>
-  <div class="sub">Métricas del daemon de actividad · Se actualiza cada 30s</div>
-  <div id="status">cargando...</div>
+<div id="js-error-badge"></div>
+<div id="app">
+  <header class="panel" style="grid-area:header;display:flex;align-items:center;justify-content:space-between;padding:0 24px;border-radius:0;border-bottom:1px solid var(--line)">
+    <div style="display:flex;align-items:center;gap:14px">
+      <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="var(--neon)" stroke-width="2" style="filter:drop-shadow(0 0 8px var(--neon))"><circle cx="12" cy="12" r="9"/><path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/></svg>
+      <span style="font-weight:700;font-size:1.05rem;letter-spacing:.1em;text-shadow:0 0 12px rgba(61,255,180,.4)">ATLAS</span>
+      <span id="h-pulse" class="tag ok" style="width:10px;height:10px;border-radius:50%"></span>
+    </div>
+    <div style="display:flex;align-items:center;gap:16px">
+      <span id="h-model" class="tag info">auto/best-coding</span>
+      <span id="h-level" class="tag warn">L1</span>
+      <span id="h-clock" style="font-variant-numeric:tabular-nums;font-size:13px;color:var(--dim);font-family:'JetBrains Mono',monospace">--:--:--</span>
+    </div>
+  </header>
 
-  <div class="grid">
-    <div class="card" style="border-color:var(--border);">
-      <h3>Semáforo del sistema</h3>
-      <div class="val" id="health-status" style="font-size:1.4rem;">--</div>
-      <div class="detail" id="health-detail"></div>
-    </div>
-    <div class="card">
-      <h3>Estado del daemon</h3>
-      <div class="val" id="daemon-status">--</div>
-      <div class="detail" id="daemon-detail"></div>
-    </div>
-    <div class="card">
-      <h3>Eventos totales</h3>
-      <div class="val" id="events-total">--</div>
-      <div class="detail" id="events-detail"></div>
-    </div>
-    <div class="card">
-      <h3>Sesiones</h3>
-      <div class="val" id="sessions-total">--</div>
-      <div class="detail" id="sessions-detail"></div>
-    </div>
-    <div class="card">
-      <h3>Último tick</h3>
-      <div class="val" id="last-tick">--</div>
-      <div class="detail" id="tick-detail"></div>
-    </div>
-    <div class="card">
-      <h3>Foco hoy</h3>
-      <div class="val" id="foco-pct">--</div>
-      <div class="detail" id="foco-mode">modo: --</div>
-    </div>
-  </div>
+  <aside class="panel izq" style="grid-area:izq;display:flex;flex-direction:column;gap:16px;padding:16px;overflow:hidden">
+    <section>
+      <div class="labels">IDENTIDAD</div>
+      <div id="id-panel" style="display:flex;flex-direction:column;gap:10px"><div class="skeleton" style="height:100px"></div></div>
+    </section>
+    <section style="flex:1;min-height:0;display:flex;flex-direction:column;gap:8px">
+      <div class="labels">EN VIVO</div>
+      <div id="live-panel" style="flex:1;overflow:auto;display:flex;flex-direction:column;gap:10px"><div class="skeleton" style="height:200px"></div></div>
+    </section>
+  </aside>
 
-  <h2 style="font-size:1.1rem;margin-bottom:8px;">Estado del sistema</h2>
-  <div style="display:flex;gap:16px;flex-wrap:wrap;">
-    <div style="flex:1;min-width:300px;" class="card">
-      <h3>Componentes</h3>
-      <div id="health-checks" style="font-size:.82rem;line-height:1.8;">cargando...</div>
-    </div>
-    <div style="flex:1;min-width:240px;" class="card">
-      <h3>Modelo orquestado</h3>
-      <div id="modelo-info" style="font-size:.82rem;color:var(--muted);">cargando...</div>
-      <div class="detail" style="margin-top:8px;">Capacidades del modelo activo · mapa: state/model_capabilities.json</div>
-    </div>
-  </div>
+  <main class="panel" style="grid-area:centro;position:relative;overflow:hidden">
+    <canvas id="hud" style="width:100%;height:100%;display:block"></canvas>
+    <div id="tt" style="position:absolute;pointer-events:none;background:rgba(10,20,35,.95);border:1px solid var(--line);border-radius:8px;padding:10px 14px;font-size:12px;z-index:10;opacity:0;transition:opacity .15s;white-space:pre;color:var(--txt)"></div>
+  </main>
 
-  <h2 style="font-size:1.1rem;margin-bottom:8px;">Foco · tiempo del día</h2>
-  <div style="display:flex;gap:16px;flex-wrap:wrap;">
-    <div style="flex:2;min-width:300px;" class="card">
-      <h3>Productivo vs distracción</h3>
-      <div class="bar"><div class="bar-fill" id="foco-bar" style="width:0%;background:var(--green);"></div></div>
-      <div style="display:flex;justify-content:space-between;font-size:.78rem;color:var(--muted);margin-top:6px;">
-        <span id="foco-prod">--</span><span id="foco-dist">--</span>
-      </div>
-      <div class="detail" id="foco-detail"></div>
-    </div>
-    <div style="flex:1;min-width:240px;" class="card">
-      <h3>Top distracciones</h3>
-      <div id="foco-top-dist" style="font-size:.82rem;color:var(--muted);">sin datos</div>
-    </div>
-  </div>
+  <aside class="panel der" style="grid-area:der;display:flex;flex-direction:column;gap:16px;padding:16px;overflow:auto">
+    <section style="flex:1;min-height:0;display:flex;flex-direction:column;gap:8px">
+      <div class="labels">TAREAS</div>
+      <div id="tareas-panel" style="flex:1;overflow:auto;display:flex;flex-direction:column;gap:10px"><div class="skeleton" style="height:220px"></div></div>
+    </section>
+    <section style="display:flex;flex-direction:column;gap:8px">
+      <div class="labels">PENDIENTE</div>
+      <div id="pend-panel" style="display:flex;flex-direction:column;gap:8px"><div class="skeleton" style="height:140px"></div></div>
+    </section>
+  </aside>
 
-  <h2 style="font-size:1.1rem;margin-bottom:8px;">Top aplicaciones (últimas 24h)</h2>
-  <table>
-    <thead><tr><th>App</th><th>Tiempo</th><th>%</th><th></th></tr></thead>
-    <tbody id="top-apps"><tr><td colspan="4" style="color:var(--muted);">sin datos (daemon no ha corrido o sin eventos de actividad)</td></tr></tbody>
-  </table>
+  <section class="panel" style="grid-area:inferior;display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px;padding:16px;overflow:auto">
+    <div id="merc-panel"><div class="labels">MERCADO</div><div class="pc" style="height:100%;display:flex;flex-direction:column;gap:10px"><div class="skeleton" style="height:180px"></div></div></div>
+    <div id="news-panel"><div class="labels">NOTICIAS</div><div class="pc" style="height:100%;display:flex;flex-direction:column;gap:10px"><div class="skeleton" style="height:180px"></div></div></div>
+    <div id="clima-panel"><div class="labels">CLIMA</div><div class="pc" style="height:100%;display:flex;flex-direction:column;gap:10px"><div class="skeleton" style="height:180px"></div></div></div>
+  </section>
 
-  <h2 style="font-size:1.1rem;margin-top:16px;margin-bottom:8px;">Informes · entregables (REQ-C8)</h2>
-  <div style="flex:1;min-width:300px;" class="card">
-    <h3>Informes publicados</h3>
-    <div id="informes-list" style="font-size:.82rem;color:var(--muted);">cargando...</div>
-    <div class="detail" style="margin-top:8px;">publish_report → vault/outputs/ · refresh cada 30s</div>
-  </div>
-
-  <h2 style="font-size:1.1rem;margin-top:16px;margin-bottom:8px;">Tareas en curso (C2)</h2>
-  <div style="flex:1;min-width:300px;" class="card">
-    <h3>Bucle de cierre forzoso</h3>
-    <div id="tareas-list" style="font-size:.82rem;color:var(--muted);">cargando...</div>
-  </div>
-
-  <h2 style="font-size:1.1rem;margin-top:16px;margin-bottom:8px;">Fricción · tendencia semanal (P-3)</h2>
-  <div style="flex:1;min-width:300px;" class="card">
-    <h3>Eventos de fricción por semana</h3>
-    <div id="friction-weekly" style="font-size:.82rem;color:var(--muted);">cargando...</div>
-    <div class="detail" style="margin-top:8px;">GET /api/friction/weekly · baseline P-5</div>
-  </div>
-  <div id="exito-falso-alert" style="display:none;background:rgba(248,81,73,.15);border:1px solid var(--red);border-radius:8px;padding:12px;margin-top:8px;">
-    <div style="color:var(--red);font-weight:600;">ALERTA: Éxito falso detectado</div>
-    <div id="exito-falso-detail" style="font-size:.82rem;color:var(--muted);margin-top:4px;"></div>
-  </div>
-
-  <h2 style="font-size:1.1rem;margin-top:16px;margin-bottom:8px;">Pendiente de ti</h2>
-  <div style="flex:1;min-width:300px;" class="card">
-    <h3>Gates humanos + escaladas</h3>
-    <div id="pendientes-list" style="font-size:.82rem;color:var(--muted);">cargando...</div>
-  </div>
+  <footer class="panel" style="grid-area:footer;display:flex;align-items:center;gap:14px;padding:0 24px;border-radius:0;border-top:1px solid var(--line)">
+    <label style="display:flex;align-items:center;gap:10px;color:var(--dim);font-size:11px;text-transform:uppercase;letter-spacing:.14em">NIVEL</label>
+    <select id="o-level" style="background:var(--bg);border:1px solid var(--line);color:var(--txt);padding:8px 14px;border-radius:8px;font-size:13px;cursor:pointer;min-width:140px;appearance:none;background-image:url(&quot;data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='12' height='12' fill='%237fa39b'><path d='M6 9l6 6 6-6'/></svg>&quot;);background-repeat:no-repeat;background-position:right 10px center;padding-right:36px">
+      <option value="L0">L0 · Consulta</option><option value="L1" selected>L1 · Accion simple</option><option value="L2">L2+ · Config/Archivos</option>
+    </select>
+    <input id="o-input" type="text" placeholder="Escribe una orden..." style="flex:1;background:var(--bg);border:1px solid var(--line);color:var(--txt);padding:10px 16px;border-radius:8px;font-size:14px;outline:none;max-width:700px">
+    <button id="o-btn" style="background:var(--neon);border:none;color:var(--bg);padding:10px 22px;border-radius:8px;font-weight:600;font-size:13px;cursor:pointer;white-space:nowrap">ENVIAR</button>
+    <span id="o-status" style="font-size:12px;color:var(--dim);min-width:220px"></span>
+  </footer>
 </div>
 
-<script src="api.js"></script>
 <script>
-const API_BASE = 'http://127.0.0.1:4100';
+(function(){
+"use strict";
 
-const STATUS_COLORS = { green: '#3fb950', yellow: '#d29922', red: '#f85149' };
-const STATUS_LABEL = { green: '🟢 TODO OK', yellow: '🟡 ALERTAS', red: '🔴 FALLOS' };
+var API='http://127.0.0.1:4100';
+var ST={green:'#3dffb4',yellow:'#ffc857',red:'#ff5d5d',unknown:'#6e7681'};
+var MODULES=[{id:'memoria',label:'MEMORIA',g:'core',w:1.2,a:0},{id:'tareas',label:'TAREAS',g:'core',w:1,a:40},{id:'dinero',label:'DINERO',g:'core',w:1,a:80},{id:'foco',label:'FOCO',g:'core',w:.9,a:120},{id:'salud',label:'SALUD',g:'core',w:1.1,a:160},{id:'informes',label:'INFORMES',g:'core',w:.8,a:200},{id:'cerebro',label:'CEREBRO',g:'core',w:1,a:240},{id:'noticias',label:'NOTICIAS',g:'adpt',w:.7,a:280},{id:'clima',label:'CLIMA',g:'adpt',w:.7,a:320}];
+var ADAPT=[{id:'mercado',label:'MERCADO',g:'adpt',w:.7,a:20},{id:'rss',label:'RSS',g:'adpt',w:.7,a:140},{id:'grafo',label:'GRAFO',g:'adpt',w:.7,a:260}];
+var ALL=MODULES.concat(ADAPT);
+var $=function(s){return document.querySelector(s)};
+function $id(s){return document.getElementById(s)}
 
-async function loadHealth() {
-  const el = document.getElementById('health-status');
-  const checksEl = document.getElementById('health-checks');
-  try {
-    const r = await fetch(`${API_BASE}/api/health`).then(r => r.json());
-    el.textContent = STATUS_LABEL[r.status] || r.status;
-    el.style.color = STATUS_COLORS[r.status] || '#e6edf3';
-    const ts = (r.timestamp || r.checks_timestamp || '');
-    document.getElementById('health-detail').textContent = `último chequeo: ${ts.slice(11, 19) || 'ahora'} · ${r.checks.length} componentes`;
-    const fails = r.checks.filter(c => !c.ok);
-    checksEl.innerHTML = r.checks.map(c => {
-      const icon = c.ok ? '🟢' : (c.critical ? '🔴' : '🟡');
-      return `<div>${icon} <b>${c.name}</b> — ${c.detail}</div>`;
-    }).join('') + (fails.length ? `<div style="margin-top:8px;color:${STATUS_COLORS[fails.some(f=>f.critical)?'red':'yellow']};">${fails.length} componente(s) con problema</div>` : '<div style="margin-top:8px;color:var(--green);">todos los componentes OK</div>');
-  } catch (e) {
-    el.textContent = '🔴 HEALTH SIN SERVER';
-    el.style.color = STATUS_COLORS.red;
-    checksEl.textContent = `atlas_web_server no responde (inicia: python atlas_web_server.py --port 4100) — ${e.message}`;
-  }
+/* ─── error badge ─── */
+var errBadge=$id('js-error-badge');
+window.onerror=function(msg,src,line,col,err){
+  errBadge.textContent='JS: '+msg+' ('+line+')';
+  errBadge.style.display='block';
+  return false;
+};
+window.addEventListener('unhandledrejection',function(e){
+  errBadge.textContent='Promise: '+(e.reason&&e.reason.message||e.reason||'unknown');
+  errBadge.style.display='block';
+});
+
+/* ─── CLOCK (before any fetch) ─── */
+function tickClock(){try{$id('h-clock').textContent=new Date().toLocaleTimeString()}catch(e){}}
+setInterval(tickClock,1000);tickClock();
+
+function setPulse(s){try{var c=ST[s]||ST.unknown;$id('h-pulse').style.background=c;$id('h-pulse').className='tag '+(s==='green'?'ok':s==='yellow'?'warn':s==='red'?'err':'')}catch(e){}}
+
+/* ─── CANVAS (init before fetch) ─── */
+var cvs=$id('hud'),ctx=null,W=0,H=0,dpr=window.devicePixelRatio||1;
+var running=true,af=null,stars=[],nodes=[],windowData=null;
+
+function initStars(){stars=[];for(var i=0;i<90;i++)stars.push({x:Math.random()*W,y:Math.random()*H,a:Math.random()*.15+.05,vx:(Math.random()-.5)*.1,vy:(Math.random()-.5)*.1,r:Math.random()*1.5+.5})}
+
+function initNodes(){
+  nodes=ALL.map(function(m,i){
+    var angle=(m.a||i*360/ALL.length)*Math.PI/180;
+    var ring=m.g==='core'?0:1;
+    var baseR=ring===0?Math.min(W,H)*.18:Math.min(W,H)*.38;
+    return{id:m.id,label:m.label,g:m.g,w:m.w,a:m.a||i*360/ALL.length,x:W/2+baseR*Math.cos(angle),y:H/2+baseR*Math.sin(angle),r:Math.max(10,Math.min(16,m.w*12)),color:'#6e7681',baseR:baseR,angle:angle};
+  });
 }
 
-async function loadModelo() {
-  const el = document.getElementById('modelo-info');
-  try {
-    const r = await fetch(`${API_BASE}/api/modelo`).then(r => r.json());
-    const model = (r && r.model) || 'auto/best-coding';
-    const visionOK = !model.includes('phi4') && !model.includes('mistral') && !model.includes('gemma3:1b') && !model.includes('llama3.2');
-    el.innerHTML = `<div style="margin-bottom:6px;"><b>Modelo activo:</b> ${model}</div>`;
-    el.innerHTML += `<div>visión: <b>${visionOK ? '✅ soportada' : '❌ NO soportada'}</b></div>`;
-    el.innerHTML += `<div style="margin-top:6px;color:var(--yellow);">${visionOK ? '' : '⚠️ tareas de revisión visual requieren cambiar a auto/best-vision (orquestador)'}</div>`;
-  } catch (e) {
-    el.textContent = `error: ${e.message}`;
-  }
+function canvasSize(){
+  var parent=cvs.parentElement;
+  var rect=parent.getBoundingClientRect();
+  if(rect.width<1||rect.height<1){setTimeout(canvasSize,500);return}
+  W=rect.width;H=rect.height;
+  cvs.width=W*dpr;cvs.height=H*dpr;
+  cvs.style.width=W+'px';cvs.style.height=H+'px';
+  ctx=cvs.getContext('2d');ctx.scale(dpr,dpr);
+  initStars();initNodes();
+}
+canvasSize();
+new ResizeObserver(function(){canvasSize()}).observe(cvs.parentElement);
+
+function getNodeColor(id){
+  var live=windowData;
+  if(!live)return'#6e7681';
+  if(id==='salud'||id==='memoria')return ST[live.health_status]||'#6e7681';
+  if(id==='tareas'&&live.tasks_active>0)return'#ffc857';
+  if(id==='foco')return'#f0883e';
+  return'#39d7ff';
 }
 
-async function loadFoco() {
-  const pctEl = document.getElementById('foco-pct');
-  const modeEl = document.getElementById('foco-mode');
-  try {
-    const r = await fetch(`${API_BASE}/api/foco`).then(r => r.json());
-    const pct = r.focus_pct ?? 0;
-    pctEl.textContent = `${pct}%`;
-    pctEl.style.color = pct >= 60 ? '#3fb950' : (pct >= 40 ? '#d29922' : '#f85149');
-    modeEl.textContent = `modo: ${r.mode}`;
-    document.getElementById('foco-bar').style.width = `${pct}%`;
-    const fmt = s => `${Math.round(s / 60)} min`;
-    document.getElementById('foco-prod').textContent = `✅ ${fmt(r.productive_seconds ?? 0)}`;
-    document.getElementById('foco-dist').textContent = `⚠️ ${fmt(r.distraction_seconds ?? 0)}`;
-    document.getElementById('foco-detail').textContent =
-      `total ${fmt(r.total_seconds ?? 0)} · neutro ${fmt(r.other_seconds ?? 0)}`;
-    const topDist = r.top_distractions ?? [];
-    if (topDist.length) {
-      document.getElementById('foco-top-dist').innerHTML =
-        topDist.map(t => `<div style="margin:4px 0;">⚠️ ${t.app}: ${fmt(t.seconds)}</div>`).join('');
-    } else {
-      document.getElementById('foco-top-dist').textContent = 'sin distracciones detectadas 🎯';
+function loop(){
+  if(!running)return;
+  af=requestAnimationFrame(loop);
+  var now=performance.now();
+  if(!ctx||W<1||H<1)return;
+  var live=windowData;
+  var cx=W/2,cy=H/2;
+  var hc=ST[live&&live.health_status]||'#6e7681';
+  var pulse=.5+.5*Math.sin(now/600);
+
+  ctx.clearRect(0,0,W,H);
+  ctx.fillStyle='#04070d';ctx.fillRect(0,0,W,H);
+
+  for(var i=0;i<stars.length;i++){
+    var s=stars[i];
+    s.x+=s.vx;s.y+=s.vy;
+    if(s.x<0)s.x=W;if(s.x>W)s.x=0;if(s.y<0)s.y=H;if(s.y>H)s.y=0;
+    ctx.fillStyle='rgba(57,215,255,'+s.a+')';ctx.beginPath();ctx.arc(s.x,s.y,s.r,0,6.283);ctx.fill();
+  }
+
+  var ringR=[Math.min(W,H)*.18,Math.min(W,H)*.32,Math.min(W,H)*.45];
+  for(var ri=0;ri<3;ri++){
+    ctx.beginPath();ctx.arc(cx,cy,ringR[ri],0,6.283);
+    ctx.strokeStyle=ri===0?hc:ri===1?'rgba(57,215,255,.10)':'rgba(57,215,255,.04)';
+    ctx.lineWidth=ri===0?2+1.5*pulse:1;ctx.stroke();
+    if(ri===0){
+      var pr=ringR[ri]+12*pulse;
+      ctx.beginPath();ctx.arc(cx,cy,pr,0,6.283);
+      ctx.globalAlpha=.15*pulse;ctx.strokeStyle=hc;ctx.lineWidth=1;ctx.stroke();ctx.globalAlpha=1;
     }
-  } catch (e) {
-    pctEl.textContent = '--';
-    document.getElementById('foco-detail').textContent = `foco no disponible (atlas_web_server)`;
+  }
+
+  ctx.lineWidth=.5;
+  for(var ni=0;ni<nodes.length;ni++){
+    var n=nodes[ni];
+    var alpha=.08+.18*Math.sin(now/2000+(n.a||0));
+    ctx.strokeStyle='rgba(57,215,255,'+alpha+')';
+    ctx.beginPath();ctx.moveTo(cx,cy);ctx.lineTo(n.x,n.y);ctx.stroke();
+  }
+
+  for(var nj=0;nj<nodes.length;nj++){
+    var nd=nodes[nj];
+    nd.color=getNodeColor(nd.id);
+    nd.r=Math.max(10,Math.min(16,nd.w*12+2*Math.sin(now/800)));
+    ctx.shadowColor=nd.color;ctx.shadowBlur=18;
+    ctx.beginPath();ctx.arc(nd.x,nd.y,nd.r,0,6.283);
+    var grad=ctx.createRadialGradient(nd.x,nd.y,0,nd.x,nd.y,nd.r);
+    grad.addColorStop(0,nd.color);grad.addColorStop(1,'rgba(0,0,0,0)');
+    ctx.fillStyle=grad;ctx.fill();ctx.shadowBlur=0;
+    ctx.fillStyle='#d8f3ee';ctx.font='11px Segoe UI';ctx.textAlign='center';
+    ctx.shadowColor='rgba(0,0,0,.8)';ctx.shadowBlur=4;
+    ctx.fillText(nd.label,nd.x,nd.y+nd.r+14);ctx.shadowBlur=0;
   }
 }
+requestAnimationFrame(loop);
 
-async function loadTopApps() {
-  const tbody = document.getElementById('top-apps');
-  try {
-    const r = await fetch(`${API_BASE}/api/top-apps`).then(r => r.json());
-    const apps = r.apps || [];
-    if (!apps.length) {
-      tbody.innerHTML = '<tr><td colspan="4" style="color:var(--muted);">sin eventos de actividad en las últimas 24h</td></tr>';
-      return;
+/* ─── TOOLTIP ─── */
+var TT=$id('tt');
+cvs.addEventListener('mousemove',function(e){
+  var r=cvs.getBoundingClientRect();
+  var mx=e.clientX-r.left,my=e.clientY-r.top;
+  var hit=null;
+  for(var i=0;i<nodes.length;i++){var dx=mx-nodes[i].x,dy=my-nodes[i].y;if(dx*dx+dy*dy<nodes[i].r*nodes[i].r){hit=nodes[i];break}}
+  if(hit){
+    var stLabel=hit.color==='#3dffb4'?'OK':hit.color==='#ffc857'?'WARN':hit.color==='#ff5d5d'?'FAIL':'INFO';
+    TT.innerHTML='<strong>'+hit.label+'</strong><br>Estado: '+stLabel+'<br>Grupo: '+hit.g;
+    TT.style.left=(e.clientX+14)+'px';TT.style.top=(e.clientY-40)+'px';TT.style.opacity='1';
+  }else{TT.style.opacity='0'}
+});
+cvs.addEventListener('mouseleave',function(){TT.style.opacity='0'});
+
+/* ─── PANEL RENDERERS (each try/catch) ─── */
+function panelErr(id,name){
+  $id(id).innerHTML='<div class="api-error">&#9888; API caido: '+name+'</div>';
+}
+
+function renderIdentidad(modelo){
+  try{
+    var m=modelo||{};
+    var map={navegador:'Opera',editor:'VS Code',diseno:'CorelDRAW',proyecto:'Atlas v3'};
+    var html='';
+    var keys=Object.keys(map);
+    for(var i=0;i<keys.length;i++){
+      html+='<div style="display:flex;justify-content:space-between;gap:12px;padding:8px 0;border-bottom:1px solid var(--line)">';
+      html+='<span style="color:var(--dim);font-size:11px;text-transform:uppercase;letter-spacing:.1em">'+keys[i]+'</span>';
+      html+='<span class="values">'+map[keys[i]]+'</span></div>';
     }
-    const max = Math.max(...apps.map(a => a.total_seconds), 1);
-    const fmt = s => {
-      const m = Math.round(s / 60);
-      return m >= 60 ? `${Math.floor(m / 60)}h ${m % 60}m` : `${m} min`;
-    };
-    tbody.innerHTML = apps.map(a => {
-      const w = Math.max(2, Math.round((a.total_seconds / max) * 100));
-      return `<tr>
-        <td>${a.app}</td>
-        <td>${fmt(a.total_seconds)} <span style="color:var(--muted);font-size:.75rem;">(${a.events} eventos)</span></td>
-        <td style="width:180px;"><div class="bar"><div class="bar-fill" style="width:${w}%"></div></div></td>
-        <td style="font-size:.75rem;color:var(--muted);">${w}%</td>
-      </tr>`;
-    }).join('');
-  } catch (e) {
-    tbody.innerHTML = `<tr><td colspan="4" style="color:var(--muted);">error: ${e.message}</td></tr>`;
-  }
+    html+='<div style="padding-top:4px;border-top:1px solid var(--line)">';
+    html+='<span style="color:var(--dim);font-size:11px;text-transform:uppercase;letter-spacing:.1em">MODELO</span> ';
+    html+='<span class="values">'+(m.model||'auto/best-coding')+'</span></div>';
+    $id('id-panel').innerHTML=html;
+  }catch(e){panelErr('id-panel','Identidad')}
 }
 
-async function load() {
-  document.getElementById('status').textContent = 'actualizando...';
-  try {
-    const r = await fetch(`${API_BASE}/api/overview`).then(r => r.json());
-
-    const daemonEl = document.getElementById('daemon-status');
-    const daemonDetail = document.getElementById('daemon-detail');
-    if (r.daemon_status === 'up') {
-      daemonEl.textContent = '🟢 activo';
-      daemonEl.style.color = '#3fb950';
-      const age = Math.round(r.daemon_age_seconds ?? -1);
-      daemonDetail.textContent = `PID ${r.daemon?.pid ?? '?'} · último tick ${age}s · uptime ${Math.round((r.uptime_seconds ?? 0) / 60)} min${r.paused ? ' · ⏸ pausado' : ''}`;
-    } else {
-      daemonEl.textContent = '🔴 inactivo';
-      daemonEl.style.color = '#f85149';
-      daemonDetail.textContent = 'daemon no responde (python atlas_activity.py)';
+function renderLive(d){
+  try{
+    if(!d||d.error){panelErr('live-panel','Live');return}
+    var tasks=d.tasks||[];
+    var html='<div style="display:flex;flex-direction:column;gap:10px">';
+    html+='<div style="background:rgba(0,0,0,.3);border:1px solid var(--line);border-radius:8px;padding:12px">';
+    html+='<div style="font-size:11px;color:var(--dim);text-transform:uppercase;letter-spacing:.1em;margin-bottom:6px">DAEMON</div>';
+    html+='<div style="display:flex;justify-content:space-between;gap:12px;color:var(--txt)">';
+    html+='<span>PID '+(d.daemon&&d.daemon.pid||'---')+'</span>';
+    html+='<span>edad '+d.daemon_age_s+'s</span>';
+    html+='<span>'+(d.daemon&&d.daemon.status||'?')+'</span></div>';
+    var pct=Math.max(0,Math.min(100,100-d.daemon_age_s));
+    html+='<div style="height:4px;background:rgba(0,0,0,.4);border-radius:2px;margin-top:8px">';
+    html+='<div style="width:'+pct+'%;height:100%;background:var(--neon);border-radius:2px;box-shadow:0 0 8px var(--neon)"></div></div></div>';
+    if(d.tasks_active>0){
+      html+='<div style="background:rgba(0,0,0,.3);border:1px solid var(--line);border-radius:8px;padding:12px">';
+      html+='<div style="font-size:11px;color:var(--dim);text-transform:uppercase;letter-spacing:.1em;margin-bottom:8px">TAREAS ACTIVAS ('+d.tasks_active+')</div>';
+      for(var i=0;i<tasks.length;i++){
+        var t=tasks[i];
+        var cls=t.heartbeat_status==='green'?'ok':t.heartbeat_status==='yellow'?'warn':'err';
+        html+='<div style="padding:8px;background:rgba(0,0,0,.2);border-radius:6px;margin-top:6px;font-size:12px">';
+        html+='<div style="display:flex;justify-content:space-between;gap:8px">';
+        html+='<span class="values">'+t.task_id+'</span>';
+        html+='<span class="tag '+cls+'">'+t.heartbeat_status.toUpperCase()+'</span></div>';
+        html+='<div style="font-size:11px;color:var(--dim);margin-top:4px">'+(t.current_step||t.orden)+' '+t.eta_s+'s ETA</div></div>';
+      }
+      html+='</div>';
+    }else{
+      html+='<div style="background:rgba(0,0,0,.3);border:1px solid var(--line);border-radius:8px;padding:12px;color:var(--dim);text-align:center">sin tareas activas</div>';
     }
-
-    document.getElementById('events-total').textContent = r.events_total ?? '--';
-    document.getElementById('events-detail').textContent = 'eventos en memory.db';
-    document.getElementById('sessions-total').textContent = r.sessions_total ?? '--';
-    document.getElementById('sessions-detail').textContent = 'sesiones de trabajo';
-    const ltEl = document.getElementById('last-tick');
-    if (r.last_tick) {
-      ltEl.textContent = new Date(r.last_tick).toLocaleTimeString();
-      ltEl.style.color = '#e6edf3';
-      document.getElementById('tick-detail').textContent = `modo foco: ${r.foco_mode || 'soft'}`;
-    } else {
-      ltEl.textContent = '--';
+    if(d.permissions_pending&&d.permissions_pending.length){
+      html+='<div style="background:rgba(255,200,87,.08);border:1px solid var(--warn);border-radius:8px;padding:12px">';
+      html+='<div style="font-size:11px;color:var(--warn);text-transform:uppercase;letter-spacing:.1em;margin-bottom:8px">PERMISOS PENDIENTES</div>';
+      for(var j=0;j<d.permissions_pending.length;j++){html+='<div style="font-size:12px;margin-top:6px">'+d.permissions_pending[j].detail+'</div>';}
+      html+='</div>';
     }
-
-    document.getElementById('status').textContent = `última actualización: ${new Date().toLocaleTimeString()} · server ${API_BASE}`;
-  } catch (e) {
-    document.getElementById('status').textContent = `error: ${e.message} (inicia: python atlas_web_server.py --port 4100)`;
-  }
+    html+='</div>';
+    $id('live-panel').innerHTML=html;
+  }catch(e){panelErr('live-panel','Live')}
 }
 
-async function loadInformes() {
-  const el = document.getElementById('informes-list');
-  try {
-    const r = await fetch(`${API_BASE}/api/informes`).then(r => r.json());
-    if (!r.reports || !r.reports.length) {
-      el.innerHTML = 'sin informes publicados';
-      return;
+function renderTareas(d){
+  try{
+    if(!d||d.error){panelErr('tareas-panel','Tareas');return}
+    var items=d.items||[];
+    if(!items.length){$id('tareas-panel').innerHTML='<div style="color:var(--dim);text-align:center;padding:40px">sin tareas</div>';return}
+    var html='';
+    for(var i=0;i<items.length;i++){
+      var t=items[i];
+      var c=t.estado==='TERMINADA'?'#3dffb4':t.estado==='ESCALADA'?'#ff5d5d':'#ffc857';
+      var cls=t.estado==='TERMINADA'?'ok':t.estado==='ESCALADA'?'err':'warn';
+      var crit='';
+      if(t.criterios){for(var j=0;j<t.criterios.length;j++){var cr=t.criterios[j];var ccls=cr[1]==='OK'?'ok':cr[1]==='HUMANO'?'warn':'err';crit+='<span class="tag '+ccls+'">'+cr[0]+'</span> '}}
+      html+='<div style="border-left:3px solid '+c+';background:rgba(0,0,0,.25);border-radius:8px;padding:12px;border:1px solid var(--line);margin-top:8px">';
+      html+='<div style="display:flex;justify-content:space-between;gap:12px;margin-bottom:6px">';
+      html+='<span class="values" style="font-size:13px">'+t.id+'</span>';
+      html+='<span class="tag '+cls+'">'+t.estado+' '+t.pct+'%</span></div>';
+      html+='<div style="color:var(--dim);font-size:12px;margin-bottom:8px">'+t.orden+'</div>';
+      html+='<div style="height:5px;background:rgba(0,0,0,.4);border-radius:3px;overflow:hidden"><div style="width:'+t.pct+'%;height:100%;background:'+c+';box-shadow:0 0 8px '+c+'"></div></div>';
+      html+='<div style="margin-top:6px;font-family:monospace;font-size:10px;color:var(--dim)">'+crit+'</div></div>';
     }
-    el.innerHTML = r.reports.slice(0, 10).map(informe => {
-      const d = new Date(informe.published);
-      const fecha = isNaN(d) ? informe.published : d.toLocaleDateString();
-      return `<div style="display:flex;justify-content:space-between;gap:8px;padding:4px 0;border-bottom:1px solid var(--border);">
-        <a href="${API_BASE}${informe.url}" target="_blank" rel="noopener" style="color:var(--accent);text-decoration:none;">${informe.title}</a>
-        <span style="color:var(--muted);white-space:nowrap;">${fecha} · ${informe.level || ''} · ${informe.version || ''}</span>
-      </div>`;
-    }).join('');
-  } catch (e) {
-    el.textContent = `error: ${e.message}`;
-  }
+    $id('tareas-panel').innerHTML=html;
+  }catch(e){panelErr('tareas-panel','Tareas')}
 }
 
-async function loadTareas() {
-  const el = document.getElementById('tareas-list');
-  try {
-    const r = await fetch(`${API_BASE}/api/tareas`).then(r => r.json());
-    if (!r.items || !r.items.length) { el.innerHTML = 'sin tareas en curso'; return; }
-    el.innerHTML = r.items.map(t => {
-      const color = t.estado === 'TERMINADA' ? '#3fb950' : t.estado === 'ESCALADA' ? '#f85149' : '#d29922';
-      const crits = t.criterios.map(([id, st]) => {
-        const c = st === 'OK' ? '#3fb950' : st === 'HUMANO' ? '#58a6ff' : '#f85149';
-        return `<span style="color:${c};">${id}</span>`;
-      }).join(' ');
-      return `<div style="padding:6px 0;border-bottom:1px solid var(--border);border-left:4px solid ${color};padding-left:8px;">
-        <div style="display:flex;justify-content:space-between;gap:8px;">
-          <b>${t.id}</b><span style="color:var(--muted);">${t.estado} · ${t.pct}% · ${t.intentos}</span>
-        </div>
-        <div style="color:var(--muted);margin-top:2px;">${t.orden}</div>
-        <div style="font-family:monospace;font-size:.75rem;margin-top:2px;">${crits}</div>
-      </div>`;
-    }).join('');
-  } catch (e) { el.textContent = `error: ${e.message}`; }
-}
-
-async function loadPendientes() {
-  const el = document.getElementById('pendientes-list');
-  try {
-    const r = await fetch(`${API_BASE}/api/pendientes`).then(r => r.json());
-    if (!r.items || !r.items.length) { el.innerHTML = 'nada pendiente de ti'; return; }
-    el.innerHTML = r.items.map(p => `
-      <div style="padding:6px 0;border-bottom:1px solid var(--border);border-left:4px solid ${p.tipo === 'gate_humano' ? '#58a6ff' : p.tipo === 'debt' ? '#d29922' : '#f85149'};padding-left:8px;">
-        <div style="display:flex;justify-content:space-between;gap:8px;">
-          <b>${p.task_id}</b><span style="color:var(--muted);">${p.tipo}</span>
-        </div>
-        <div style="color:var(--muted);margin-top:2px;">${p.detalle}</div>
-      </div>`).join('');
-  } catch (e) { el.textContent = `error: ${e.message}`; }
-}
-
-async function loadFrictionWeekly() {
-  const el = document.getElementById('friction-weekly');
-  try {
-    const r = await fetch(`${API_BASE}/api/friction/weekly`).then(r => r.json());
-    if (!r.weeks || !r.weeks.length) {
-      el.innerHTML = 'sin datos de fricción aún (ejecuta: python tests/unit/test_p_friction.py)';
-      return;
+function renderPend(d){
+  try{
+    if(!d||d.error){panelErr('pend-panel','Pendientes');return}
+    var items=d.items||[];
+    if(!items.length){$id('pend-panel').innerHTML='<div style="color:var(--dim);text-align:center;padding:20px">nada pendiente</div>';return}
+    var html='';
+    for(var i=0;i<items.length;i++){
+      var p=items[i];
+      var c=p.tipo==='gate_humano'?'#39d7ff':'#ff5d5d';
+      var cls=p.tipo==='gate_humano'?'warn':'err';
+      html+='<div style="border-left:3px solid '+c+';background:rgba(0,0,0,.25);border-radius:8px;padding:10px;border:1px solid var(--line)">';
+      html+='<div style="display:flex;justify-content:space-between;gap:8px;margin-bottom:4px">';
+      html+='<span class="values" style="font-size:12px">'+p.task_id+'</span>';
+      html+='<span class="tag '+cls+'">'+p.tipo+'</span></div>';
+      html+='<div style="color:var(--dim);font-size:11px">'+p.detalle+'</div></div>';
     }
-    el.innerHTML = r.weeks.map(w => `
-      <div style="display:flex;justify-content:space-between;padding:4px 0;border-bottom:1px solid var(--border);">
-        <span>${w.week}</span>
-        <span style="color:${w.count > 3 ? '#f85149' : w.count > 1 ? '#d29922' : '#3fb950'};font-weight:600;">${w.count} eventos</span>
-      </div>`).join('');
-    const totalEl = document.createElement('div');
-    totalEl.style.cssText = 'margin-top:8px;padding-top:8px;border-top:1px solid var(--border);font-weight:600;color:var(--accent);';
-    totalEl.textContent = 'Total: ' + r.total + ' eventos (baseline P-5)';
-    el.appendChild(totalEl);
-  } catch (e) {
-    el.textContent = `error: ${e.message}`;
-  }
+    $id('pend-panel').innerHTML=html;
+  }catch(e){panelErr('pend-panel','Pendientes')}
 }
 
-async function loadExitoFalso() {
-  const alertEl = document.getElementById('exito-falso-alert');
-  const detailEl = document.getElementById('exito-falso-detail');
-  try {
-    const r = await fetch(`${API_BASE}/api/friction?limit=50`).then(r => r.json());
-    const falsos = (r.items || []).filter(i => i.type === 'exito_falso');
-    if (falsos.length > 0) {
-      alertEl.style.display = 'block';
-      detailEl.textContent = falsos.length + ' cierre(s) sin evidencia reciente(s): ' +
-        falsos.slice(0, 3).map(f => f.detail).join('; ');
-    } else {
-      alertEl.style.display = 'none';
+function renderMerc(d){
+  try{
+    if(!d||d.error){panelErr('merc-panel','Mercado');return}
+    var html='';
+    if(d.btc){html+='<div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--line)"><span class="values">BTC</span><span class="values">$'+(d.btc.usd||'?')+'</span>';
+    var chg=d.btc.usd_24h_change||0;html+='<span class="tag '+(chg>=0?'ok':'err')+'">'+chg.toFixed(1)+'%</span></div>';}
+    if(d.sp500){html+='<div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--line)"><span class="values">S&P500</span><span class="values">'+(d.sp500.close||'?')+'</span></div>';}
+    if(d.bonds){html+='<div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--line)"><span class="values">BONOS</span><span class="values">'+(d.bonds.yield||'?')+'</span></div>';}
+    html+='<div style="color:var(--dim);font-size:11px;margin-top:8px">actualizado: '+(d.ts||'?')+'</div>';
+    if(d.stale)html+='<span class="tag warn" style="margin-top:8px;display:block;text-align:center">datos en cache</span>';
+    $id('merc-panel').querySelector('.pc').innerHTML=html;
+  }catch(e){panelErr('merc-panel','Mercado')}
+}
+
+function renderNews(d){
+  try{
+    if(!d||d.error){panelErr('news-panel','Noticias');return}
+    var items=(d.items||[]).slice(0,3);
+    var html='';
+    for(var i=0;i<items.length;i++){
+      var x=items[i];
+      html+='<div style="background:rgba(0,0,0,.25);border:1px solid var(--line);border-radius:8px;padding:12px;margin-top:8px">';
+      html+='<a href="'+x.link+'" target="_blank" style="color:var(--cyan);text-decoration:none;font-weight:500;display:block;margin-bottom:6px">'+x.title+'</a>';
+      html+='<div style="font-size:11px;color:var(--dim)">'+x.source+' · '+(x.pubDate||'')+'</div></div>';
     }
-  } catch (e) {
-    alertEl.style.display = 'none';
-  }
+    if(d.stale)html+='<span class="tag warn" style="margin-top:8px;display:inline-block">datos en cache</span>';
+    $id('news-panel').querySelector('.pc').innerHTML=html;
+  }catch(e){panelErr('news-panel','Noticias')}
 }
 
-// auto-refresh cada 30s
+function renderClima(d){
+  try{
+    if(!d||d.error){panelErr('clima-panel','Clima');return}
+    var html='<div style="text-align:center">';
+    html+='<div style="font-size:48px;font-weight:700;color:var(--neon);text-shadow:0 0 24px rgba(61,255,180,.5)">'+d.temperature+'C</div>';
+    html+='<div style="color:var(--dim);margin:8px 0">Humedad '+d.humidity+'% &middot; Viento '+d.wind_speed+' km/h</div>';
+    html+='<div style="font-size:11px;color:var(--dim)">Codigo '+d.weather_code+' &middot; '+d.timezone+'</div></div>';
+    if(d.stale)html+='<span class="tag warn" style="margin-top:8px;display:block;text-align:center">datos en cache</span>';
+    $id('clima-panel').querySelector('.pc').innerHTML=html;
+  }catch(e){panelErr('clima-panel','Clima')}
+}
+
+/* ─── SAFE FETCH ─── */
+function jfetch(u){
+  var ac=null;if(typeof AbortSignal!=='undefined'&&AbortSignal.timeout)ac=AbortSignal.timeout(8000);
+  var opts=ac?{signal:ac}:{};
+  return fetch(API+u,opts).then(function(r){return r.json()}).catch(function(e){return{error:e.message}});
+}
+
+/* ─── LOAD (resilient, each panel independent) ─── */
+function load(){
+  Promise.all([
+    jfetch('/api/live'),jfetch('/api/health'),jfetch('/api/modelo'),
+    jfetch('/api/tareas'),jfetch('/api/pendientes'),
+    jfetch('/api/mercado'),jfetch('/api/noticias'),jfetch('/api/clima'),jfetch('/api/grafo')
+  ]).then(function(r){
+    var live=r[0],health=r[1],modelo=r[2],tareas=r[3],pend=r[4],merc=r[5],news=r[6],clima=r[7],grafo=r[8];
+    windowData=live;
+    setPulse(live&&live.health_status?live.health_status:'unknown');
+    if(modelo&&modelo.model){$id('h-model').textContent=modelo.model;}
+    renderIdentidad(modelo);
+    renderLive(live);
+    renderTareas(tareas);
+    renderPend(pend);
+    renderMerc(merc);
+    renderNews(news);
+    renderClima(clima);
+  }).catch(function(e){
+    errBadge.textContent='Load: '+e.message;
+    errBadge.style.display='block';
+  });
+}
+
+/* ─── ORDER BAR ─── */
+$id('o-btn').onclick=sendOrder;
+$id('o-input').onkeydown=function(e){if(e.key==='Enter')sendOrder()};
+function sendOrder(){
+  var txt=$id('o-input').value.trim();if(!txt)return;
+  var lvl=$id('o-level').value;
+  $id('o-input').disabled=$id('o-btn').disabled=true;$id('o-status').textContent='enviando...';
+  fetch(API+'/api/orden',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({texto:txt,prioridad:lvl})}).then(function(r){return r.json()}).then(function(d){
+    if(d.ok){
+      if(d.requires_confirmation&&d.preview){
+        $id('o-status').innerHTML='<span class="tag warn">L2+ &middot; '+(d.preview.criterios?d.preview.criterios.length:0)+' criterios &middot; <button onclick="window._confirmOrder(\''+d.order_id+'\')" style="background:var(--warn);border:none;color:#000;padding:2px 8px;border-radius:4px;cursor:pointer;font-size:10px">Ejecutar</button></span>';
+      }else{$id('o-status').innerHTML='<span class="tag ok">&check; '+d.order_id+'</span>';}
+      $id('o-input').value='';
+    }else{$id('o-status').innerHTML='<span class="tag err">'+(d.error||'error')+'</span>';}
+  }).catch(function(e){$id('o-status').innerHTML='<span class="tag err">'+e.message+'</span>'});
+  $id('o-input').disabled=$id('o-btn').disabled=false;
+}
+window._confirmOrder=function(id){fetch(API+'/api/confirmaciones',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({order_id:id,allow:true})});$id('o-status').innerHTML='<span class="tag ok">confirmado</span>'};
+
+/* ─── START ─── */
 load();
-loadTopApps();
-loadFoco();
-loadHealth();
-loadModelo();
-loadExitoFalso();
-loadInformes();
-loadTareas();
-loadPendientes();
-loadFrictionWeekly();
-setInterval(() => { load(); loadTopApps(); loadFoco(); loadHealth(); loadModelo(); loadExitoFalso(); loadInformes(); loadTareas(); loadPendientes(); loadFrictionWeekly(); }, 30000);
+setInterval(load,30000);
+document.addEventListener('visibilitychange',function(){running=!document.hidden;if(running){requestAnimationFrame(loop)}});
+
+})();
 </script>
 </body>
 </html>

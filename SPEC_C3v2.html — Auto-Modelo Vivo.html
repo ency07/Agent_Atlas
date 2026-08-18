@@ -1,0 +1,61 @@
+<!DOCTYPE html><html lang="es"><head><meta charset="UTF-8">
+<title>Atlas — SPEC C3v2 · Auto-Modelo Vivo</title>
+<style>body{background:#101820;color:#e6e6e6;font-family:'Segoe UI',sans-serif;margin:2rem auto;max-width:1100px;line-height:1.45}h1{font-size:1.5rem}h2{font-size:1.1rem;margin-top:1.8rem;border-bottom:1px solid #333;padding-bottom:4px}.sub{color:#9ab}code{background:#0d141b;padding:1px 5px;border-radius:4px;color:#8cf}table{border-collapse:collapse;width:100%;font-size:.85rem}td,th{border:1px solid #333;padding:6px;text-align:left}ul{margin:6px 0 6px 18px}pre{background:#0d141b;padding:10px;border-radius:8px;font-size:.8rem;overflow-x:auto}</style>
+</head><body>
+<h1>Atlas — SPEC C3v2 · Auto-Modelo Vivo</h1>
+<p class="sub">v2.0 · 15/08/2026 · Mata la desconexión: el agente sabe dónde está parado y qué puede. Regla: cada REQ bloqueante con evidencia.</p>
+
+<h2>01 · Diagnóstico (quejas → causa)</h2>
+<table><tr><th>Queja</th><th>Causa</th><th>Componente que la mata</th></tr>
+<tr><td>Pregunta lo que ya debería saber</td><td>Sin ontología personal ni snapshot</td><td>04, 05</td></tr>
+<tr><td>Dice que no hay algo instalado</td><td>No verifica entorno antes de responder</td><td>01, 03</td></tr>
+<tr><td>Vaga / no entiende</td><td>Prompt sin contexto relevante del sistema</td><td>02</td></tr>
+<tr><td>Se cuelga / demora</td><td>Cold start MCP + re-descubrimiento por turno</td><td>08 + Módulo P</td></tr>
+<tr><td>Repite errores</td><td>No aprende de fallos en vivo</td><td>09</td></tr></table>
+
+<h2>02 · Arquitectura</h2>
+<pre>atlas_env.py (snapshot TTL + invalidación) ──► self_model.json (semilla intrínseco corregido)
+        │                                              │
+        ├─ ontología personal · episódica · contexto vivo (contratos C2 + errores + tiempo)
+        │                                              │
+        ▼                                              ▼
+   INYECCIÓN POR RELEVANCIA (código, no regla) ──► prompt del agente (slice pertinente)
+        │
+        └─ redacción por proveedor (local completo / cloud redactado)</pre>
+
+<h2>03 · Componentes</h2>
+<ul>
+<li><b>01 Snapshot con TTL por tipo + invalidación por evento + verificación on-demand.</b> Snapshot = prior, no verdad. El agente cita "scan de hace X min". Apps/puertos/procesos/workspace/archivos recientes/tiempo.</li>
+<li><b>02 Inyección automática por relevancia (código).</b> Tarea menciona Corel → slice Corel; nunca dump completo. Sin regla blanda: lo hace el código.</li>
+<li><b>03 Auto-modelo de capacidades REAL.</b> Cruza MCPs <b>habilitados</b> en opencode.jsonc + tools + skills. Nunca promete manos que no tiene (playwright-npx/ollama MCP están deshabilitados → no se ofrecen).</li>
+<li><b>04 Ontología personal</b> en <code>preferences/ontologia.md</code>: "mi navegador"=X, "la app de diseño"=Corel, "el panel"=:4100.</li>
+<li><b>05 Memoria episódica:</b> vincula pedido actual con contratos/notas similares pasadas (éxito/fallo/runbook).</li>
+<li><b>06 Contexto vivo:</b> contratos C2 activos (% y pendientes) + errores recientes (errors.jsonl) + deadlines (evals, DEBTs).</li>
+<li><b>07 Redacción por proveedor:</b> slice local completo; slice cloud sin rutas/puertos/inventario.</li>
+<li><b>08 MCPs persistentes + health como única fuente de liveness.</b> Sin cold start; sin tres verdades.</li>
+<li><b>09 Aprendizaje de fallos en vivo:</b> tool falla → invalida snapshot-parcial + friction_log + no reintenta igual.</li>
+<li><b>10 Gestión de contexto:</b> resumen deslizante en sesiones &gt;1h; no degrada a las 2h.</li>
+</ul>
+
+<h2>04 · Integra, NO reconstruye</h2>
+<p><code>atlas_sync_capabilities</code>, <code>atlas_model_switch</code>, <code>atlas_metrics</code>, <code>atlas_logrotate</code>, <code>atlas_benchmark</code> YA EXISTEN → son fuentes del auto-modelo (capacidades, switch, costo), no tareas nuevas.</p>
+
+<h2>05 · PRIMERA TAREA (T-C3-0): intrínseco bajo contrato C2</h2>
+<p>El self_model.json se siembra del ATLAS_INTRINSECO <b>corregido</b>. Contrato con criterios: 25/25 fichas · 6/6 flujos (faltan backup+evals) · 9/9 configs · 6/6 skills · matriz completa · declaración de % <b>probada por checklist</b> (mata I-01) · IDs de deuda unificados (patch G, mata I-02) · backups age vs zip (I-03) · ficha de atlas_web_server con endpoints C2 (I-04).</p>
+
+<h2>06 · REQs C3v2</h2>
+<table><tr><th>REQ</th><th>Requisito</th><th>Aceptación / evidencia</th></tr>
+<tr><td>C3-1</td><td>Snapshot TTL + invalidación + on-demand</td><td>Instalar/desinstalar app → reflejado tras invalidación; agente cita antigüedad del scan</td></tr>
+<tr><td>C3-2</td><td>Inyección por relevancia por código</td><td>Tarea Corel → slice Corel sin slice trading (log de inyección)</td></tr>
+<tr><td>C3-3</td><td>Auto-modelo de capacidades real</td><td>Consulta "¿puedes usar X deshabilitado?" → responde NO según enabled</td></tr>
+<tr><td>C3-4</td><td>Ontología personal resuelta</td><td>"mi navegador" resuelve sin preguntar</td></tr>
+<tr><td>C3-5</td><td>Episódica</td><td>Pedido similar a contrato pasado → lo cita</td></tr>
+<tr><td>C3-6</td><td>Contexto vivo</td><td>Turno inicia conociendo % activo y errores recientes</td></tr>
+<tr><td>C3-7</td><td>Redacción por proveedor</td><td>Slice cloud sin rutas/puertos (test redact)</td></tr>
+<tr><td>C3-8</td><td>Aprendizaje de fallos</td><td>Tool falla → sin reintento idéntico + friction_log</td></tr>
+<tr><td>C3-9</td><td>self_model.json sembrado del intrínseco corregido</td><td>25 componentes con capacidades+fallos; T-C3-0 cerrado</td></tr>
+<tr><td>C3-10</td><td>Gestión de contexto sesiones largas</td><td>Sesión 2h sin degradación medible</td></tr></table>
+
+<h2>07 · Terminado C3v2</h2>
+<ul><li>T-C3-0 cerrado bajo contrato · 10 REQs con evidencia · agente responde "qué tengo instalado" sin buscar en web · cero preguntas de obviedad en 1 semana (friction_log).</li></ul>
+</body></html>

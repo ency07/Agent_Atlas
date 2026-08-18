@@ -14,6 +14,7 @@ def test_live_context_structure():
     print("OK live context structure")
 
 def test_active_contracts_list():
+    ctx = atlas_context_live.get_live_context()
     contracts = ctx["active_contracts"]
     assert isinstance(contracts, list)
     for c in contracts:
@@ -24,7 +25,5 @@ def test_active_contracts_list():
 
 if __name__ == "__main__":
     test_live_context_structure()
-    # need ctx variable
-    ctx = atlas_context_live.get_live_context()
     test_active_contracts_list()
     print("\nAll C3-6 tests passed!")
