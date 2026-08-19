@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AEGIS-JARVIS HUD</title>
+  <link rel="stylesheet" href="/static/styles.css">
+</head>
+<body>
+
+<!-- TOAST CONTAINER -->
+<div id="toast-container"></div>
+
+<!-- ERR BADGE -->
+<div id="err-badge" style="display:none;position:fixed;top:6px;left:50%;transform:translateX(-50%);padding:4px 12px;border-radius:8px;font-size:10px;font-weight:700;z-index:99999"></div>
+
+<!-- CHAT PANEL (slide-in) -->
+<div id="chat-panel">
+  <div id="chat-header">
+    <h3>Conversacion</h3>
+    <button id="chat-close">&times;</button>
+  </div>
+  <div id="chat-body"></div>
+  <div id="chat-input-bar">
+    <input id="chat-input" placeholder="Escribe tu pregunta..." />
+    <button id="chat-send">&rarr;</button>
+  </div>
+</div>
+
+<!-- CONFIG OVERLAY -->
+<div id="config-overlay" onclick="if(event.target===this)toggleConfig(false)">
+  <div class="cfg-box">
+    <button class="cfg-close" onclick="toggleConfig(false)">&times;</button>
+    <h3>Configuracion</h3>
+
+    <div class="cfg-section">
+      <h4>Modelos IA</h4>
+      <div class="cfg-row"><label>Chat model</label><input id="cfg-chat-model" /></div>
+      <div class="cfg-row"><label>Agent model</label><input id="cfg-agent-model" /></div>
+      <div class="cfg-row"><label>Router model</label><input id="cfg-router-model" /></div>
+    </div>
+
+    <div class="cfg-section">
+      <h4>Tema</h4>
+      <div class="cfg-row"><label>Accent color</label><input id="cfg-accent" type="color" /></div>
+      <div class="cfg-row"><label>Glass blur</label><input id="cfg-blur" type="range" min="0" max="24" value="12" /></div>
+      <div class="cfg-row"><label>Border radius</label><input id="cfg-radius" type="range" min="4" max="24" value="14" /></div>
+    </div>
+
+    <div class="cfg-section">
+      <h4>Guardian</h4>
+      <div class="cfg-row"><label>Nivel</label>
+        <select id="cfg-guardian-level">
+          <option value="relax">relax</option>
+          <option value="guard" selected>guard</option>
+          <option value="strict">strict</option>
+        </select>
+      </div>
+      <div class="cfg-row"><label>Max errors</label><input id="cfg-max-errors" type="number" min="1" max="10" value="3" /></div>
+    </div>
+
+    <div class="cfg-section">
+      <h4>Voz</h4>
+      <div class="cfg-row"><label>Habilitada</label><input id="cfg-voice-enabled" type="checkbox" /></div>
+      <div class="cfg-row"><label>Clap threshold</label><input id="cfg-clap-threshold" type="range" min="0.1" max="1.0" step="0.05" value="0.6" /></div>
+    </div>
+
+    <button class="cfg-save" onclick="saveConfig()">Guardar configuracion</button>
+  </div>
+</div>
+
+<!-- ==================== MAIN APP ==================== -->
+<div id="app">
+
+  <!-- TOPBAR -->
+  <div id="topbar" class="p">
+    <div class="clock" id="clock">--:--:--</div>
+    <div class="status-pill" id="status-pill">IDLE</div>
+    <div class="indicators">
+      <div class="ind" id="ind-health"><div class="dot"></div><span>bridge</span></div>
+      <div class="ind" id="ind-ollama"><div class="dot"></div><span>ollama</span></div>
+      <div class="ind" id="ind-mcp"><div class="dot"></div><span>mcp</span></div>
+      <div class="ind" id="ind-model"><div class="dot"></div><span>modelo</span></div>
+    </div>
+
+    <!-- Dock metrics (hidden in full mode) -->
+    <div class="dock-metrics" id="dock-metrics" style="display:none">
+      <div class="metric">CPU <span class="val" id="dock-cpu">--</span></div>
+      <div class="metric">RAM <span class="val" id="dock-ram">--</span></div>
+      <div class="metric"><span id="dock-status-dot">&#x1f7e2;</span></div>
+    </div>
+
+    <button class="top-btn" id="btn-config" title="Configuracion">&#9881;</button>
+    <button class="top-btn" id="btn-chat" title="Conversacion">&#128172;</button>
+    <button class="top-btn" id="btn-minimize" title="Minimizar">&#9644;</button>
+    <button class="top-btn" id="btn-expand" title="Expandir" style="display:none">&#9650;</button>
+  </div>
+
+  <!-- LEFT PANEL -->
+  <div id="left">
+    <div class="p">
+      <div class="pt"><span>Sistema</span></div>
+      <div class="bars">
+        <div class="bar-label"><span>CPU</span><span id="v-cpu">--</span></div>
+        <div class="bar"><div class="fill" id="f-cpu" style="width:0%"></div></div>
+        <div class="bar-label"><span>RAM</span><span id="v-ram">--</span></div>
+        <div class="bar"><div class="fill" id="f-ram" style="width:0%"></div></div>
+        <div class="bar-label"><span>Disco</span><span id="v-disk">--</span></div>
+        <div class="bar"><div class="fill" id="f-disk" style="width:0%"></div></div>
+      </div>
+    </div>
+    <div class="p">
+      <div class="pt"><span>Estado</span></div>
+      <div id="state-body"><div class="err">cargando...</div></div>
+    </div>
+    <div class="p" style="flex:1;overflow-y:auto">
+      <div class="pt"><span>Log</span></div>
+      <div id="log-feed" class="feed"></div>
+    </div>
+  </div>
+
+  <!-- CENTER — Reactor Arc -->
+  <div id="center" class="p">
+    <canvas id="reactor-canvas"></canvas>
+    <div class="hint">click para mandar una orden</div>
+  </div>
+
+  <!-- RIGHT PANEL -->
+  <div id="right">
+    <div class="p">
+      <div class="pt"><span>MCP Endpoints</span></div>
+      <div class="chips" id="mcp-chips">
+        <div class="chip"><div class="cd f"></div><div class="cl">orchestrator</div></div>
+        <div class="chip"><div class="cd f"></div><div class="cl">guardian</div></div>
+        <div class="chip"><div class="cd f"></div><div class="cl">health</div></div>
+        <div class="chip"><div class="cd f"></div><div class="cl">memory</div></div>
+      </div>
+    </div>
+    <div class="p" style="flex:1;overflow-y:auto">
+      <div class="pt"><span>Mission Control</span></div>
+      <div id="mc-feed" class="feed"><div class="err">cargando...</div></div>
+    </div>
+    <div class="p">
+      <div class="chips">
+        <div class="chip" id="chip-circuit"><div class="cd"></div><div class="cl" id="chip-circuit-t">CIRCUIT OK</div></div>
+        <div class="chip" id="chip-task"><div class="cd"></div><div class="cl" id="chip-task-t">NO TASK</div></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- BOTTOM -->
+  <div id="bottom">
+    <div class="p">
+      <div class="pt"><span>Quick Actions</span></div>
+      <div class="qm-row">
+        <button class="qm-btn" onclick="quickOrder('status del sistema')">Status</button>
+        <button class="qm-btn" onclick="quickOrder('resume daemon')">Resume</button>
+        <button class="qm-btn" onclick="quickOrder('backup del proyecto')">Backup</button>
+      </div>
+    </div>
+    <div class="p">
+      <div class="pt"><span>Ordenes</span></div>
+      <div id="order-bar">
+        <select id="o-level"><option value="chat">Chat</option><option value="agent">Agent</option></select>
+        <input id="order-input" placeholder="Escribe tu orden..." />
+        <button id="order-btn">Enviar</button>
+      </div>
+      <div id="order-result" style="margin-top:4px;font-size:10px;color:var(--dim);max-height:30px;overflow:hidden"></div>
+    </div>
+    <div class="p">
+      <div class="pt"><span>Ollama</span></div>
+      <div id="ollama-info"><div class="err">cargando...</div></div>
+    </div>
+  </div>
+
+</div><!-- /app -->
+
+<script src="/static/app.js"></script>
+</body>
+</html>

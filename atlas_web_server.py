@@ -1,4 +1,4 @@
-﻿#!/usr/bin/env python3
+#!/usr/bin/env python3
 """
 atlas_web_server.py — Dashboard real de Atlas (un solo servidor).
 
@@ -49,6 +49,7 @@ FRICTION_LOG = STATE_DIR / "friction_log.jsonl"
 ORDERS_DIR = STATE_DIR / "orders"
 HB_TASK_DIR = STATE_DIR / "task_heartbeat"
 CONFIRM_DIR = STATE_DIR / "confirmaciones"
+DASHBOARD_CONFIG = STATE_DIR / "dashboard_config.json"
 UI_CONFIG = STATE_DIR / "ui_config.json"
 
 for d in (ORDERS_DIR, HB_TASK_DIR, CONFIRM_DIR):
@@ -474,9 +475,24 @@ def _pending_confirmations() -> list:
 
 
 # --- DASH v3: Adaptadores externos ---
+def _get_dash_config() -> dict:
+    if DASHBOARD_CONFIG.exists():
+        try:
+            return json.loads(DASHBOARD_CONFIG.read_text(encoding="utf-8"))
+        except Exception:
+            pass
+    return {}
+
+def _set_dash_config(cfg: dict):
+    tmp = DASHBOARD_CONFIG.with_suffix(".tmp")
+    tmp.write_text(json.dumps(cfg, ensure_ascii=False, indent=2), encoding="utf-8")
+    tmp.replace(DASHBOARD_CONFIG)
+
 def _fetch_mercado() -> dict:
-    """stooq (bonds, S&P500) + CoinGecko (BTC)."""
-    data = {"bonds": None, "sp500": None, "btc": None, "ts": None}
+    """stooq (S&P500) + CoinGecko (BTC) + watchlist configurable."""
+    cfg = _get_dash_config()
+    watchlist = cfg.get("watchlist", ["bitcoin", "sp500", "bonds"])
+    data = {"bonds": None, "sp500": None, "btc": None, "ts": None, "watchlist": watchlist, "assets": {}}
     try:
         req = urllib.request.Request(
             "https://stooq.com/q/l/?s=^spx&f=sd2t2ohlcv&h&e=csv",
@@ -506,12 +522,13 @@ def _fetch_mercado() -> dict:
 
 
 def _fetch_noticias(sources: list = None) -> dict:
-    """RSS xml.etree desde fuentes configuradas en ui_config."""
+    """RSS xml.etree desde fuentes configuradas en dashboard_config."""
     if not sources:
-        sources = [
+        cfg = _get_dash_config()
+        sources = cfg.get("rss_sources", [
             "https://feeds.bbci.co.uk/news/technology/rss.xml",
             "https://rss.nytimes.com/services/xml/rss/nyt/Technology.xml",
-        ]
+        ])
     items = []
     for url in sources[:3]:
         try:
@@ -535,24 +552,63 @@ def _fetch_noticias(sources: list = None) -> dict:
     return {"items": items[:10], "count": len(items)}
 
 
-def _fetch_clima() -> dict:
-    """open-meteo: temp, humedad, viento."""
+def _get_city_coords(city: str = "") -> tuple:
+    """Geocoding via open-meteo. Devuelve (lat, lon, tz) o default Medellín."""
+    if not city:
+        city = "Medellin"
     try:
+        url = f"https://geocoding-api.open-meteo.com/v1/search?name={urllib.parse.quote(city)}&count=1&language=es"
+        req = urllib.request.Request(url, headers={"User-Agent": "Atlas/1.0"})
+        with urllib.request.urlopen(req, timeout=8) as r:
+            data = json.loads(r.read())
+        results = data.get("results", [])
+        if results:
+            rr = results[0]
+            return (rr.get("latitude", 6.25), rr.get("longitude", -75.56),
+                    rr.get("timezone", "America/Bogota"), rr.get("name", city))
+    except Exception:
+        pass
+    return (6.25, -75.56, "America/Bogota", "Medellin")
+
+
+def _fetch_clima() -> dict:
+    """open-meteo: temp, humedad, viento + forecast 7 días."""
+    try:
+        conn = _db()
+        try:
+            row = conn.execute("SELECT value FROM preferences WHERE key='ciudad' LIMIT 1").fetchone()
+            city = row["value"] if row else ""
+        finally:
+            conn.close()
+        lat, lon, tz, city_name = _get_city_coords(city)
         req = urllib.request.Request(
-            "https://api.open-meteo.com/v1/forecast?latitude=6.25&longitude=-75.56"
-            "&current=temperature_2m,relative_humidity_2m,wind_speed_10m,weather_code"
-            "&timezone=America/Bogota",
+            f"https://api.open-meteo.com/v1/forecast?latitude={lat}&longitude={lon}"
+            f"&current=temperature_2m,relative_humidity_2m,wind_speed_10m,weather_code"
+            f"&daily=weather_code,temperature_2m_max,temperature_2m_min"
+            f"&timezone={urllib.parse.quote(tz)}",
             headers={"User-Agent": "Atlas/1.0"},
         )
         with urllib.request.urlopen(req, timeout=10) as r:
             data = json.loads(r.read())
         cur = data.get("current", {})
+        daily = data.get("daily", {})
+        forecast = []
+        dates = daily.get("time", [])
+        for i in range(min(len(dates), 7)):
+            forecast.append({
+                "date": dates[i],
+                "weather_code": daily.get("weather_code", [None])[i] if i < len(daily.get("weather_code", [])) else None,
+                "t_max": daily.get("temperature_2m_max", [None])[i] if i < len(daily.get("temperature_2m_max", [])) else None,
+                "t_min": daily.get("temperature_2m_min", [None])[i] if i < len(daily.get("temperature_2m_min", [])) else None,
+            })
         return {
             "temperature": cur.get("temperature_2m"),
             "humidity": cur.get("relative_humidity_2m"),
             "wind_speed": cur.get("wind_speed_10m"),
             "weather_code": cur.get("weather_code"),
             "timezone": data.get("timezone"),
+            "city": city_name,
+            "forecast": forecast,
             "ts": datetime.now(timezone.utc).isoformat(timespec="seconds"),
         }
     except Exception as e:
@@ -843,6 +899,74 @@ class _Handler(BaseHTTPRequestHandler):
             elif path == "/api/ui_config":
                 result = api_ui_config_write(data)
                 self._json_response(result, 200 if result.get("ok") else 400)
+            elif path == "/api/dashboard_config":
+                current = _get_dash_config()
+                current.update(data)
+                _set_dash_config(current)
+                self._json_response({"ok": True, "config": current})
+            elif path == "/api/clima/city":
+                city = data.get("city", "").strip()
+                if city:
+                    sys.path.insert(0, str(ROOT))
+                    conn = _db()
+                    try:
+                        now = datetime.now(timezone.utc).isoformat(timespec="seconds")
+                        conn.execute("INSERT OR REPLACE INTO preferences (key,value,scope,project,updated) VALUES (?,?,?,?,?)",
+                                     ("ciudad", city, "global", "global", now))
+                        conn.commit()
+                    finally:
+                        conn.close()
+                    _prov_cache.pop("clima", None)
+                    self._json_response({"ok": True, "city": city})
+                else:
+                    self._json_response({"ok": False, "error": "ciudad vacía"}, 400)
+            elif path == "/api/mercado/watchlist":
+                action = data.get("action", "")
+                asset = data.get("asset", "").strip().lower()
+                if not asset:
+                    self._json_response({"ok": False, "error": "asset vacío"}, 400)
+                    return
+                cfg = _get_dash_config()
+                wl = cfg.get("watchlist", ["bitcoin", "sp500"])
+                if action == "add" and asset not in wl:
+                    wl.append(asset)
+                elif action == "remove" and asset in wl:
+                    wl.remove(asset)
+                else:
+                    self._json_response({"ok": False, "error": f"acción '{action}' inválida"}, 400)
+                    return
+                cfg["watchlist"] = wl
+                _set_dash_config(cfg)
+                self._json_response({"ok": True, "watchlist": wl})
+            elif path == "/api/noticias/sources":
+                action = data.get("action", "")
+                url = data.get("url", "").strip()
+                if not url:
+                    self._json_response({"ok": False, "error": "url vacía"}, 400)
+                    return
+                cfg = _get_dash_config()
+                srcs = cfg.get("rss_sources", [
+                    "https://feeds.bbci.co.uk/news/technology/rss.xml",
+                    "https://rss.nytimes.com/services/xml/rss/nyt/Technology.xml",
+                ])
+                if action == "add" and url not in srcs:
+                    srcs.append(url)
+                elif action == "remove" and url in srcs:
+                    srcs.remove(url)
+                else:
+                    self._json_response({"ok": False, "error": f"acción '{action}' inválida"}, 400)
+                    return
+                cfg["rss_sources"] = srcs
+                _set_dash_config(cfg)
+                self._json_response({"ok": True, "sources": srcs})
+            elif path == "/api/chat":
+                texto = data.get("texto", "").strip()
+                if not texto:
+                    self._json_response({"ok": False, "error": "texto vacío"}, 400)
+                    return
+                result = api_orden_create(texto, data.get("prioridad", "normal"))
+                self._json_response({"ok": True, "order_id": result.get("order_id"),
+                                     "nivel": result.get("nivel"), "preview": result.get("preview")})
             else:
                 self._json_response({"error": "not found"}, 404)
         except Exception as e:
@@ -949,6 +1073,8 @@ class _Handler(BaseHTTPRequestHandler):
                 self._json_response(out)
             elif path == "/api/ui_config":
                 self._json_response(api_ui_config_read())
+            elif path == "/api/dashboard_config":
+                self._json_response(_get_dash_config())
             elif path.startswith("/api/task_heartbeat/"):
                 task_id = path.split("/")[-1]
                 hb_path = HB_TASK_DIR / f"{task_id}.json"
@@ -965,6 +1091,13 @@ class _Handler(BaseHTTPRequestHandler):
                     self._json_response({"error": "no encontrada"}, 404)
             elif path.startswith("/informe/"):
                 self._serve_informe(path)
+            elif path.startswith("/api/orden/"):
+                order_id = path.split("/")[-1]
+                op = ORDERS_DIR / f"{order_id}.json"
+                if op.exists():
+                    self._json_response(json.loads(op.read_text(encoding="utf-8")))
+                else:
+                    self._json_response({"error": "orden no encontrada"}, 404)
             else:
                 self._json_response({"error": "not found", "debug": "v3-else",
                                       "routes": ["/", "/api/overview", "/api/top-apps",

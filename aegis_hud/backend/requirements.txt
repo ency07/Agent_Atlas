@@ -1,0 +1,17 @@
+# AEGIS-JARVIS Backend Dependencies
+# Instalar con: pip install -r requirements.txt
+# Requiere Python 3.11+
+
+# Web framework
+fastapi>=0.111.0
+uvicorn[standard]>=0.30.1
+pydantic>=2.7.4
+
+# HTTP client (Ollama API, MCP calls)
+requests>=2.32.3
+
+# System metrics (health endpoint)
+psutil>=5.9.8
+
+# Environment management
+python-dotenv>=1.0.1

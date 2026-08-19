@@ -1,0 +1,12 @@
+{
+  "orchestrator": "http://localhost:20128",
+  "guardian": "http://localhost:20129",
+  "health": "http://localhost:20130",
+  "foco": "http://localhost:20131",
+  "search": "http://localhost:20132",
+  "memory": "http://localhost:20133",
+  "corel_draw": "http://localhost:20134",
+  "playwright": "http://localhost:20135",
+  "windows": "http://localhost:20136",
+  "supabase": "http://localhost:20137"
+}

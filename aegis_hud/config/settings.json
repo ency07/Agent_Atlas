@@ -1,0 +1,57 @@
+{
+  "bridge_url": "http://127.0.0.1:8765",
+  "poll_interval_ms": 5000,
+  "theme": {
+    "bg_primary": "#0a1424",
+    "bg_secondary": "#060b16",
+    "glass_bg": "rgba(140,190,255,.07)",
+    "glass_border": "rgba(140,200,255,.22)",
+    "accent": "#59c8ff",
+    "accent_bright": "#5ad7ff",
+    "text": "#eaf6ff",
+    "text_dim": "#8fb3cc",
+    "success": "#5cf0c8",
+    "warning": "#ffc857",
+    "error": "#ff5d5d",
+    "glass_blur": 12,
+    "glass_opacity": 0.85,
+    "border_radius": 14
+  },
+  "reactor": {
+    "idle_color": "#59c8ff",
+    "processing_color": "#ffc857",
+    "error_color": "#ff5d5d",
+    "idle_speed": 0.0015,
+    "processing_speed": 0.006,
+    "particle_count": 600
+  },
+  "models": {
+    "chat": "qwen2.5:1.5b",
+    "agent": "qwen2.5:1.5b",
+    "router": "qwen2.5:1.5b"
+  },
+  "guardian": {
+    "level": "guard",
+    "max_errors": 3
+  },
+  "foco": {
+    "mode": "soft",
+    "budget_productive_pct": 70
+  },
+  "voice": {
+    "enabled": false,
+    "stt_model": "base",
+    "tts_voice": "es_ES/davefx-medium",
+    "clap_threshold": 0.6,
+    "language": "es"
+  },
+  "notifications": {
+    "enabled": true,
+    "toast_duration_ms": 5000,
+    "max_visible": 3
+  },
+  "rss_sources": [
+    "https://feeds.bbci.co.uk/news/technology/rss.xml",
+    "https://rss.nytimes.com/services/xml/rss/nyt/Technology.xml"
+  ]
+}
